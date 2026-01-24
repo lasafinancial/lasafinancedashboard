@@ -1,0 +1,8 @@
+{
+  "model": { "bullish": 52, "bearish": 48, "neutral": 0 },
+  "balance": { "above": 55, "below": 45 },
+  "momentum": { "bullish": 42, "bearish": 58 },
+  "sr": { "atSupport": 25, "atResistance": 18, "neutral": 0 },
+  "reversal": { "up": 35, "down": 28, "neutral": 37 },
+  "lastUpdate": "Fallback Data"
+}

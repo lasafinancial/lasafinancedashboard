@@ -1,0 +1,26 @@
+{
+  "topGainers": [
+    {"id": "BAIDFIN", "stockName": "BAIDFIN", "changePercent": 0.14, "closePrice": 11.42},
+    {"id": "DBOL", "stockName": "DBOL", "changePercent": 0.13, "closePrice": 91.49},
+    {"id": "TANLA", "stockName": "TANLA", "changePercent": 0.12, "closePrice": 500},
+    {"id": "JPOLYINVST", "stockName": "JPOLYINVST", "changePercent": 0.10, "closePrice": 981.8},
+    {"id": "TATSILV", "stockName": "TATSILV", "changePercent": 0.09, "closePrice": 30.86},
+    {"id": "MINDTECK", "stockName": "MINDTECK", "changePercent": 0.09, "closePrice": 226.6},
+    {"id": "SILVERBEES", "stockName": "SILVERBEES", "changePercent": 0.08, "closePrice": 299.12},
+    {"id": "HDFCSILVER", "stockName": "HDFCSILVER", "changePercent": 0.08, "closePrice": 301.03},
+    {"id": "NAGREEKCAP", "stockName": "NAGREEKCAP", "changePercent": 0.07, "closePrice": 27.8},
+    {"id": "SAGARDEEP", "stockName": "SAGARDEEP", "changePercent": 0.07, "closePrice": 26.42}
+  ],
+  "topLosers": [
+    {"id": "BGLOBAL", "stockName": "BGLOBAL", "changePercent": -0.05, "closePrice": 3.23},
+    {"id": "AUSOMENT", "stockName": "AUSOMENT", "changePercent": -0.05, "closePrice": 132.84},
+    {"id": "MANAKALUCO", "stockName": "MANAKALUCO", "changePercent": -0.05, "closePrice": 52.86},
+    {"id": "RELINFRA", "stockName": "RELINFRA", "changePercent": -0.05, "closePrice": 141.09},
+    {"id": "TCIFINANCE", "stockName": "TCIFINANCE", "changePercent": -0.05, "closePrice": 21.96},
+    {"id": "MANGALAM", "stockName": "MANGALAM", "changePercent": -0.05, "closePrice": 44.43},
+    {"id": "MARSHALL", "stockName": "MARSHALL", "changePercent": -0.05, "closePrice": 3.64},
+    {"id": "UNIVAFOODS", "stockName": "UNIVAFOODS", "changePercent": -0.05, "closePrice": 11.62},
+    {"id": "ORTEL", "stockName": "ORTEL", "changePercent": -0.05, "closePrice": 1.4},
+    {"id": "SUPREMEENG", "stockName": "SUPREMEENG", "changePercent": -0.05, "closePrice": 1.4}
+  ]
+}

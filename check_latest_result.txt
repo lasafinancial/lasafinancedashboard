@@ -1,0 +1,13 @@
+DATE column index: 0
+STOCK_NAME column index: 3
+RESISTANCE_SLOPE_DOWNWARD column index: 165
+Unique dates in lasa-master: 52
+Sample dates: 2025-12-16, 2026-01-20, 2026-01-19, 2026-01-07, 2025-12-24
+Last dates: 2026-01-09, 2026-01-12, 2026-01-13, 2026-01-14, 2026-01-21
+Latest date: 2026-01-21
+Stocks on latest date: 524
+TRUE on latest date: 232
+FALSE on latest date: 293
+
+Matching latest date with stock_data.json:
+TRUE: 232, FALSE: 292, No match: 20
