@@ -40,6 +40,11 @@ indexData.forEach((stock: any) => {
   });
 });
 
+// Ensure INDEX always exists even if empty
+if (!derivedIndexSectorData.INDEX) {
+  derivedIndexSectorData.INDEX = [];
+}
+
 export { derivedIndexSectorData as indexSectorData };
 
 // Export stocks list

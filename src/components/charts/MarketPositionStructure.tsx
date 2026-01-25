@@ -69,7 +69,7 @@ function IndicatorBar({ label, leftLabel, rightLabel, leftValue, rightValue, ico
 export default function MarketPositionStructure() {
   const { data, isLoading } = useMarketPosition();
 
-  if (isLoading) {
+  if (isLoading || !data) {
     return (
       <div className="h-full flex flex-col">
         <div className="flex justify-between items-center mb-6">

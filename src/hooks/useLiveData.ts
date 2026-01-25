@@ -1,21 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  fetchLiveStockData,
-  fetchLiveMarketMood,
-  fetchLiveMarketStrength,
-  fetchLiveTopMovers,
-  fetchMarketPositionData,
-  subscribeToDataRefresh,
-  startAutoRefresh,
-  getLastRefreshTime,
-  getCachedStockData,
-  getCachedMarketMood,
-  getCachedMarketStrength,
-  getCachedTopMovers,
-  getCachedMarketPosition,
+  subscribeToData,
   refreshAllData,
   TopMoversData,
-  MarketPositionData
+  MarketPositionData,
+  GoogleSheetsData
 } from '../lib/googleSheetsService';
 
 import staticStockData from '../data/processed/stock_data.json';
@@ -28,158 +17,83 @@ export function useLiveData() {
   const [stockData, setStockData] = useState<any[]>(staticStockData);
   const [marketMood, setMarketMood] = useState<any>(staticMarketMood);
   const [marketStrength, setMarketStrength] = useState<any[]>(staticMarketStrength);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const updateDataFromCache = useCallback(() => {
-    const cachedStock = getCachedStockData();
-    const cachedMood = getCachedMarketMood();
-    const cachedStrength = getCachedMarketStrength();
-    const refreshTime = getLastRefreshTime();
-
-    if (cachedStock) setStockData(cachedStock);
-    if (cachedMood) setMarketMood(cachedMood);
-    if (cachedStrength) setMarketStrength(cachedStrength);
-    if (refreshTime) setLastRefresh(refreshTime);
-  }, []);
-
-  const manualRefresh = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await refreshAllData();
-      updateDataFromCache();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [updateDataFromCache]);
+  const [topMovers, setTopMovers] = useState<TopMoversData>(staticTopMovers as unknown as TopMoversData);
+  const [marketPosition, setMarketPosition] = useState<MarketPositionData | null>(staticMarketPosition as unknown as MarketPositionData);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
 
   useEffect(() => {
-    startAutoRefresh();
+    const unsubscribe = subscribeToData((data: GoogleSheetsData) => {
+      setStockData(data.stockData);
+      setMarketMood(data.marketMood);
+      setMarketStrength(data.marketStrength);
+      setTopMovers(data.topMovers);
+      setMarketPosition(data.marketPosition);
+      setLastUpdate(new Date().toLocaleTimeString());
+      setIsLoading(false);
+    });
 
-    const unsubscribe = subscribeToDataRefresh(() => {
-      updateDataFromCache();
+    refreshAllData().finally(() => {
+      setIsLoading(false);
     });
 
     return () => {
       unsubscribe();
     };
-  }, [updateDataFromCache]);
+  }, []);
 
   return {
     stockData,
     marketMood,
     marketStrength,
-    lastRefresh,
+    topMovers,
+    marketPosition,
     isLoading,
-    error,
-    manualRefresh
+    lastUpdate,
+    refresh: refreshAllData
   };
 }
 
-export function useStockData() {
-  const [data, setData] = useState<any[]>(staticStockData);
-
-  useEffect(() => {
-    const unsubscribe = subscribeToDataRefresh(() => {
-      const cached = getCachedStockData();
-      if (cached) setData(cached);
-    });
-
-    fetchLiveStockData().then(setData).catch(() => {});
-
-    return unsubscribe;
-  }, []);
-
-  return data;
-}
-
-export function useMarketMood() {
-  const [data, setData] = useState<any>(staticMarketMood);
-
-  useEffect(() => {
-    const unsubscribe = subscribeToDataRefresh(() => {
-      const cached = getCachedMarketMood();
-      if (cached) setData(cached);
-    });
-
-    fetchLiveMarketMood().then(setData).catch(() => {});
-
-    return unsubscribe;
-  }, []);
-
-  return data;
-}
-
-export function useMarketStrength() {
-  const [data, setData] = useState<any[]>(staticMarketStrength);
-
-  useEffect(() => {
-    const unsubscribe = subscribeToDataRefresh(() => {
-      const cached = getCachedMarketStrength();
-      if (cached) setData(cached);
-    });
-
-    fetchLiveMarketStrength().then(setData).catch(() => {});
-
-    return unsubscribe;
-  }, []);
-
-  return data;
-}
-
 export function useTopMovers() {
-  const [data, setData] = useState<TopMoversData>(staticTopMovers as TopMoversData);
+  const [topMovers, setTopMovers] = useState<TopMoversData>(staticTopMovers as unknown as TopMoversData);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = subscribeToDataRefresh(() => {
-      const cached = getCachedTopMovers();
-      if (cached) setData(cached);
+    const unsubscribe = subscribeToData((data: GoogleSheetsData) => {
+      setTopMovers(data.topMovers);
+      setIsLoading(false);
     });
 
-    fetchLiveTopMovers().then(result => {
-      if (result.topGainers.length > 0 || result.topLosers.length > 0) {
-        setData(result);
-      }
-    }).catch(() => {});
+    refreshAllData().finally(() => {
+      setIsLoading(false);
+    });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  return data;
+  return { topMovers, isLoading };
 }
 
 export function useMarketPosition() {
-  const [data, setData] = useState<MarketPositionData>(() => {
-    return getCachedMarketPosition() || (staticMarketPosition as MarketPositionData);
-  });
-  const [isLoading, setIsLoading] = useState(!getCachedMarketPosition());
+  const [marketPosition, setMarketPosition] = useState<MarketPositionData | null>(staticMarketPosition as unknown as MarketPositionData);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = subscribeToDataRefresh(() => {
-      const cached = getCachedMarketPosition();
-      if (cached) setData(cached);
+    const unsubscribe = subscribeToData((data: GoogleSheetsData) => {
+      setMarketPosition(data.marketPosition);
+      setIsLoading(false);
     });
 
-    if (!getCachedMarketPosition()) {
-      fetchMarketPositionData()
-        .then(result => {
-          setData(result);
-          setIsLoading(false);
-        })
-        .catch(() => {
-          setData(staticMarketPosition as MarketPositionData);
-          setIsLoading(false);
-        });
-    } else {
+    refreshAllData().finally(() => {
       setIsLoading(false);
-    }
+    });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  return { data, isLoading };
+  return { data: marketPosition, isLoading };
 }

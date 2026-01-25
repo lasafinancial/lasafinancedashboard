@@ -1,18 +1,5 @@
 [
   {
-    "date": "18th Jun",
-    "rsi": 49.49,
-    "ml_higher": 63,
-    "ml_lower": 36,
-    "fg_above": 7.5,
-    "fg_below": 35,
-    "fg_net": -27.5,
-    "nifty50_close": 24824.6,
-    "total_score": 6,
-    "ml_threshold": 90,
-    "momentum_oscillator": 49.49
-  },
-  {
     "date": "19th Jun",
     "rsi": 36.66,
     "ml_higher": 67,
@@ -1688,5 +1675,18 @@
     "total_score": 4,
     "ml_threshold": 90,
     "momentum_oscillator": 17
+  },
+  {
+    "date": "23rd Jan",
+    "rsi": 11,
+    "ml_higher": 77,
+    "ml_lower": 22,
+    "fg_above": 17,
+    "fg_below": 5,
+    "fg_net": 12,
+    "nifty50_close": 25195.65,
+    "total_score": 5,
+    "ml_threshold": 90,
+    "momentum_oscillator": 11
   }
 ]

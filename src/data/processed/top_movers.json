@@ -1,26 +1,126 @@
 {
   "topGainers": [
-    {"id": "BAIDFIN", "stockName": "BAIDFIN", "changePercent": 0.14, "closePrice": 11.42},
-    {"id": "DBOL", "stockName": "DBOL", "changePercent": 0.13, "closePrice": 91.49},
-    {"id": "TANLA", "stockName": "TANLA", "changePercent": 0.12, "closePrice": 500},
-    {"id": "JPOLYINVST", "stockName": "JPOLYINVST", "changePercent": 0.10, "closePrice": 981.8},
-    {"id": "TATSILV", "stockName": "TATSILV", "changePercent": 0.09, "closePrice": 30.86},
-    {"id": "MINDTECK", "stockName": "MINDTECK", "changePercent": 0.09, "closePrice": 226.6},
-    {"id": "SILVERBEES", "stockName": "SILVERBEES", "changePercent": 0.08, "closePrice": 299.12},
-    {"id": "HDFCSILVER", "stockName": "HDFCSILVER", "changePercent": 0.08, "closePrice": 301.03},
-    {"id": "NAGREEKCAP", "stockName": "NAGREEKCAP", "changePercent": 0.07, "closePrice": 27.8},
-    {"id": "SAGARDEEP", "stockName": "SAGARDEEP", "changePercent": 0.07, "closePrice": 26.42}
+    {
+      "id": "DBOL",
+      "stockName": "Dhampur Bio Organics Limited",
+      "changePercent": 0.2,
+      "closePrice": 95.76
+    },
+    {
+      "id": "EKC",
+      "stockName": "Everest Kanto Cylinder Limited",
+      "changePercent": 0.1273,
+      "closePrice": 114
+    },
+    {
+      "id": "BAIDFIN",
+      "stockName": "Baid Finserv Limited",
+      "changePercent": 0.1184,
+      "closePrice": 11.24
+    },
+    {
+      "id": "AWHCL",
+      "stockName": "Antony Waste Handling Cell Limited",
+      "changePercent": 0.1164,
+      "closePrice": 560
+    },
+    {
+      "id": "CONSOFINVT",
+      "stockName": "Consolidated Finvest & Holdings Limited",
+      "changePercent": 0.1008,
+      "closePrice": 168.88
+    },
+    {
+      "id": "BCONCEPTS",
+      "stockName": "Brand Concepts Limited",
+      "changePercent": 0.0927,
+      "closePrice": 299.85
+    },
+    {
+      "id": "KITEX",
+      "stockName": "Kitex Garments Limited",
+      "changePercent": 0.0854,
+      "closePrice": 164
+    },
+    {
+      "id": "BTML",
+      "stockName": "Bodhi Tree Multimedia Limited",
+      "changePercent": 0.0811,
+      "closePrice": 8.4
+    },
+    {
+      "id": "NKIND",
+      "stockName": "NK Industries Limited",
+      "changePercent": 0.0712,
+      "closePrice": 64.4
+    },
+    {
+      "id": "JPOLYINVST",
+      "stockName": "Jindal Poly Investment and Finance Company Limited",
+      "changePercent": 0.0641,
+      "closePrice": 956
+    }
   ],
   "topLosers": [
-    {"id": "BGLOBAL", "stockName": "BGLOBAL", "changePercent": -0.05, "closePrice": 3.23},
-    {"id": "AUSOMENT", "stockName": "AUSOMENT", "changePercent": -0.05, "closePrice": 132.84},
-    {"id": "MANAKALUCO", "stockName": "MANAKALUCO", "changePercent": -0.05, "closePrice": 52.86},
-    {"id": "RELINFRA", "stockName": "RELINFRA", "changePercent": -0.05, "closePrice": 141.09},
-    {"id": "TCIFINANCE", "stockName": "TCIFINANCE", "changePercent": -0.05, "closePrice": 21.96},
-    {"id": "MANGALAM", "stockName": "MANGALAM", "changePercent": -0.05, "closePrice": 44.43},
-    {"id": "MARSHALL", "stockName": "MARSHALL", "changePercent": -0.05, "closePrice": 3.64},
-    {"id": "UNIVAFOODS", "stockName": "UNIVAFOODS", "changePercent": -0.05, "closePrice": 11.62},
-    {"id": "ORTEL", "stockName": "ORTEL", "changePercent": -0.05, "closePrice": 1.4},
-    {"id": "SUPREMEENG", "stockName": "SUPREMEENG", "changePercent": -0.05, "closePrice": 1.4}
+    {
+      "id": "ADANIGREEN",
+      "stockName": "Adani Green Energy Limited",
+      "changePercent": -0.1381,
+      "closePrice": 779.4
+    },
+    {
+      "id": "SIMPLEXINF",
+      "stockName": "Simplex Infrastructures Limited",
+      "changePercent": -0.1087,
+      "closePrice": 191
+    },
+    {
+      "id": "ADANIENT",
+      "stockName": "Adani Enterprises Limited",
+      "changePercent": -0.1076,
+      "closePrice": 1861.8
+    },
+    {
+      "id": "ADANIENSOL",
+      "stockName": "Adani Energy Solutions Limited",
+      "changePercent": -0.1071,
+      "closePrice": 825.8
+    },
+    {
+      "id": "HGINFRA",
+      "stockName": "H.G. Infra Engineering Limited",
+      "changePercent": -0.1009,
+      "closePrice": 596.1
+    },
+    {
+      "id": "TATVA",
+      "stockName": "Tatva Chintan Pharma Chem Limited",
+      "changePercent": -0.0985,
+      "closePrice": 1147.8
+    },
+    {
+      "id": "SPENCERS",
+      "stockName": "Spencer's Retail Limited",
+      "changePercent": -0.0983,
+      "closePrice": 31.65
+    },
+    {
+      "id": "INFOBEAN",
+      "stockName": "InfoBeans Technologies Limited",
+      "changePercent": -0.0958,
+      "closePrice": 808.95
+    },
+    {
+      "id": "ASHAPURMIN",
+      "stockName": "Ashapura Minechem Limited",
+      "changePercent": -0.0956,
+      "closePrice": 678.95
+    },
+    {
+      "id": "GOLDTECH",
+      "stockName": "Goldstone Technologies Limited",
+      "changePercent": -0.0955,
+      "closePrice": 41
+    }
   ]
 }

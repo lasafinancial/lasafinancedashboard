@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "bun node_modules/vite/bin/vite.js",
+    "dev:full": "node server.cjs & bun node_modules/vite/bin/vite.js",
+    "server": "node server.cjs",
     "build": "bun node_modules/vite/bin/vite.js build",
     "build:dev": "bun node_modules/vite/bin/vite.js build --mode development",
     "lint": "eslint .",

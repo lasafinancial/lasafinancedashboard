@@ -40,7 +40,7 @@ const MarketDescription = ({ text }: { text: string }) => (
 
 const Dashboard = () => {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
-  const topMovers = useTopMovers();
+  const { topMovers } = useTopMovers();
   
   useEffect(() => {
     const disclaimerAccepted = sessionStorage.getItem('disclaimerAccepted');
@@ -168,7 +168,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Top Movers Section */}
-                {(topMovers.topGainers.length > 0 || topMovers.topLosers.length > 0) && (
+                {topMovers && (topMovers.topGainers?.length > 0 || topMovers.topLosers?.length > 0) && (
                   <div className="mt-8 pt-6 border-t border-white/5">
                     <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">Market Mood Today</h4>
                     <div className="grid grid-cols-2 gap-4">
@@ -188,7 +188,7 @@ const Dashboard = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {topMovers.topGainers.map((stock, i) => (
+                              {topMovers?.topGainers?.map((stock, i) => (
                                 <tr key={stock.id} className="border-t border-white/5 hover:bg-success/5 transition-colors">
                                   <td className="py-1.5 font-medium text-foreground/90">{stock.id}</td>
                                   <td className="py-1.5 text-right font-semibold text-success">+{stock.changePercent.toFixed(2)}%</td>
@@ -216,7 +216,7 @@ const Dashboard = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {topMovers.topLosers.map((stock, i) => (
+                              {topMovers?.topLosers?.map((stock, i) => (
                                 <tr key={stock.id} className="border-t border-white/5 hover:bg-destructive/5 transition-colors">
                                   <td className="py-1.5 font-medium text-foreground/90">{stock.id}</td>
                                   <td className="py-1.5 text-right font-semibold text-destructive">{stock.changePercent.toFixed(2)}%</td>
