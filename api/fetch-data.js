@@ -1,4 +1,4 @@
-const { google } = require('googleapis');
+import { google } from 'googleapis';
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
@@ -306,7 +306,7 @@ async function fetchData() {
   };
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -320,4 +320,4 @@ module.exports = async function handler(req, res) {
     console.error('Error fetching data:', error);
     res.status(500).json({ error: 'Failed to fetch data', message: error.message });
   }
-};
+}

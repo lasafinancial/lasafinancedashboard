@@ -113,9 +113,10 @@ async function fetchData() {
     spreadsheetId: EOD_SHEET_ID,
     range: 'lasa-master!A:FJ',
   });
-  const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
-  
-  const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
+const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
+    console.log(`Total rows fetched from lasa-master: ${lasaMasterData.length}`);
+    
+    const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
   const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
   const latestDate = sortedDates[0];
   console.log(`Latest date in lasa-master: ${latestDate}`);
@@ -207,18 +208,70 @@ async function fetchData() {
     lastUpdate: new Date().toLocaleTimeString()
   };
   
-  console.log('Processing stock history (6 months)...');
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  
-  const history = {};
-  const resistanceSlopeMap = {};
+console.log('Processing stock history (6 months)...');
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+    console.log(`Six months ago cutoff: ${sixMonthsAgo.toISOString()}`);
+    console.log(`Date range in sheet: ${sortedDates[sortedDates.length - 1]} to ${sortedDates[0]}`);
+    console.log(`Total unique dates: ${sortedDates.length}`);
+    
+    console.log(`ALL dates in sheet: ${sortedDates.join(', ')}`);
+    
+    const history = {};
+    const resistanceSlopeMap = {};
 
-  lasaMasterData.forEach(row => {
-    const dateStr = row['DATE'];
-    if (!dateStr) return;
-    const rowDate = new Date(dateStr);
-    if (rowDate < sixMonthsAgo) return;
+    // Helper to parse dates in various formats (YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, etc.)
+    function parseDateFlexible(dateStr) {
+      if (!dateStr) return null;
+      
+      // Try standard ISO format first (YYYY-MM-DD)
+      let date = new Date(dateStr + 'T00:00:00');
+      if (!isNaN(date.getTime())) return date;
+      
+      // Try DD-MM-YYYY or DD/MM/YYYY format
+      const parts = dateStr.split(/[-\/]/);
+      if (parts.length === 3) {
+        const [p1, p2, p3] = parts.map(p => parseInt(p, 10));
+        
+        // If first part > 12, it's likely DD-MM-YYYY
+        if (p1 > 12) {
+          date = new Date(p3, p2 - 1, p1);
+          if (!isNaN(date.getTime())) return date;
+        }
+        
+        // If third part > 31, it's likely MM-DD-YYYY or DD-MM-YYYY
+        if (p3 > 31) {
+          // Try DD-MM-YYYY
+          date = new Date(p3, p2 - 1, p1);
+          if (!isNaN(date.getTime())) return date;
+        }
+      }
+      
+      return null;
+    }
+
+    let parsedCount = 0;
+    let skippedCount = 0;
+    let invalidDateCount = 0;
+
+    lasaMasterData.forEach(row => {
+      const dateStr = row['DATE'];
+      if (!dateStr) return;
+      
+      const rowDate = parseDateFlexible(dateStr);
+      if (!rowDate) {
+        invalidDateCount++;
+        if (invalidDateCount <= 3) console.log(`Invalid date format: "${dateStr}"`);
+        return;
+      }
+      
+      if (rowDate < sixMonthsAgo) {
+        skippedCount++;
+        return;
+      }
+      
+      parsedCount++;
 
     const symbol = row['STOCK_NAME'];
     if (!symbol) return;
@@ -254,6 +307,7 @@ async function fetchData() {
     });
   });
 
+  console.log(`Date parsing stats - Parsed: ${parsedCount}, Skipped (too old): ${skippedCount}, Invalid: ${invalidDateCount}`);
   console.log(`Processed history for ${Object.keys(history).length} stocks.`);
   
   const stockData = Object.keys(history).map(symbol => {

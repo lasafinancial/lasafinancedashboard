@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, TrendingUp, Activity, Layers } from "lucide-react";
+import { Search, TrendingUp, Activity, Layers, TrendingDown, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StockPriceChart from "@/components/charts/StockPriceChart";
 import StockStrengthZone from "@/components/charts/StockStrengthZone";
-import stocksData from "@/data/processed/stock_data.json";
+import { useLiveData } from "@/hooks/useLiveData";
 
 interface HoveredData {
   date: string;
@@ -19,28 +19,25 @@ interface HoveredData {
 const StockAnalysis = () => {
   const [searchParams] = useSearchParams();
   const symbolFromUrl = searchParams.get("symbol");
+  const { stockData: stocksData, isLoading, lastUpdate } = useLiveData();
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStock, setSelectedStock] = useState(() => {
-    if (symbolFromUrl) {
-      const found = stocksData.find(s => s.symbol === symbolFromUrl);
-      return found ? found.symbol : stocksData[0].symbol;
-    }
-    return stocksData[0].symbol;
-  });
+  const [selectedStock, setSelectedStock] = useState<string>("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [hoveredChartData, setHoveredChartData] = useState<HoveredData | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (symbolFromUrl) {
-      const found = stocksData.find(s => s.symbol === symbolFromUrl);
-      if (found) {
-        setSelectedStock(found.symbol);
-        setSearchQuery(found.name);
+    if (stocksData.length > 0 && !selectedStock) {
+      if (symbolFromUrl) {
+        const found = stocksData.find(s => s.symbol === symbolFromUrl);
+        setSelectedStock(found ? found.symbol : stocksData[0].symbol);
+        if (found) setSearchQuery(found.name);
+      } else {
+        setSelectedStock(stocksData[0].symbol);
       }
     }
-  }, [symbolFromUrl]);
+  }, [symbolFromUrl, stocksData, selectedStock]);
 
   const searchSuggestions = searchQuery.length > 0 
     ? stocksData.filter(
@@ -83,6 +80,17 @@ const StockAnalysis = () => {
   const currentStock = stocksData.find((s) => s.symbol === selectedStock);
   const chartData = currentStock?.history || [];
 
+  if (isLoading || stocksData.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading live stock data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Background effects */}
@@ -101,7 +109,8 @@ const StockAnalysis = () => {
             <p className="text-muted-foreground">Historical charts and data from lasa-master</p>
           </div>
           <div className="text-right">
-             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Data Source: lasa-master</p>
+             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Data Source: lasa-master (Live)</p>
+             <p className="text-[10px] font-mono text-primary">Last Updated: {lastUpdate}</p>
           </div>
         </div>
 
