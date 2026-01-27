@@ -19,7 +19,7 @@ const chartConfig = {
   },
   nifty50_normalized: {
     label: "NIFTY 50",
-    color: "#22c55e",
+    color: "#f97316",
   },
 } satisfies ChartConfig;
 
@@ -78,7 +78,7 @@ export default function MarketStrengthMeter({ data }: MarketStrengthMeterProps) 
                 <p className="text-xs text-muted-foreground mb-1">{hoveredData.date}</p>
                 <p className="text-sm font-semibold text-primary">Momentum: {hoveredData.rsi ?? '-'}</p>
                 {hoveredData.nifty50 && (
-                  <p className="text-sm font-semibold text-green-400">NIFTY 50: {hoveredData.nifty50.toLocaleString()}</p>
+                  <p className="text-sm font-semibold text-orange-400">NIFTY 50: {hoveredData.nifty50.toLocaleString()}</p>
                 )}
               </div>
             )}
@@ -138,14 +138,14 @@ export default function MarketStrengthMeter({ data }: MarketStrengthMeterProps) 
               strokeWidth={2}
               name="Momentum"
             />
-            <Line
-              dataKey="nifty50_normalized"
-              type="monotone"
-              stroke="#22c55e"
-              dot={false}
-              strokeWidth={3}
-              name="NIFTY 50"
-            />
+<Line
+                dataKey="nifty50_normalized"
+                type="monotone"
+                stroke="#f97316"
+                dot={false}
+                strokeWidth={3}
+                name="NIFTY 50"
+              />
             <defs>
               <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur stdDeviation="3" result="blur" />
@@ -161,10 +161,10 @@ export default function MarketStrengthMeter({ data }: MarketStrengthMeterProps) 
             <div className="w-4 h-0.5 rounded-sm bg-cyan-400"></div>
             <span className="text-muted-foreground">Momentum (NIFTY 100 RSI)</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-1 rounded-sm bg-green-500"></div>
-            <span className="text-muted-foreground">NIFTY 50 (Normalized)</span>
-          </div>
+<div className="flex items-center gap-2">
+              <div className="w-4 h-1 rounded-sm bg-orange-500"></div>
+              <span className="text-muted-foreground">NIFTY 50 (Normalized)</span>
+            </div>
         </div>
         
           <div className="mt-4 pt-4 border-t border-border/50 space-y-3">

@@ -350,25 +350,35 @@ console.log('Processing stock history (6 months)...');
     });
     const currentData = rowsToObjects(currentRes.data.values);
     
-    const stocks = currentData
-      .filter(row => row['STOCK_NAME'] && row['CHANGE_PERCENT'] !== undefined && row['CHANGE_PERCENT'] !== '')
-      .map(row => ({
-        id: row['ID'] || row['STOCK_NAME'],
-        stockName: row['STOCK_NAME'],
-        changePercent: parseFloat((row['CHANGE_PERCENT'] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
-        closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0,
-        idNum: parseInt(row['ID']) || 9999
-      }))
-      .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice) && s.idNum <= 600);
+      const stocks = currentData
+        .filter(row => row['STOCK_NAME'] && row['CHANGE_PERCENT'] !== undefined && row['CHANGE_PERCENT'] !== '')
+        .map(row => {
+          const idValue = row['ID'] || row['STOCK_NAME'];
+          const parsedId = parseInt(row['ID']);
+          return {
+            id: idValue,
+            stockName: row['STOCK_NAME'],
+            changePercent: parseFloat((row['CHANGE_PERCENT'] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
+            closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0,
+            idNum: !isNaN(parsedId) ? parsedId : null
+          };
+        })
+        .filter(s => {
+          const isValid = !isNaN(s.changePercent) && !isNaN(s.closePrice);
+          // If idNum is a number, we can filter by it (e.g. top 600). 
+          // If it's not a number (like "ADANIENT"), we allow it to be included.
+          const passesUniverseFilter = s.idNum === null || s.idNum <= 600;
+          return isValid && passesUniverseFilter;
+        });
     
     const sortedByChange = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
     
-    topMovers = {
-      topGainers: sortedByChange.filter(s => s.changePercent > 0).slice(0, 10),
-      topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
-    };
-    console.log(`Top Movers: ${topMovers.topGainers.length} gainers, ${topMovers.topLosers.length} losers.`);
-  } catch (err) {
+      topMovers = {
+        topGainers: sortedByChange.filter(s => s.changePercent > 0).slice(0, 10),
+        topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
+      };
+      console.log(`Top Movers: ${topMovers.topGainers.length} gainers, ${topMovers.topLosers.length} losers.`);
+    } catch (err) {
     console.warn('Could not fetch top movers from current tab:', err.message);
   }
   

@@ -6,7 +6,7 @@ import {
   ChartContainer,
 } from "@/components/ui/line-chart";
 import { Scale, TrendingUp, TrendingDown, Minus, Info, AlertTriangle, CheckCircle } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 interface MarketBalanceIndicatorProps {
   data: any[];
@@ -46,6 +46,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
   export default function MarketBalanceIndicator({ data }: MarketBalanceIndicatorProps) {
+    const [hoveredData, setHoveredData] = useState<{ fg_above: number; fg_below: number } | null>(null);
+    
     const chartData = useMemo(() => {
       return data.filter(item => item.date).map(item => ({
         ...item,
@@ -59,8 +61,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const fgBelow = latest?.fg_below || 0;
     const fgNet = fgAbove - fgBelow;
     
-    const isBullish = fgAbove > 20;
+    const isBullish = fgAbove > 15;
     const isBearish = fgBelow > fgAbove;
+    
+    const displayAbove = hoveredData?.fg_above ?? fgAbove;
+    const displayBelow = hoveredData?.fg_below ?? fgBelow;
+    const isDisplayBullish = displayAbove > 15;
+    const isDisplayBearish = displayBelow > displayAbove;
     const verdict = isBullish ? "BULLISH" : isBearish ? "BEARISH" : "NEUTRAL";
   const verdictColor = verdict === "BULLISH" ? "text-success" : verdict === "BEARISH" ? "text-destructive" : "text-warning";
   const VerdictIcon = verdict === "BULLISH" ? TrendingUp : verdict === "BEARISH" ? TrendingDown : Minus;
@@ -90,6 +97,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                   <ComposedChart
                     data={chartData}
                     margin={{ left: -25, right: 5, top: 5, bottom: 0 }}
+                    onMouseMove={(state: any) => {
+                      if (state?.activePayload?.length) {
+                        const payload = state.activePayload[0]?.payload;
+                        if (payload) {
+                          setHoveredData({ fg_above: payload.fg_above, fg_below: payload.fg_below });
+                        }
+                      }
+                    }}
+                    onMouseLeave={() => setHoveredData(null)}
                   >
                     <defs>
                       <linearGradient id="greenAreaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -174,10 +190,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                       <span className="font-semibold text-muted-foreground/90">Market Balance</span> shows where the market is accepting prices by tracking how many stocks are finding balance at <span className="font-semibold text-white/90">higher levels</span> versus <span className="font-semibold text-white/90">lower levels</span>.
                     </p>
                     <ul className="text-[11px] max-sm:text-[10px] text-muted-foreground/70 leading-relaxed space-y-2">
-                      <li>
-                        <span className="font-semibold text-success">Balance Above &gt; 20:</span> Historically, when a higher number of stocks find balance at <span className="font-semibold text-white/80">higher prices</span>, it signals strong acceptance by the market. The probability of <span className="text-success">upside continuation is higher than downside</span>, making long positions a favourable approach.
+                      <li className={`p-2 rounded transition-all duration-300 ${isDisplayBullish ? 'bg-success/10 border-l-2 border-success' : ''}`}>
+                        <span className="font-semibold text-success">Balance Above &gt; 15:</span> Historically, when a higher number of stocks find balance at <span className="font-semibold text-white/80">higher prices</span>, it signals strong acceptance by the market. The probability of <span className="text-success">upside continuation is higher than downside</span>, making long positions a favourable approach.
                       </li>
-                      <li>
+                      <li className={`p-2 rounded transition-all duration-300 ${isDisplayBearish ? 'bg-destructive/10 border-l-2 border-destructive' : ''}`}>
                         <span className="font-semibold text-destructive">Balance Below &gt; Balance Above:</span> When more stocks find balance at <span className="font-semibold text-white/80">lower prices</span>, it indicates weakening acceptance at higher levels. Traders are advised to stay cautious, as the market may <span className="font-semibold text-white/80">correct or experience a pullback</span>.
                       </li>
                     </ul>
@@ -189,15 +205,25 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
             <div className="w-full flex flex-col gap-3">
               <div className="grid grid-cols-2 gap-3 max-sm:gap-2">
-                <div className="p-3 max-sm:p-2 rounded-lg bg-success/5 border border-success/20 text-center">
-                  <div className="text-[10px] max-sm:text-[9px] font-bold text-success/70 uppercase mb-1">Above</div>
-                  <div className="text-2xl max-sm:text-xl font-black text-success">{fgAbove}</div>
+                  <div className={`p-3 max-sm:p-2 rounded-lg text-center transition-all duration-300 ${
+                    isBullish 
+                      ? 'bg-success/20 border-2 border-success shadow-[0_0_15px_rgba(34,197,94,0.4)] ring-2 ring-success/30' 
+                      : 'bg-success/5 border border-success/20'
+                  }`}>
+                    <div className="text-[10px] max-sm:text-[9px] font-bold text-success/70 uppercase mb-1">Above</div>
+                    <div className={`text-2xl max-sm:text-xl font-black text-success ${isBullish ? 'animate-pulse' : ''}`}>{fgAbove}</div>
+                    {isBullish && <div className="text-[9px] text-success font-semibold mt-1">&gt; 15 Bullish</div>}
+                  </div>
+                  <div className={`p-3 max-sm:p-2 rounded-lg text-center transition-all duration-300 ${
+                    isBearish 
+                      ? 'bg-destructive/20 border-2 border-destructive shadow-[0_0_15px_rgba(239,68,68,0.4)] ring-2 ring-destructive/30' 
+                      : 'bg-destructive/5 border border-destructive/20'
+                  }`}>
+                    <div className="text-[10px] max-sm:text-[9px] font-bold text-destructive/70 uppercase mb-1">Below</div>
+                    <div className={`text-2xl max-sm:text-xl font-black text-destructive ${isBearish ? 'animate-pulse' : ''}`}>{fgBelow}</div>
+                    {isBearish && <div className="text-[9px] text-destructive font-semibold mt-1">&gt; Above Bearish</div>}
+                  </div>
                 </div>
-                <div className="p-3 max-sm:p-2 rounded-lg bg-destructive/5 border border-destructive/20 text-center">
-                  <div className="text-[10px] max-sm:text-[9px] font-bold text-destructive/70 uppercase mb-1">Below</div>
-                  <div className="text-2xl max-sm:text-xl font-black text-destructive">{fgBelow}</div>
-                </div>
-              </div>
               
 
 

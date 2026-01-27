@@ -23,7 +23,7 @@ const chartConfig = {
   },
   total_score: {
     label: "Balance",
-    color: "#22c55e",
+    color: "#f97316",
   },
   ml_higher: {
     label: "Model",
@@ -44,7 +44,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div className="space-y-0.5 text-xs">
           <p className="font-semibold text-blue-400">Nifty 50: {nifty.toLocaleString()}</p>
           <p className="font-semibold text-amber-400">Momentum: {momentum}</p>
-          <p className="font-semibold text-green-400">Balance: {balance}</p>
+          <p className="font-semibold text-orange-400">Balance: {balance}</p>
           <p className="font-semibold text-purple-400">Model: {model}</p>
         </div>
       </div>
@@ -179,16 +179,16 @@ export default function NiftyCloseChart({ data }: NiftyCloseChartProps) {
                   strokeDasharray="4 2"
                   activeDot={{ r: 3, fill: "#f59e0b", stroke: "#fff", strokeWidth: 1 }}
                 />
-                <Line
-                  yAxisId="indicators"
-                  type="monotone"
-                  dataKey="total_score"
-                  stroke="#22c55e"
-                  strokeWidth={1.5}
-                  dot={false}
-                  strokeDasharray="4 2"
-                  activeDot={{ r: 3, fill: "#22c55e", stroke: "#fff", strokeWidth: 1 }}
-                />
+<Line
+                    yAxisId="indicators"
+                    type="monotone"
+                    dataKey="total_score"
+                    stroke="#f97316"
+                    strokeWidth={1.5}
+                    dot={false}
+                    strokeDasharray="4 2"
+                    activeDot={{ r: 3, fill: "#f97316", stroke: "#fff", strokeWidth: 1 }}
+                  />
                 <Line
                   yAxisId="indicators"
                   type="monotone"
@@ -212,10 +212,10 @@ export default function NiftyCloseChart({ data }: NiftyCloseChartProps) {
               <div className="w-3 h-0.5 rounded-sm bg-amber-500" style={{backgroundImage: 'linear-gradient(90deg, #f59e0b 50%, transparent 50%)', backgroundSize: '4px 100%'}}></div>
               <span className="text-muted-foreground/80">Momentum</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-0.5 rounded-sm bg-green-500" style={{backgroundImage: 'linear-gradient(90deg, #22c55e 50%, transparent 50%)', backgroundSize: '4px 100%'}}></div>
-              <span className="text-muted-foreground/80">Balance</span>
-            </div>
+<div className="flex items-center gap-1.5">
+                <div className="w-3 h-0.5 rounded-sm bg-orange-500" style={{backgroundImage: 'linear-gradient(90deg, #f97316 50%, transparent 50%)', backgroundSize: '4px 100%'}}></div>
+                <span className="text-muted-foreground/80">Balance</span>
+              </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-0.5 rounded-sm bg-purple-500" style={{backgroundImage: 'linear-gradient(90deg, #a855f7 50%, transparent 50%)', backgroundSize: '4px 100%'}}></div>
               <span className="text-muted-foreground/80">Model</span>
@@ -232,10 +232,10 @@ export default function NiftyCloseChart({ data }: NiftyCloseChartProps) {
             <div className="text-[9px] max-sm:text-[8px] font-bold text-amber-400/70 uppercase mb-0.5">Momentum</div>
             <div className="text-lg max-sm:text-base font-black text-amber-400">{momentum}</div>
           </div>
-          <div className="p-2.5 max-sm:p-2 rounded-lg bg-green-500/5 border border-green-500/20 text-center">
-            <div className="text-[9px] max-sm:text-[8px] font-bold text-green-400/70 uppercase mb-0.5">Balance</div>
-            <div className="text-lg max-sm:text-base font-black text-green-400">{balance}</div>
-          </div>
+<div className="p-2.5 max-sm:p-2 rounded-lg bg-orange-500/5 border border-orange-500/20 text-center">
+              <div className="text-[9px] max-sm:text-[8px] font-bold text-orange-400/70 uppercase mb-0.5">Balance</div>
+              <div className="text-lg max-sm:text-base font-black text-orange-400">{balance}</div>
+            </div>
           <div className="p-2.5 max-sm:p-2 rounded-lg bg-purple-500/5 border border-purple-500/20 text-center">
             <div className="text-[9px] max-sm:text-[8px] font-bold text-purple-400/70 uppercase mb-0.5">Model</div>
             <div className="text-lg max-sm:text-base font-black text-purple-400">{model}</div>
@@ -246,7 +246,7 @@ export default function NiftyCloseChart({ data }: NiftyCloseChartProps) {
           <p className="text-[11px] max-sm:text-[10px] text-muted-foreground/70 leading-relaxed">
             <span className="font-semibold text-muted-foreground/90">Nifty 50 Close</span> shows the daily closing price of the Nifty 50 index alongside key indicators: 
             <span className="font-semibold text-amber-400"> Momentum Oscillator</span> (RSI % above 50), 
-            <span className="font-semibold text-green-400"> Balance</span> (Total Score), and 
+            <span className="font-semibold text-orange-400"> Balance</span> (Total Score), and 
             <span className="font-semibold text-purple-400"> Model</span> (ML Prediction %).
           </p>
         </div>

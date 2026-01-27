@@ -14,7 +14,7 @@ import { InteractiveHero } from "@/components/ui/interactive-hero";
 import { Spotlight } from "@/components/ui/spotlight";
 import marketMoodData from "@/data/processed/market_mood.json";
 import marketStrengthData from "@/data/processed/market_strength.json";
-import { useTopMovers } from "@/hooks/useLiveData";
+import { useTopMovers, useLiveData } from "@/hooks/useLiveData";
 import { 
   getMarketMoodDescription, 
   getMarketStrengthDescription, 
@@ -41,6 +41,7 @@ const MarketDescription = ({ text }: { text: string }) => (
 const Dashboard = () => {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { topMovers } = useTopMovers();
+  const { marketStrength: liveMarketStrength, marketMood: liveMarketMood } = useLiveData();
   
   useEffect(() => {
     const disclaimerAccepted = sessionStorage.getItem('disclaimerAccepted');
@@ -66,9 +67,9 @@ const Dashboard = () => {
     const moodColor = moodVerdict === "BULLISH" ? "text-success" : moodVerdict === "BEARISH" ? "text-destructive" : "text-warning";
     const sentimentScore = (marketMoodData.bullish - marketMoodData.bearish + 100) / 2;
 
-  const latestUpdateDate = marketStrengthData.length > 0 
-    ? marketStrengthData[marketStrengthData.length - 1].date 
-    : marketMoodData.date;
+  const latestUpdateDate = liveMarketStrength.length > 0 
+    ? liveMarketStrength[liveMarketStrength.length - 1].date 
+    : (liveMarketMood?.date || marketMoodData.date);
 
   return (
     <div className="min-h-screen bg-background selection:bg-primary/30 overflow-x-hidden">
@@ -136,7 +137,7 @@ const Dashboard = () => {
               <div className="h-full flex flex-col">
                   <div className="flex justify-between items-center mb-10">
                     <div className="space-y-1">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Market Mood</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Market Mood Today</h3>
                       <p className="text-xs text-muted-foreground/60 font-medium italic">Current internal dynamics</p>
                     </div>
                     <div className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${moodColor} shadow-[0_0_20px_rgba(255,255,255,0.05)]`}>
@@ -170,8 +171,8 @@ const Dashboard = () => {
                 {/* Top Movers Section */}
                 {topMovers && (topMovers.topGainers?.length > 0 || topMovers.topLosers?.length > 0) && (
                   <div className="mt-8 pt-6 border-t border-white/5">
-                    <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">Market Mood Today</h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">Market Mood</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Top Gainers */}
                       <div className="rounded-xl bg-success/5 border border-success/10 p-3">
                         <div className="flex items-center gap-2 mb-3">
@@ -235,13 +236,12 @@ const Dashboard = () => {
               </div>
             </GlassCard>
           
-          {/* Market Strength Meter */}
-          <GlassCard delay={0.2} className="flex flex-col h-full">
-            <div className="h-full flex flex-col">
-              <MarketStrengthMeter data={marketStrengthData} />
-              <MarketDescription text={getMarketStrengthDescription(marketStrengthData)} />
-            </div>
-          </GlassCard>
+          {/* Market Position Structure */}
+            <GlassCard delay={0.2} className="flex flex-col h-full">
+                <div className="h-full flex flex-col">
+                  <MarketPositionStructure />
+                </div>
+            </GlassCard>
           
             {/* ML Strength Meter */}
             <GlassCard delay={0.3} className="flex flex-col h-full">
@@ -250,12 +250,13 @@ const Dashboard = () => {
               </div>
             </GlassCard>
           
-          {/* Market Position Structure - Replaces Overall Sentiment */}
-            <GlassCard delay={0.4} className="flex flex-col h-full">
-                <div className="h-full flex flex-col">
-                  <MarketPositionStructure />
-                </div>
-            </GlassCard>
+          {/* Market Strength Meter (Momentum Oscillator) */}
+          <GlassCard delay={0.4} className="flex flex-col h-full">
+            <div className="h-full flex flex-col">
+              <MarketStrengthMeter data={marketStrengthData} />
+              <MarketDescription text={getMarketStrengthDescription(marketStrengthData)} />
+            </div>
+          </GlassCard>
 
             {/* Market Balance Indicator - Full Width */}
             <GlassCard delay={0.5} className="flex flex-col h-full md:col-span-2">

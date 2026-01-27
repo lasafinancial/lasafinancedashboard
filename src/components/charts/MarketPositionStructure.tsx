@@ -19,50 +19,40 @@ function IndicatorBar({ label, leftLabel, rightLabel, leftValue, rightValue, ico
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-white/5 border border-white/10">
             {icon}
           </div>
           <span className="text-sm font-semibold text-foreground uppercase tracking-wide">{label}</span>
         </div>
-        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-          isLeftDominant 
-            ? 'bg-success/10 text-success border border-success/20' 
-            : 'bg-destructive/10 text-destructive border border-destructive/20'
-        }`}>
-          {isLeftDominant ? leftLabel : rightLabel}
-        </span>
-      </div>
       
-      <div className="relative h-10 rounded-xl overflow-hidden bg-white/5 border border-white/10">
-        <div 
-          className="absolute inset-y-0 left-0 bg-gradient-to-r from-success/80 to-success/40 transition-all duration-1000 ease-out flex items-center"
-          style={{ width: `${leftPercent}%` }}
-        >
-          <span className="absolute left-3 text-xs font-bold text-white drop-shadow-lg">
-            {leftLabel}
-          </span>
-          <span className="absolute right-2 text-sm font-bold text-white drop-shadow-lg">
-            {showRawNumbers ? leftValue : `${leftValue}%`}
-          </span>
+    <div className="relative h-8 rounded-xl overflow-hidden bg-white/5 border border-white/10">
+          <div 
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-success/80 to-success/40 transition-all duration-1000 ease-out flex items-center justify-center"
+            style={{ width: `${leftPercent}%` }}
+          >
+            <span className="text-sm font-bold text-white drop-shadow-lg">
+              {showRawNumbers ? leftValue : `${leftValue}%`}
+            </span>
+          </div>
+          
+          <div 
+            className="absolute inset-y-0 right-0 bg-gradient-to-l from-destructive/80 to-destructive/40 transition-all duration-1000 ease-out flex items-center justify-center"
+            style={{ width: `${rightPercent}%` }}
+          >
+            <span className="text-sm font-bold text-white drop-shadow-lg">
+              {showRawNumbers ? rightValue : `${rightValue}%`}
+            </span>
+          </div>
+          
+          <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/30 -translate-x-1/2 z-10" />
         </div>
         
-        <div 
-          className="absolute inset-y-0 right-0 bg-gradient-to-l from-destructive/80 to-destructive/40 transition-all duration-1000 ease-out flex items-center"
-          style={{ width: `${rightPercent}%` }}
-        >
-          <span className="absolute left-2 text-sm font-bold text-white drop-shadow-lg">
-            {showRawNumbers ? rightValue : `${rightValue}%`}
-          </span>
-          <span className="absolute right-3 text-xs font-bold text-white drop-shadow-lg">
-            {rightLabel}
-          </span>
+        <div className="flex justify-between text-xs font-semibold">
+          <span className="text-success drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]">{leftLabel}</span>
+          <span className="text-destructive drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">{rightLabel}</span>
         </div>
-        
-        <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/30 -translate-x-1/2 z-10" />
       </div>
-    </div>
   );
 }
 
@@ -124,14 +114,15 @@ export default function MarketPositionStructure() {
           icon={<Activity className="w-4 h-4 text-chart-primary" />}
         />
 
-        <IndicatorBar
-          label="Balance"
-          leftLabel="Avg-Above"
-          rightLabel="Avg-Below"
-          leftValue={data.balance.above}
-          rightValue={data.balance.below}
-          icon={<TrendingUp className="w-4 h-4 text-success" />}
-        />
+          <IndicatorBar
+            label="Balance"
+            leftLabel="Avg-Above"
+            rightLabel="Avg-Below"
+            leftValue={data.balance.above}
+            rightValue={data.balance.below}
+            icon={<TrendingUp className="w-4 h-4 text-success" />}
+            showRawNumbers={true}
+          />
 
         <IndicatorBar
           label="Momentum"

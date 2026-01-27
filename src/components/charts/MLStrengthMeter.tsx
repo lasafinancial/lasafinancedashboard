@@ -30,22 +30,30 @@ interface HoveredData {
 }
 
 export default function MLStrengthMeter({ data }: MLStrengthMeterProps) {
-  const [hoveredData, setHoveredData] = useState<HoveredData | null>(null);
+    const [hoveredData, setHoveredData] = useState<HoveredData | null>(null);
 
-  const handleMouseMove = useCallback((state: any) => {
-    if (state?.activePayload?.length) {
-      const payload = state.activePayload[0]?.payload;
-      setHoveredData({
-        date: payload?.date || '',
-        mlHigher: payload?.ml_higher ?? null,
-        mlLower: payload?.ml_lower ?? null,
-      });
-    }
-  }, []);
+    const handleMouseMove = useCallback((state: any) => {
+      if (state?.activePayload?.length) {
+        const payload = state.activePayload[0]?.payload;
+        setHoveredData({
+          date: payload?.date || '',
+          mlHigher: payload?.ml_higher ?? null,
+          mlLower: payload?.ml_lower ?? null,
+        });
+      }
+    }, []);
 
-  const handleMouseLeave = useCallback(() => {
-    setHoveredData(null);
-  }, []);
+    const handleMouseLeave = useCallback(() => {
+      setHoveredData(null);
+    }, []);
+
+    const latest = data[data.length - 1];
+    const latestMlHigher = latest?.ml_higher ?? 0;
+    
+    const displayValue = hoveredData?.mlHigher ?? latestMlHigher;
+    const isAbove60 = displayValue > 60;
+    const isMixed = displayValue >= 50 && displayValue <= 60;
+    const isBelow50 = displayValue < 50;
 
   return (
     <div className="flex flex-col h-full">
@@ -177,14 +185,14 @@ export default function MLStrengthMeter({ data }: MLStrengthMeterProps) {
           The <span className="font-semibold text-foreground">ML Meter</span> reflects the overall market's readiness for upside moves by analysing stock positioning after pullbacks and extensions.
         </p>
         <ul className="text-xs text-muted-foreground space-y-2 mb-3">
-          <li>
-            <span className="font-semibold text-foreground">• Above 60:</span> Majority of stocks have cooled off after pullbacks and are better positioned for an upside swing. Long setups generally offer better risk-reward.
+          <li className={`p-2 rounded transition-all duration-300 ${isAbove60 ? 'bg-success/10 border-l-2 border-success shadow-[inset_0_0_10px_rgba(34,197,94,0.05)]' : ''}`}>
+            <span className={`font-semibold ${isAbove60 ? 'text-success' : 'text-foreground'}`}>• Above 60:</span> Majority of stocks have cooled off after pullbacks and are better positioned for an upside swing. Long setups generally offer better risk-reward.
           </li>
-          <li>
-            <span className="font-semibold text-foreground">• 50–60:</span> Mixed conditions. Selective trading is advised with strict risk control.
+          <li className={`p-2 rounded transition-all duration-300 ${isMixed ? 'bg-warning/10 border-l-2 border-warning shadow-[inset_0_0_10px_rgba(251,191,36,0.05)]' : ''}`}>
+            <span className={`font-semibold ${isMixed ? 'text-warning' : 'text-foreground'}`}>• 50–60:</span> Mixed conditions. Selective trading is advised with strict risk control.
           </li>
-          <li>
-            <span className="font-semibold text-foreground">• Below 50:</span> Most stocks are extended. Upside may be limited and traders should be cautious with long positions.
+          <li className={`p-2 rounded transition-all duration-300 ${isBelow50 ? 'bg-destructive/10 border-l-2 border-destructive shadow-[inset_0_0_10px_rgba(239,68,68,0.05)]' : ''}`}>
+            <span className={`font-semibold ${isBelow50 ? 'text-destructive' : 'text-foreground'}`}>• Below 50:</span> Most stocks are extended. Upside may be limited and traders should be cautious with long positions.
           </li>
         </ul>
         <p className="text-[10px] text-muted-foreground italic">
