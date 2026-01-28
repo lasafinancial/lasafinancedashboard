@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import { AIChatbot } from "@/components/AIChatbot";
+import { Analytics } from "@vercel/analytics/react";
 import Dashboard from "@/pages/Dashboard";
 import StockAnalysis from "@/pages/StockAnalysis";
 import Sectors from "@/pages/Sectors";
@@ -60,9 +61,10 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
+          <BrowserRouter>
+            <AppContent />
+            <Analytics />
+          </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
