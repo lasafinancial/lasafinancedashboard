@@ -19,6 +19,7 @@ export function useLiveData() {
   const [marketStrength, setMarketStrength] = useState<any[]>(staticMarketStrength);
   const [topMovers, setTopMovers] = useState<TopMoversData>(staticTopMovers as unknown as TopMoversData);
   const [marketPosition, setMarketPosition] = useState<MarketPositionData | null>(staticMarketPosition as unknown as MarketPositionData);
+  const [indexPerformance, setIndexPerformance] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
 
@@ -29,6 +30,7 @@ export function useLiveData() {
       setMarketStrength(data.marketStrength);
       setTopMovers(data.topMovers);
       setMarketPosition(data.marketPosition);
+      setIndexPerformance(data.indexPerformance || []);
       setLastUpdate(new Date().toLocaleTimeString());
       setIsLoading(false);
     });
@@ -48,6 +50,7 @@ export function useLiveData() {
     marketStrength,
     topMovers,
     marketPosition,
+    indexPerformance,
     isLoading,
     lastUpdate,
     refresh: refreshAllData

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/line-chart";
 import { Scale, TrendingUp, TrendingDown, Minus, Info, AlertTriangle, CheckCircle } from "lucide-react";
 import { useMemo, useState } from "react";
+import { InfoModal, InfoModalTrigger, useInfoModal } from "@/components/ui/InfoModal";
 
 interface MarketBalanceIndicatorProps {
   data: any[];
@@ -21,12 +22,17 @@ const chartConfig = {
     label: "Balance Below",
     color: "#ef4444",
   },
+  nifty50_close: {
+    label: "Nifty 50",
+    color: "#f97316",
+  },
 } satisfies ChartConfig;
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const fgAbove = payload.find((p: any) => p.dataKey === 'fg_above')?.value || 0;
     const fgBelow = payload.find((p: any) => p.dataKey === 'fg_below')?.value || 0;
+    const niftyClose = payload.find((p: any) => p.dataKey === 'nifty50_close')?.value || 0;
     const fgNet = fgAbove - fgBelow;
     
     return (
@@ -35,6 +41,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div className="space-y-0.5 text-xs">
           <p className="font-semibold text-success">Above: {fgAbove}</p>
           <p className="font-semibold text-destructive">Below: {fgBelow}</p>
+          <p className="font-semibold text-orange-500">Nifty: {niftyClose.toLocaleString()}</p>
           <p className={`font-bold pt-1 border-t border-border/30 ${fgNet >= 0 ? 'text-cyan-400' : 'text-orange-400'}`}>
             Net: {fgNet > 0 ? '+' : ''}{fgNet}
           </p>
@@ -47,6 +54,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
   export default function MarketBalanceIndicator({ data }: MarketBalanceIndicatorProps) {
     const [hoveredData, setHoveredData] = useState<{ fg_above: number; fg_below: number } | null>(null);
+    const { showModal, openModal, closeModal } = useInfoModal();
     
     const chartData = useMemo(() => {
       return data.filter(item => item.date).map(item => ({
@@ -84,10 +92,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 <p className="text-xs text-muted-foreground/60 font-medium italic">Price Acceptance</p>
               </div>
             </div>
-          <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${verdictColor}`}>
-            <VerdictIcon className="w-3 h-3" />
-            {verdict}
-          </div>
+            <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${verdictColor}`}>
+                <VerdictIcon className="w-3 h-3" />
+                {verdict}
+              </div>
+              <InfoModalTrigger onClick={openModal} />
+            </div>
         </div>
 
           <div className="flex flex-col gap-4">
@@ -132,45 +143,69 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                       className="fill-muted-foreground/70"
                     />
                     <YAxis 
-                      tick={{ fontSize: 8 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={25}
-                      className="fill-muted-foreground/70"
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" strokeOpacity={0.2} />
-                      <ReferenceLine y={15} stroke="#fbbf24" strokeDasharray="5 5" strokeOpacity={0.6} label={{ value: 'Threshold: 15', position: 'insideTopRight', fontSize: 9, fill: '#fbbf24' }} />
-                    
-                    <Area
-                      type="monotone"
-                      dataKey="fg_above"
-                      stroke="transparent"
-                      fill="url(#greenAreaGradient)"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="fg_below"
-                      stroke="transparent"
-                      fill="url(#redAreaGradient)"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="fg_above"
-                      stroke="#22c55e"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4, fill: "#22c55e", stroke: "#fff", strokeWidth: 2 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="fg_below"
-                      stroke="#ef4444"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4, fill: "#ef4444", stroke: "#fff", strokeWidth: 2 }}
-                    />
-                  </ComposedChart>
+                        tick={{ fontSize: 8 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={25}
+                        className="fill-muted-foreground/70"
+                        yAxisId="left"
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 8 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={40}
+                        orientation="right"
+                        className="fill-orange-500/70"
+                        yAxisId="right"
+                        tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(0)}k` : value}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" strokeOpacity={0.2} yAxisId="left" />
+                        <ReferenceLine y={15} stroke="#fbbf24" strokeDasharray="5 5" strokeOpacity={0.6} label={{ value: 'Threshold: 15', position: 'insideTopRight', fontSize: 9, fill: '#fbbf24' }} yAxisId="left" />
+                      
+                      <Area
+                        type="monotone"
+                        dataKey="fg_above"
+                        stroke="transparent"
+                        fill="url(#greenAreaGradient)"
+                        yAxisId="left"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="fg_below"
+                        stroke="transparent"
+                        fill="url(#redAreaGradient)"
+                        yAxisId="left"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="fg_above"
+                        stroke="#22c55e"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4, fill: "#22c55e", stroke: "#fff", strokeWidth: 2 }}
+                        yAxisId="left"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="fg_below"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4, fill: "#ef4444", stroke: "#fff", strokeWidth: 2 }}
+                        yAxisId="left"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="nifty50_close"
+                        stroke="#f97316"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4, fill: "#f97316", stroke: "#fff", strokeWidth: 2 }}
+                        yAxisId="right"
+                      />
+                    </ComposedChart>
                 </ChartContainer>
               </div>
               
@@ -182,6 +217,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                   <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-sm bg-destructive/80"></div>
                     <span className="text-muted-foreground/80">Below</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-sm bg-orange-500/80"></div>
+                    <span className="text-muted-foreground/80">Nifty 50</span>
                   </div>
                 </div>
                 
@@ -260,6 +299,32 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               </div>
             </div>
           </div>
+
+          <InfoModal
+              isOpen={showModal}
+              onClose={closeModal}
+              title="Understanding Market Balance"
+              layout="horizontal"
+              sections={[
+                {
+                  heading: "What is Market Balance?",
+                  content: "Market Balance shows where the market is accepting prices by tracking how many stocks are finding balance at higher levels versus lower levels. It reflects price acceptance behaviour across the market."
+                },
+                {
+                  heading: "Balance Above > 15 – Bullish Signal",
+                  content: "Historically, when a higher number of stocks find balance at higher prices, it signals strong acceptance by the market. The probability of upside continuation is higher than downside, making long positions a favourable approach."
+                },
+                {
+                  heading: "Balance Below > Balance Above – Caution",
+                  content: "When more stocks find balance at lower prices, it indicates weakening acceptance at higher levels. Traders are advised to stay cautious, as the market may correct or experience a pullback."
+                },
+                {
+                  heading: "How to Use This Indicator",
+                  content: "Market Balance reflects price acceptance behaviour and should be used alongside trend and risk indicators. It helps identify whether the market structure supports continued moves or is showing signs of weakness."
+                }
+              ]}
+              videoLink="#"
+            />
       </div>
   );
 }

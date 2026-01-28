@@ -57,6 +57,7 @@ export interface GoogleSheetsData {
   marketPosition: MarketPositionData;
   stockData: StockData[];
   topMovers: TopMoversData;
+  indexPerformance: any[];
   lastUpdated: string;
 }
 

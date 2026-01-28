@@ -38,16 +38,16 @@ const StockStrengthZone = ({ data = [] }: StockStrengthZoneProps) => {
               <h3 className="text-lg font-semibold">Strength Zone</h3>
               <p className="text-xs text-muted-foreground">Price shown on marker</p>
             </div>
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-3 rounded-sm bg-cyan-500/40 border border-cyan-500"></div>
-              <span className="text-muted-foreground">S-R Zone</span>
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-3 rounded-sm bg-cyan-500/40 border border-cyan-500"></div>
+                <span className="text-muted-foreground">Weak-Strong Zone</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+                <span className="text-muted-foreground">Price</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
-              <span className="text-muted-foreground">Price</span>
-            </div>
-          </div>
         </div>
       </div>
     
@@ -103,18 +103,18 @@ const StockStrengthZone = ({ data = [] }: StockStrengthZoneProps) => {
                 <span className="absolute left-0 text-[10px] font-mono text-muted-foreground">
                   {zoneData.rangeMin.toLocaleString()}
                 </span>
-                <span 
-                  className="absolute text-[10px] font-mono text-cyan-400 -translate-x-1/2"
-                  style={{ left: `${zoneData.supportPos}%` }}
-                >
-                  S:{zoneData.support.toLocaleString()}
-                </span>
-                <span 
-                  className="absolute text-[10px] font-mono text-cyan-400 -translate-x-1/2"
-                  style={{ left: `${zoneData.resistancePos}%` }}
-                >
-                  R:{zoneData.resistance.toLocaleString()}
-                </span>
+                  <span 
+                    className="absolute text-[10px] font-mono text-cyan-400 -translate-x-1/2"
+                    style={{ left: `${zoneData.supportPos}%` }}
+                  >
+                    W:{zoneData.support.toLocaleString()}
+                  </span>
+                  <span 
+                    className="absolute text-[10px] font-mono text-cyan-400 -translate-x-1/2"
+                    style={{ left: `${zoneData.resistancePos}%` }}
+                  >
+                    S:{zoneData.resistance.toLocaleString()}
+                  </span>
                 <span className="absolute right-0 text-[10px] font-mono text-muted-foreground">
                   {zoneData.rangeMax.toLocaleString()}
                 </span>

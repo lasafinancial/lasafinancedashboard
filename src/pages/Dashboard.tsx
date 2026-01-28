@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Landmark, Factory, ShoppingBag, HardHat, TrendingUp, TrendingDown, Minus, Boxes, Sparkles, AlertTriangle, BarChart3 } from "lucide-react";
+import { InfoModal, InfoModalTrigger, useInfoModal } from "@/components/ui/InfoModal";
 import MarketStrengthMeter from "@/components/charts/MarketStrengthMeter";
 import MLStrengthMeter from "@/components/charts/MLStrengthMeter";
 import MarketBalanceIndicator from "@/components/charts/MarketBalanceIndicator";
@@ -42,6 +43,7 @@ const Dashboard = () => {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { topMovers } = useTopMovers();
   const { marketStrength: liveMarketStrength, marketMood: liveMarketMood } = useLiveData();
+  const { showModal: showMarketMoodModal, openModal: openMarketMoodModal, closeModal: closeMarketMoodModal } = useInfoModal();
   
   useEffect(() => {
     const disclaimerAccepted = sessionStorage.getItem('disclaimerAccepted');
@@ -130,20 +132,23 @@ const Dashboard = () => {
           </div>
         </div>
 
-          {/* Market Indicators Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
-            {/* Market Mood Today */}
-            <GlassCard delay={0.1} className="flex flex-col h-full">
-              <div className="h-full flex flex-col">
-                  <div className="flex justify-between items-center mb-10">
-                    <div className="space-y-1">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Market Mood Today</h3>
-                      <p className="text-xs text-muted-foreground/60 font-medium italic">Current internal dynamics</p>
+            {/* Market Indicators Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
+              {/* Market Mood Today */}
+              <GlassCard delay={0.1} className="flex flex-col h-full">
+                <div className="h-full flex flex-col">
+                    <div className="flex justify-between items-center mb-10">
+                      <div className="space-y-1">
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Market Mood Today</h3>
+                        <p className="text-xs text-muted-foreground/60 font-medium italic">Current internal dynamics</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${moodColor} shadow-[0_0_20px_rgba(255,255,255,0.05)]`}>
+                          {moodVerdict}
+                        </div>
+                        <InfoModalTrigger onClick={openMarketMoodModal} />
+                      </div>
                     </div>
-                    <div className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${moodColor} shadow-[0_0_20px_rgba(255,255,255,0.05)]`}>
-                      {moodVerdict}
-                    </div>
-                  </div>
                 
                 <div className="flex-1 flex flex-col justify-center">
                   <div className="grid grid-cols-3 gap-6">
@@ -192,7 +197,7 @@ const Dashboard = () => {
                               {topMovers?.topGainers?.map((stock, i) => (
                                 <tr key={stock.id} className="border-t border-white/5 hover:bg-success/5 transition-colors">
                                   <td className="py-1.5 font-medium text-foreground/90">{stock.id}</td>
-                                  <td className="py-1.5 text-right font-semibold text-success">+{stock.changePercent.toFixed(2)}%</td>
+                                  <td className="py-1.5 text-right font-semibold text-success">+{(stock.changePercent * 100).toFixed(2)}%</td>
                                   <td className="py-1.5 text-right text-muted-foreground">{stock.closePrice.toLocaleString()}</td>
                                 </tr>
                               ))}
@@ -220,7 +225,7 @@ const Dashboard = () => {
                               {topMovers?.topLosers?.map((stock, i) => (
                                 <tr key={stock.id} className="border-t border-white/5 hover:bg-destructive/5 transition-colors">
                                   <td className="py-1.5 font-medium text-foreground/90">{stock.id}</td>
-                                  <td className="py-1.5 text-right font-semibold text-destructive">{stock.changePercent.toFixed(2)}%</td>
+                                  <td className="py-1.5 text-right font-semibold text-destructive">{(stock.changePercent * 100).toFixed(2)}%</td>
                                   <td className="py-1.5 text-right text-muted-foreground">{stock.closePrice.toLocaleString()}</td>
                                 </tr>
                               ))}
@@ -233,8 +238,37 @@ const Dashboard = () => {
                 )}
 
                 <MarketDescription text={getMarketMoodDescription(marketMoodData)} />
-              </div>
-            </GlassCard>
+
+                <InfoModal
+                  isOpen={showMarketMoodModal}
+                  onClose={closeMarketMoodModal}
+                  title="Understanding Market Mood Today"
+                  sections={[
+                    {
+                      heading: "What is Market Mood?",
+                      content: "Market Mood Today captures the current internal dynamics of the market by analyzing the relative strength of all stocks. It shows the percentage distribution of stocks that are bullish, bearish, or neutral based on their internal strength patterns."
+                    },
+                    {
+                      heading: "Bullish Percentage",
+                      content: "Represents the percentage of stocks showing internal bullish strength. A higher bullish percentage indicates more stocks are positioned for potential upside moves based on their technical positioning."
+                    },
+                    {
+                      heading: "Bearish Percentage",
+                      content: "Represents the percentage of stocks showing internal bearish weakness. A higher bearish percentage suggests more stocks are under pressure and positioned for potential downside."
+                    },
+                    {
+                      heading: "Neutral Percentage",
+                      content: "Represents stocks that are neither showing strong bullish nor bearish signals. These stocks are in a consolidation phase, waiting for a directional trigger."
+                    },
+                    {
+                      heading: "How to Interpret",
+                      content: "When bullish exceeds bearish significantly, the market mood is positive and favorable for long positions. When bearish exceeds bullish, caution is advised. Use this alongside other indicators for comprehensive market analysis."
+                    }
+                  ]}
+                  videoLink="#"
+                />
+                </div>
+              </GlassCard>
           
           {/* Market Position Structure */}
             <GlassCard delay={0.2} className="flex flex-col h-full">
@@ -246,22 +280,22 @@ const Dashboard = () => {
             {/* ML Strength Meter */}
             <GlassCard delay={0.3} className="flex flex-col h-full">
               <div className="h-full flex flex-col">
-                <MLStrengthMeter data={marketStrengthData} />
+                <MLStrengthMeter data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} />
               </div>
             </GlassCard>
           
           {/* Market Strength Meter (Momentum Oscillator) */}
           <GlassCard delay={0.4} className="flex flex-col h-full">
             <div className="h-full flex flex-col">
-              <MarketStrengthMeter data={marketStrengthData} />
-              <MarketDescription text={getMarketStrengthDescription(marketStrengthData)} />
+              <MarketStrengthMeter data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} />
+              <MarketDescription text={getMarketStrengthDescription(liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData)} />
             </div>
           </GlassCard>
 
             {/* Market Balance Indicator - Full Width */}
             <GlassCard delay={0.5} className="flex flex-col h-full md:col-span-2">
               <div className="h-full flex flex-col">
-                <MarketBalanceIndicator data={marketStrengthData} />
+                <MarketBalanceIndicator data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} />
               </div>
             </GlassCard>
           </div>

@@ -4,6 +4,35 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 
+function parseDateFlexible(dateStr) {
+  if (!dateStr) return null;
+  
+  // Try standard ISO format first (YYYY-MM-DD)
+  let date = new Date(dateStr + 'T00:00:00');
+  if (!isNaN(date.getTime())) return date;
+  
+  // Try DD-MM-YYYY or DD/MM/YYYY format
+  const parts = dateStr.split(/[-\/]/);
+  if (parts.length === 3) {
+    const [p1, p2, p3] = parts.map(p => parseInt(p, 10));
+    
+    // If first part > 12, it's likely DD-MM-YYYY
+    if (p1 > 12) {
+      date = new Date(p3, p2 - 1, p1);
+      if (!isNaN(date.getTime())) return date;
+    }
+    
+    // If third part > 31, it's likely MM-DD-YYYY or DD-MM-YYYY
+    if (p3 > 31) {
+      // Try DD-MM-YYYY
+      date = new Date(p3, p2 - 1, p1);
+      if (!isNaN(date.getTime())) return date;
+    }
+  }
+  
+  return null;
+}
+
 const app = express();
 app.use(cors());
 
@@ -113,13 +142,16 @@ async function fetchData() {
     spreadsheetId: EOD_SHEET_ID,
     range: 'lasa-master!A:FJ',
   });
-const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
+    const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
     console.log(`Total rows fetched from lasa-master: ${lasaMasterData.length}`);
     
+    // Parse and cache latestDate globally if needed, but for now we calculate locally
     const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
-  const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
-  const latestDate = sortedDates[0];
-  console.log(`Latest date in lasa-master: ${latestDate}`);
+    const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
+    const latestDate = sortedDates[0];
+    const latestLasaRows = lasaMasterData.filter(row => row['DATE'] === latestDate);
+    console.log(`Latest date in lasa-master: ${latestDate} (${latestLasaRows.length} rows)`);
+
 
   console.log('Calculating Market Mood...');
   const moodData = lasaMasterData.filter(row => row['DATE'] === latestDate);
@@ -208,48 +240,14 @@ const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
     lastUpdate: new Date().toLocaleTimeString()
   };
   
-console.log('Processing stock history (6 months)...');
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    sixMonthsAgo.setHours(0, 0, 0, 0);
-    console.log(`Six months ago cutoff: ${sixMonthsAgo.toISOString()}`);
-    console.log(`Date range in sheet: ${sortedDates[sortedDates.length - 1]} to ${sortedDates[0]}`);
-    console.log(`Total unique dates: ${sortedDates.length}`);
-    
-    console.log(`ALL dates in sheet: ${sortedDates.join(', ')}`);
+    console.log('Processing stock history (30 days)...');
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+    console.log(`Thirty days ago cutoff: ${thirtyDaysAgo.toISOString()}`);
     
     const history = {};
     const resistanceSlopeMap = {};
-
-    // Helper to parse dates in various formats (YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, etc.)
-    function parseDateFlexible(dateStr) {
-      if (!dateStr) return null;
-      
-      // Try standard ISO format first (YYYY-MM-DD)
-      let date = new Date(dateStr + 'T00:00:00');
-      if (!isNaN(date.getTime())) return date;
-      
-      // Try DD-MM-YYYY or DD/MM/YYYY format
-      const parts = dateStr.split(/[-\/]/);
-      if (parts.length === 3) {
-        const [p1, p2, p3] = parts.map(p => parseInt(p, 10));
-        
-        // If first part > 12, it's likely DD-MM-YYYY
-        if (p1 > 12) {
-          date = new Date(p3, p2 - 1, p1);
-          if (!isNaN(date.getTime())) return date;
-        }
-        
-        // If third part > 31, it's likely MM-DD-YYYY or DD-MM-YYYY
-        if (p3 > 31) {
-          // Try DD-MM-YYYY
-          date = new Date(p3, p2 - 1, p1);
-          if (!isNaN(date.getTime())) return date;
-        }
-      }
-      
-      return null;
-    }
 
     let parsedCount = 0;
     let skippedCount = 0;
@@ -262,11 +260,10 @@ console.log('Processing stock history (6 months)...');
       const rowDate = parseDateFlexible(dateStr);
       if (!rowDate) {
         invalidDateCount++;
-        if (invalidDateCount <= 3) console.log(`Invalid date format: "${dateStr}"`);
         return;
       }
       
-      if (rowDate < sixMonthsAgo) {
+      if (rowDate < thirtyDaysAgo) {
         skippedCount++;
         return;
       }
@@ -286,10 +283,6 @@ console.log('Processing stock history (6 months)...');
     const closeStr = (row['CLOSE_PRICE'] || '').toString().replace(/,/g, '');
     const supportStr = (row['SUPPORT'] || '').toString().replace(/,/g, '');
     const resistanceStr = (row['RESISTANCE'] || '').toString().replace(/,/g, '');
-    const mlFutStr = (row['ML_FUT_PRICE_20D'] || '').toString().replace(/,/g, '');
-    const wolfeStr = (row['WOLFE_D'] || '').toString().replace(/,/g, '');
-    const projFvgStr = (row['PROJ_FVG'] || '').toString().replace(/,/g, '');
-    const resistanceSlopeDownward = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase() === 'true';
     
     history[symbol].push({
       dateObj: rowDate,
@@ -299,25 +292,16 @@ console.log('Processing stock history (6 months)...');
       trend: row['DAILY_TREND'] || '',
       support: parseFloat(supportStr) || 0,
       resistance: parseFloat(resistanceStr) || 0,
-      mlFutPrice20d: parseFloat(mlFutStr) || 0,
-      wolfeD: parseFloat(wolfeStr) || 0,
-      projFvg: parseFloat(projFvgStr) || 0,
-      sector: row['SECTOR'] || '',
-      resistanceSlopeDownward
+      sector: row['SECTOR'] || ''
     });
   });
 
-  console.log(`Date parsing stats - Parsed: ${parsedCount}, Skipped (too old): ${skippedCount}, Invalid: ${invalidDateCount}`);
-  console.log(`Processed history for ${Object.keys(history).length} stocks.`);
+  console.log(`History stats - Parsed: ${parsedCount}, Skipped: ${skippedCount}`);
   
   const stockData = Object.keys(history).map(symbol => {
     const stockHistory = history[symbol].sort((a, b) => a.dateObj - b.dateObj);
-    
     if (stockHistory.length === 0) return null;
-    
     const latest = stockHistory[stockHistory.length - 1];
-    const resistanceSlopeDownward = resistanceSlopeMap[symbol] || false;
-    
     return {
       symbol,
       name: symbol,
@@ -325,51 +309,120 @@ console.log('Processing stock history (6 months)...');
       price: latest.price,
       rsi: latest.rsi,
       trend: latest.trend,
-      resistanceSlopeDownward,
+      resistanceSlopeDownward: resistanceSlopeMap[symbol] || false,
       history: stockHistory.map(h => ({
         price: h.price,
         rsi: h.rsi,
         trend: h.trend,
         support: h.support,
         resistance: h.resistance,
-        mlFutPrice20d: h.mlFutPrice20d,
-        wolfeD: h.wolfeD,
-        projFvg: h.projFvg,
-        date: h.dateDisplay,
-        resistanceSlopeDownward: h.resistanceSlopeDownward
+        date: h.dateDisplay
       }))
     };
   }).filter(Boolean);
 
-  console.log('Fetching Top Movers from current tab...');
+
+  console.log('Fetching Top Movers and Index Performance...');
   let topMovers = { topGainers: [], topLosers: [] };
+  let indexPerformance = [];
   try {
     const currentRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
-      range: "'current'!A1:BZ",
+      range: "'current'!A1:FJ",
     });
     const currentData = rowsToObjects(currentRes.data.values);
     
-      const stocks = currentData
-        .filter(row => row['STOCK_NAME'] && row['CHANGE_PERCENT'] !== undefined && row['CHANGE_PERCENT'] !== '')
-        .map(row => {
-          const idValue = row['ID'] || row['STOCK_NAME'];
-          const parsedId = parseInt(row['ID']);
-          return {
-            id: idValue,
-            stockName: row['STOCK_NAME'],
-            changePercent: parseFloat((row['CHANGE_PERCENT'] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
-            closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0,
-            idNum: !isNaN(parsedId) ? parsedId : null
-          };
-        })
-        .filter(s => {
-          const isValid = !isNaN(s.changePercent) && !isNaN(s.closePrice);
-          // If idNum is a number, we can filter by it (e.g. top 600). 
-          // If it's not a number (like "ADANIENT"), we allow it to be included.
-          const passesUniverseFilter = s.idNum === null || s.idNum <= 600;
-          return isValid && passesUniverseFilter;
+      console.log('Current tab sample headers:', Object.keys(currentData[0] || {}).slice(0, 20));
+      
+      const indexColumns = {
+        'NIFTY 50': 'NIFTY50',
+        'NIFTY BANK': 'NIFTYBANK',
+        'NIFTY IT': 'NIFTYIT',
+        'NIFTY AUTO': 'NIFTYAUTO',
+        'NIFTY PHARMA': 'NIFTYPHARMA',
+        'NIFTY METAL': 'NIFTYMETAL',
+        'NIFTY FMCG': 'NIFTYFMCG',
+        'NIFTY INFRA': 'NIFTYINFRA',
+        'NIFTY PSU BANK': 'NIFTYPSUBANK',
+        'NIFTY PVT BANK': 'NIFTYPVTBANK',
+        'NIFTY CPSE': 'NIFTYCPSE',
+        'NIFTY 500': 'NIFTY500'
+      };
+      
+      const indexStocksMap = {};
+      Object.keys(indexColumns).forEach(idx => {
+        indexStocksMap[idx] = { stocks: [], bullish: 0, bearish: 0 };
+      });
+      
+      const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
+      
+      // Use currentData for live status, but latestLasaData for index mapping if needed
+      const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
+
+      stocksSource.forEach(row => {
+        const stockName = row['STOCK_NAME'];
+        const status = (row['STATUS'] || '').toString().toUpperCase();
+        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+        const stockId = row['ID'] || stockName;
+        const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
+        const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
+        
+        if (!stockName) return;
+        
+        Object.keys(indexColumns).forEach(indexName => {
+          const colName = indexColumns[indexName];
+          const val = row[colName];
+          if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
+            const isBullish = status === 'BULLISH';
+            const isBearish = status === 'BEARISH';
+            
+            indexStocksMap[indexName].stocks.push({
+              id: stockId,
+              stockName,
+              price: closePrice,
+              status: status || 'NEUTRAL',
+              upperRange,
+              lowerRange
+            });
+            
+            if (isBullish) indexStocksMap[indexName].bullish++;
+            if (isBearish) indexStocksMap[indexName].bearish++;
+          }
         });
+      });
+      
+      indexPerformance = Object.keys(indexStocksMap).map(indexName => {
+        const data = indexStocksMap[indexName];
+        const total = data.stocks.length;
+        const strengthScore = total > 0 ? Math.round((data.bullish / total) * 100) : 50;
+        return {
+          name: indexName,
+          stocksCount: total,
+          bullishCount: data.bullish,
+          bearishCount: data.bearish,
+          strengthScore,
+          stocks: data.stocks // Include stocks for the popup
+        };
+      }).filter(idx => idx.stocksCount > 0).sort((a, b) => b.strengthScore - a.strengthScore);
+
+    
+    console.log(`Index Performance: ${indexPerformance.length} indices processed`);
+    
+      const stocks = currentData
+        .filter(row => {
+          if (!row['STOCK_NAME'] || row['CHANGE_PERCENT'] === undefined || row['CHANGE_PERCENT'] === '') return false;
+          const group = (row['GROUP'] || '').toString().toUpperCase();
+          return group === 'LARGECAP' || group === 'MIDCAP';
+        })
+        .map(row => ({
+          id: row['ID'] || row['STOCK_NAME'],
+          stockName: row['STOCK_NAME'],
+          changePercent: parseFloat((row['CHANGE_PERCENT'] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
+          closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0
+        }))
+        .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
+    
+    console.log(`Top Movers: Filtered to ${stocks.length} Large Cap + Mid Cap stocks`);
     
     const sortedByChange = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
     
@@ -390,6 +443,7 @@ console.log('Processing stock history (6 months)...');
     marketPosition,
     stockData,
     topMovers,
+    indexPerformance,
     lastUpdated: new Date().toISOString()
   };
 }

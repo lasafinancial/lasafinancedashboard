@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis, Legend, Tooltip, ReferenceLine } from "recharts";
 import {
   ChartConfig,
   ChartContainer,
 } from "@/components/ui/line-chart";
 import { BrainCircuit } from "lucide-react";
+import { InfoModal, InfoModalTrigger, useInfoModal } from "@/components/ui/InfoModal";
 
 interface MLStrengthMeterProps {
   data: any[];
@@ -21,16 +22,36 @@ const chartConfig = {
     label: "Negative Bias Zone",
     color: "#ef4444",
   },
+  nifty50_normalized: {
+    label: "NIFTY 50",
+    color: "#f97316",
+  },
 } satisfies ChartConfig;
 
 interface HoveredData {
   date: string;
   mlHigher: number | null;
   mlLower: number | null;
+  nifty50: number | null;
 }
 
 export default function MLStrengthMeter({ data }: MLStrengthMeterProps) {
     const [hoveredData, setHoveredData] = useState<HoveredData | null>(null);
+    const { showModal, openModal, closeModal } = useInfoModal();
+
+    const chartData = useMemo(() => {
+      const niftyValues = data.map(d => d.nifty50_close).filter(v => v > 0);
+      const minNifty = Math.min(...niftyValues);
+      const maxNifty = Math.max(...niftyValues);
+      const range = maxNifty - minNifty || 1;
+      
+      return data.map(d => ({
+        ...d,
+        nifty50_normalized: d.nifty50_close > 0 
+          ? ((d.nifty50_close - minNifty) / range) * 80 + 10
+          : null,
+      }));
+    }, [data]);
 
     const handleMouseMove = useCallback((state: any) => {
       if (state?.activePayload?.length) {
@@ -39,6 +60,7 @@ export default function MLStrengthMeter({ data }: MLStrengthMeterProps) {
           date: payload?.date || '',
           mlHigher: payload?.ml_higher ?? null,
           mlLower: payload?.ml_lower ?? null,
+          nifty50: payload?.nifty50_close ?? null,
         });
       }
     }, []);
@@ -55,52 +77,66 @@ export default function MLStrengthMeter({ data }: MLStrengthMeterProps) {
     const isMixed = displayValue >= 50 && displayValue <= 60;
     const isBelow50 = displayValue < 50;
 
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-accent/10">
-            <BrainCircuit className="w-5 h-5 text-accent" />
+return (
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-accent/10">
+              <BrainCircuit className="w-5 h-5 text-accent" />
+            </div>
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model-Derived Trend Bias</h3>
+              <p className="text-xs text-muted-foreground/60 font-medium italic">Historical Pattern Analysis</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model-Derived Trend Bias</h3>
-            <p className="text-xs text-muted-foreground/60 font-medium italic">Historical Pattern Analysis</p>
+          <div className="flex items-center gap-3">
+            {hoveredData ? (
+              <div className="bg-card/95 backdrop-blur-sm rounded-lg border border-border/50 px-3 py-2 shadow-lg">
+                <p className="text-xs text-muted-foreground mb-1">{hoveredData.date}</p>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                    <span className="text-xs text-muted-foreground">Positive Bias</span>
+                    <span className="text-sm font-semibold text-[#22c55e]">{hoveredData.mlHigher ?? '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
+                    <span className="text-xs text-muted-foreground">Negative Bias</span>
+                    <span className="text-sm font-semibold text-[#ef4444]">{hoveredData.mlLower ?? '-'}</span>
+                  </div>
+                  {hoveredData.nifty50 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-[#f97316]" />
+                      <span className="text-xs text-muted-foreground">NIFTY 50</span>
+                      <span className="text-sm font-semibold text-[#f97316]">{hoveredData.nifty50.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 text-xs flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                  <span className="text-muted-foreground uppercase font-bold tracking-wide">Positive Bias</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
+                  <span className="text-muted-foreground uppercase font-bold tracking-wide">Negative Bias</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-[#f97316]" />
+                  <span className="text-muted-foreground uppercase font-bold tracking-wide">NIFTY 50</span>
+                </div>
+              </div>
+            )}
+            <InfoModalTrigger onClick={openModal} />
           </div>
         </div>
-        {hoveredData ? (
-          <div className="bg-card/95 backdrop-blur-sm rounded-lg border border-border/50 px-3 py-2 shadow-lg">
-            <p className="text-xs text-muted-foreground mb-1">{hoveredData.date}</p>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
-                <span className="text-xs text-muted-foreground">Positive Bias</span>
-                <span className="text-sm font-semibold text-[#22c55e]">{hoveredData.mlHigher ?? '-'}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
-                <span className="text-xs text-muted-foreground">Negative Bias</span>
-                <span className="text-sm font-semibold text-[#ef4444]">{hoveredData.mlLower ?? '-'}</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
-              <span className="text-muted-foreground uppercase font-bold tracking-wide">Positive Bias</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
-              <span className="text-muted-foreground uppercase font-bold tracking-wide">Negative Bias</span>
-            </div>
-          </div>
-        )}
-      </div>
 
       <div className="flex-1 min-h-[300px] relative">
         <ChartContainer config={chartConfig} className="h-full w-full">
           <LineChart
-            data={data}
+            data={chartData}
             margin={{
               left: 10,
               right: 20,
@@ -167,6 +203,14 @@ export default function MLStrengthMeter({ data }: MLStrengthMeterProps) {
               strokeWidth={3}
               filter="url(#glow-ml)"
             />
+            <Line
+              dataKey="nifty50_normalized"
+              name="NIFTY 50"
+              type="monotone"
+              stroke="#f97316"
+              dot={false}
+              strokeWidth={3}
+            />
             <defs>
               <filter id="glow-ml" x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur stdDeviation="2" result="blur" />
@@ -199,6 +243,31 @@ export default function MLStrengthMeter({ data }: MLStrengthMeterProps) {
           The ML Meter is a probability-based market indicator and not a buy/sell signal.
         </p>
       </div>
+
+      <InfoModal
+        isOpen={showModal}
+        onClose={closeModal}
+        title="Understanding ML Meter – Market Bias Indicator"
+        sections={[
+          {
+            heading: "What is ML Meter?",
+            content: "The ML Meter reflects the overall market's readiness for upside moves by analysing stock positioning after pullbacks and extensions. It uses machine learning models to assess whether stocks are better positioned for potential upside swings."
+          },
+          {
+            heading: "Above 60 – Bullish Zone",
+            content: "Majority of stocks have cooled off after pullbacks and are better positioned for an upside swing. Long setups generally offer better risk-reward in this zone."
+          },
+          {
+            heading: "50–60 – Mixed Zone",
+            content: "Mixed conditions prevail. Selective trading is advised with strict risk control. Wait for clearer signals before taking positions."
+          },
+          {
+            heading: "Below 50 – Caution Zone",
+            content: "Most stocks are extended. Upside may be limited and traders should be cautious with long positions. Consider reducing exposure or waiting for pullbacks."
+          }
+        ]}
+        videoLink="#"
+      />
     </div>
   );
 }

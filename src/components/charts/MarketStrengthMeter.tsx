@@ -7,6 +7,7 @@ import {
   ChartContainer,
 } from "@/components/ui/line-chart";
 import { Activity } from "lucide-react";
+import { InfoModal, InfoModalTrigger, useInfoModal } from "@/components/ui/InfoModal";
 
 interface MarketStrengthMeterProps {
   data: any[];
@@ -31,6 +32,7 @@ interface HoveredData {
 
 export default function MarketStrengthMeter({ data }: MarketStrengthMeterProps) {
   const [hoveredData, setHoveredData] = useState<HoveredData | null>(null);
+  const { showModal, openModal, closeModal } = useInfoModal();
 
   const chartData = useMemo(() => {
     const niftyValues = data.map(d => d.nifty50_close).filter(v => v > 0);
@@ -61,7 +63,7 @@ export default function MarketStrengthMeter({ data }: MarketStrengthMeterProps) 
     setHoveredData(null);
   }, []);
 
-  return (
+return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -73,7 +75,8 @@ export default function MarketStrengthMeter({ data }: MarketStrengthMeterProps) 
               <p className="text-xs text-muted-foreground/60 font-medium italic">Trend Strength & Exhaustion Gauge</p>
             </div>
           </div>
-{hoveredData && (
+          <div className="flex items-center gap-3">
+            {hoveredData && (
               <div className="bg-card/95 backdrop-blur-sm rounded-lg border border-border/50 px-3 py-2 shadow-lg">
                 <p className="text-xs text-muted-foreground mb-1">{hoveredData.date}</p>
                 <p className="text-sm font-semibold text-primary">Momentum: {hoveredData.rsi ?? '-'}</p>
@@ -82,6 +85,8 @@ export default function MarketStrengthMeter({ data }: MarketStrengthMeterProps) 
                 )}
               </div>
             )}
+            <InfoModalTrigger onClick={openModal} />
+          </div>
       </div>
 
       <div className="flex-1 min-h-[300px] relative">
@@ -182,10 +187,35 @@ export default function MarketStrengthMeter({ data }: MarketStrengthMeterProps) 
               <div className="text-muted-foreground">Can extend to <strong>80</strong> - signals strength, not reversal</div>
             </div>
           </div>
-          <p className="text-[10px] text-warning/80 text-center italic border-l-2 border-warning/50 pl-2 py-1 bg-warning/5 rounded-r">
-            This oscillator adapts to market trends and should be read in context, not as a standalone signal.
-          </p>
-        </div>
+<p className="text-[10px] text-warning/80 text-center italic border-l-2 border-warning/50 pl-2 py-1 bg-warning/5 rounded-r">
+          This oscillator adapts to market trends and should be read in context, not as a standalone signal.
+        </p>
+      </div>
+
+      <InfoModal
+        isOpen={showModal}
+        onClose={closeModal}
+        title="Understanding Momentum Oscillator"
+        sections={[
+          {
+            heading: "What is Momentum Oscillator?",
+            content: "The Momentum Oscillator is a trend strength and exhaustion gauge that helps identify overbought and oversold conditions in the market. It measures the rate of change in price movements to assess market momentum."
+          },
+          {
+            heading: "Bullish Trend Reading",
+            content: "In a bullish trend, pullbacks to 40 or below represent healthy retracements. These levels are often good opportunities for long positions as the market is resetting for the next leg up."
+          },
+          {
+            heading: "Bearish Trend Reading",
+            content: "In a bearish trend, pullbacks near 20 and momentum fading at 60 indicate risky conditions for longs. The market lacks the strength to sustain rallies."
+          },
+          {
+            heading: "Strong Trends",
+            content: "In strong trending markets, momentum can extend to 80. This signals strength and continuation rather than an immediate reversal. Don't mistake high readings for automatic sell signals."
+          }
+        ]}
+        videoLink="#"
+      />
     </div>
   );
 }
