@@ -305,17 +305,13 @@ async function fetchData() {
       return group === 'LARGECAP' || group === 'MIDCAP';
     });
 
-      let bullCount = 0, bearCount = 0, neutCount = 0;
-      moodStocks.forEach(row => {
-        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-        const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-        const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-        const status = getDynamicStatus(closePrice, lowerRange, upperRange);
-
-        if (status === 'BULLISH') bullCount++;
-        else if (status === 'BEARISH') bearCount++;
-        else neutCount++;
-      });
+    let bullCount = 0, bearCount = 0, neutCount = 0;
+    moodStocks.forEach(row => {
+      const status = (row['STATUS'] || '').toString().toUpperCase();
+      if (status === 'BULLISH') bullCount++;
+      else if (status === 'BEARISH') bearCount++;
+      else neutCount++;
+    });
 
     const totalMoodStocks = moodStocks.length;
     if (totalMoodStocks > 0) {
@@ -347,13 +343,13 @@ async function fetchData() {
     const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
     const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
 
-      stocksSource.forEach(row => {
-        const stockName = row['STOCK_NAME'];
-        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-        const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-        const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-        const status = getDynamicStatus(closePrice, lowerRange, upperRange);
-        const stockId = row['ID'] || stockName;
+    stocksSource.forEach(row => {
+      const stockName = row['STOCK_NAME'];
+      const status = (row['STATUS'] || '').toString().toUpperCase();
+      const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+      const stockId = row['ID'] || stockName;
+      const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
+      const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
       
       if (!stockName) return;
       

@@ -165,9 +165,17 @@ export function IndicesPerformance() {
   const { indexPerformance, isLoading } = useLiveData();
   const { showModal, openModal, closeModal } = useInfoModal();
 
-  const indexData: IndexData[] = indexPerformance || [];
+  const indexData = [...(indexPerformance || [])]
+    .map(index => {
+      const dynamicStocks = index.stocks || [];
+      const bullishCount = dynamicStocks.filter(s => getDynamicStatus(s.price, s.lowerRange, s.upperRange) === "BULLISH").length;
+      const bearishCount = dynamicStocks.filter(s => getDynamicStatus(s.price, s.lowerRange, s.upperRange) === "BEARISH").length;
+      const dynamicStrengthScore = dynamicStocks.length > 0 ? Math.round((bullishCount / dynamicStocks.length) * 100) : 0;
+      return { ...index, bullishCount, bearishCount, dynamicStrengthScore };
+    })
+    .sort((a, b) => b.dynamicStrengthScore - a.dynamicStrengthScore);
 
-  const handleIndexClick = (index: IndexData) => {
+  const handleIndexClick = (index: any) => {
     setSelectedIndex(index);
     setIsDialogOpen(true);
   };
@@ -204,41 +212,46 @@ export function IndicesPerformance() {
         </div>
         <InfoModalTrigger onClick={openModal} />
       </div>
-      <div className="space-y-3">
-        {indexData.map((index, i) => (
-          <div
-            key={index.name}
-            onClick={() => handleIndexClick(index)}
-            className="group p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-primary/30 transition-all duration-300 cursor-pointer animate-fade-in"
-            style={{ animationDelay: `${i * 50}ms` }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${index.strengthScore >= 50 ? 'bg-success' : 'bg-destructive'} animate-pulse`} />
-                <h4 className="font-semibold text-sm group-hover:text-primary transition-colors">{index.name}</h4>
-                <span className="text-[10px] text-muted-foreground/60 font-mono">({index.stocksCount} stocks)</span>
+        <div className="space-y-3">
+          {indexData.map((index: any, i) => {
+            const { bullishCount, bearishCount, dynamicStrengthScore } = index;
+
+            return (
+              <div
+                key={index.name}
+                onClick={() => handleIndexClick(index)}
+                className="group p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-primary/30 transition-all duration-300 cursor-pointer animate-fade-in"
+                style={{ animationDelay: `${i * 50}ms` }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${dynamicStrengthScore >= 50 ? 'bg-success' : 'bg-destructive'} animate-pulse`} />
+                    <h4 className="font-semibold text-sm group-hover:text-primary transition-colors">{index.name}</h4>
+                    <span className="text-[10px] text-muted-foreground/60 font-mono">({index.stocksCount} stocks)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-bold ${dynamicStrengthScore >= 70 ? 'text-success' : dynamicStrengthScore >= 50 ? 'text-warning' : 'text-destructive'}`}>
+                      {dynamicStrengthScore}%
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </div>
+                </div>
+                <StrengthGauge score={dynamicStrengthScore} />
+                <div className="flex items-center gap-4 mt-3 text-[10px]">
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-success" />
+                    <span className="text-success font-bold">{bullishCount} Bullish</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <TrendingDown className="w-3 h-3 text-destructive" />
+                    <span className="text-destructive font-bold">{bearishCount} Bearish</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-sm font-bold ${index.strengthScore >= 70 ? 'text-success' : index.strengthScore >= 50 ? 'text-warning' : 'text-destructive'}`}>
-                  {index.strengthScore}%
-                </span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-              </div>
-            </div>
-            <StrengthGauge score={index.strengthScore} />
-            <div className="flex items-center gap-4 mt-3 text-[10px]">
-              <div className="flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-success" />
-                <span className="text-success font-bold">{index.bullishCount} Bullish</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <TrendingDown className="w-3 h-3 text-destructive" />
-                <span className="text-destructive font-bold">{index.bearishCount} Bearish</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-hidden">

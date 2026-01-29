@@ -114,6 +114,21 @@ function formatSwingDate(dateStr) {
   return `${day}${getOrdinalSuffix(day)} ${months[date.getMonth()]}`;
 }
 
+function getDynamicStatus(price, lowerRange, upperRange) {
+  const actualMin = Math.min(price, lowerRange);
+  const actualMax = Math.max(price, upperRange);
+  const padding = (actualMax - actualMin) * 0.1;
+  const displayMin = actualMin - padding;
+  const displayMax = actualMax + padding;
+  const displayRange = displayMax - displayMin;
+  
+  const pricePosition = displayRange > 0 ? ((price - displayMin) / displayRange) * 100 : 50;
+  
+  if (pricePosition > 66.66) return 'BULLISH';
+  if (pricePosition < 33.33) return 'BEARISH';
+  return 'NEUTRAL';
+}
+
 function rowsToObjects(rows) {
   if (!rows || rows.length < 1) return [];
   const headers = rows[0];
@@ -330,22 +345,18 @@ async function fetchData() {
         return group === 'LARGECAP' || group === 'MIDCAP';
       });
 
-      let bullCount = 0, bearCount = 0, neutCount = 0;
-      moodStocks.forEach(row => {
-        // Use column BG (index 58) if 'STATUS' header not found or empty
-        let statusValue = row['STATUS'];
-        if (statusValue === null || statusValue === undefined) {
-          // Fallback to direct index access if rowsToObjects didn't map it correctly
-          // We need the raw rows for this, but let's assume 'STATUS' is the header if it exists.
-          // If not, we'll try to find it in the object keys.
-        }
-        
-        const status = (statusValue || '').toString().toUpperCase();
-        if (status === 'BULLISH') bullCount++;
-        else if (status === 'BEARISH') bearCount++;
-        else if (status === 'NEUTRAL' || status === '') neutCount++;
-        else neutCount++; // Default to neutral for any other value
-      });
+        let bullCount = 0, bearCount = 0, neutCount = 0;
+        moodStocks.forEach(row => {
+          const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+          const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
+          const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
+          
+          const status = getDynamicStatus(closePrice, lowerRange, upperRange);
+          if (status === 'BULLISH') bullCount++;
+          else if (status === 'BEARISH') bearCount++;
+          else neutCount++;
+        });
+
 
       const totalMoodStocks = moodStocks.length;
       if (totalMoodStocks > 0) {
@@ -384,37 +395,39 @@ async function fetchData() {
       // Use currentData for live status, but latestLasaData for index mapping if needed
       const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
 
-      stocksSource.forEach(row => {
-        const stockName = row['STOCK_NAME'];
-        const status = (row['STATUS'] || '').toString().toUpperCase();
-        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-        const stockId = row['ID'] || stockName;
-        const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-        const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-        
-        if (!stockName) return;
-        
-        Object.keys(indexColumns).forEach(indexName => {
-          const colName = indexColumns[indexName];
-          const val = row[colName];
-          if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
-            const isBullish = status === 'BULLISH';
-            const isBearish = status === 'BEARISH';
-            
-            indexStocksMap[indexName].stocks.push({
-              id: stockId,
-              stockName,
-              price: closePrice,
-              status: status || 'NEUTRAL',
-              upperRange,
-              lowerRange
-            });
-            
-            if (isBullish) indexStocksMap[indexName].bullish++;
-            if (isBearish) indexStocksMap[indexName].bearish++;
-          }
+        stocksSource.forEach(row => {
+          const stockName = row['STOCK_NAME'];
+          const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+          const stockId = row['ID'] || stockName;
+          const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
+          const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
+          
+          if (!stockName) return;
+          
+          const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
+          
+          Object.keys(indexColumns).forEach(indexName => {
+            const colName = indexColumns[indexName];
+            const val = row[colName];
+            if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
+              const isBullish = dynamicStatus === 'BULLISH';
+              const isBearish = dynamicStatus === 'BEARISH';
+              
+              indexStocksMap[indexName].stocks.push({
+                id: stockId,
+                stockName,
+                price: closePrice,
+                status: dynamicStatus,
+                upperRange,
+                lowerRange
+              });
+              
+              if (isBullish) indexStocksMap[indexName].bullish++;
+              if (isBearish) indexStocksMap[indexName].bearish++;
+            }
+          });
         });
-      });
+
       
       indexPerformance = Object.keys(indexStocksMap).map(indexName => {
         const data = indexStocksMap[indexName];
