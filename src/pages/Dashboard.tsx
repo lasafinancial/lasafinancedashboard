@@ -65,13 +65,14 @@ const Dashboard = () => {
     color: "hsl(190, 95%, 50%)"
   };
 
-    const moodVerdict = marketMoodData.bullish > marketMoodData.bearish ? "BULLISH" : marketMoodData.bearish > marketMoodData.bullish ? "BEARISH" : "NEUTRAL";
+    const moodData = liveMarketMood || marketMoodData;
+    const moodVerdict = moodData.bullish > moodData.bearish ? "BULLISH" : moodData.bearish > moodData.bullish ? "BEARISH" : "NEUTRAL";
     const moodColor = moodVerdict === "BULLISH" ? "text-success" : moodVerdict === "BEARISH" ? "text-destructive" : "text-warning";
-    const sentimentScore = (marketMoodData.bullish - marketMoodData.bearish + 100) / 2;
+    const sentimentScore = (moodData.bullish - moodData.bearish + 100) / 2;
 
   const latestUpdateDate = liveMarketStrength.length > 0 
     ? liveMarketStrength[liveMarketStrength.length - 1].date 
-    : (liveMarketMood?.date || marketMoodData.date);
+    : (moodData?.date || marketMoodData.date);
 
   return (
     <div className="min-h-screen bg-background selection:bg-primary/30 overflow-x-hidden">
@@ -137,36 +138,34 @@ const Dashboard = () => {
               {/* Market Mood Today */}
               <GlassCard delay={0.1} className="flex flex-col h-full">
                 <div className="h-full flex flex-col">
-                    <div className="flex justify-between items-center mb-10">
-                      <div className="space-y-1">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Market Mood Today</h3>
-                        <p className="text-xs text-muted-foreground/60 font-medium italic">Current internal dynamics</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${moodColor} shadow-[0_0_20px_rgba(255,255,255,0.05)]`}>
-                          {moodVerdict}
+                      <div className="flex justify-between items-center mb-10">
+                        <div className="space-y-1">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Market Mood Today</h3>
+                          <p className="text-xs text-muted-foreground/60 font-medium italic">Current internal dynamics</p>
                         </div>
-                        <InfoModalTrigger onClick={openMarketMoodModal} />
+                        <div className="flex items-center gap-3">
+                          <InfoModalTrigger onClick={openMarketMoodModal} />
+                        </div>
                       </div>
-                    </div>
                 
                 <div className="flex-1 flex flex-col justify-center">
                   <div className="grid grid-cols-3 gap-6">
-                    <div className="group/item relative p-6 rounded-2xl bg-success/5 border border-success/10 transition-all duration-500 hover:bg-success/10 hover:border-success/20">
-                      <TrendingUp className="w-5 h-5 text-success mb-4 opacity-70 group-hover/item:opacity-100 transition-opacity" />
-                      <span className="text-2xl md:text-3xl font-bold text-success tracking-tight">{Math.round(marketMoodData.bullish)}%</span>
-                      <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Bullish</p>
-                    </div>
-                    <div className="group/item relative p-6 rounded-2xl bg-destructive/5 border border-destructive/10 transition-all duration-500 hover:bg-destructive/10 hover:border-destructive/20">
-                      <TrendingDown className="w-5 h-5 text-destructive mb-4 opacity-70 group-hover/item:opacity-100 transition-opacity" />
-                      <span className="text-2xl md:text-3xl font-bold text-destructive tracking-tight">{Math.round(marketMoodData.bearish)}%</span>
-                      <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Bearish</p>
-                    </div>
-                    <div className="group/item relative p-6 rounded-2xl bg-warning/5 border border-warning/10 transition-all duration-500 hover:bg-warning/10 hover:border-warning/20">
-                      <Minus className="w-5 h-5 text-warning mb-4 opacity-70 group-hover/item:opacity-100 transition-opacity" />
-                      <span className="text-2xl md:text-3xl font-bold text-warning tracking-tight">{Math.round(marketMoodData.neutral)}%</span>
-                      <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Neutral</p>
-                    </div>
+                      <div className="group/item relative p-6 rounded-2xl bg-success/5 border border-success/10 transition-all duration-500 hover:bg-success/10 hover:border-success/20">
+                        <TrendingUp className="w-5 h-5 text-success mb-4 opacity-70 group-hover/item:opacity-100 transition-opacity" />
+                        <span className="text-2xl md:text-3xl font-bold text-success tracking-tight">{Math.round(moodData.bullish)}%</span>
+                        <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Bullish</p>
+                      </div>
+                      <div className="group/item relative p-6 rounded-2xl bg-destructive/5 border border-destructive/10 transition-all duration-500 hover:bg-destructive/10 hover:border-destructive/20">
+                        <TrendingDown className="w-5 h-5 text-destructive mb-4 opacity-70 group-hover/item:opacity-100 transition-opacity" />
+                        <span className="text-2xl md:text-3xl font-bold text-destructive tracking-tight">{Math.round(moodData.bearish)}%</span>
+                        <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Bearish</p>
+                      </div>
+                      <div className="group/item relative p-6 rounded-2xl bg-warning/5 border border-warning/10 transition-all duration-500 hover:bg-warning/10 hover:border-warning/20">
+                        <Minus className="w-5 h-5 text-warning mb-4 opacity-70 group-hover/item:opacity-100 transition-opacity" />
+                        <span className="text-2xl md:text-3xl font-bold text-warning tracking-tight">{Math.round(moodData.neutral)}%</span>
+                        <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Neutral</p>
+                      </div>
+
                   </div>
                   <p className="text-xs text-muted-foreground/40 text-center mt-10 uppercase tracking-wider font-semibold">
                     Internal Relative Strength Analysis
@@ -237,7 +236,7 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                <MarketDescription text={getMarketMoodDescription(marketMoodData)} />
+                <MarketDescription text={getMarketMoodDescription(moodData)} />
 
                 <InfoModal
                   isOpen={showMarketMoodModal}

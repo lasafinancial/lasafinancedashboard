@@ -1,126 +1,126 @@
 {
   "topGainers": [
     {
-      "id": "DBOL",
-      "stockName": "Dhampur Bio Organics Limited",
-      "changePercent": 0.2,
-      "closePrice": 95.76
+      "id": "HINDCOPPER",
+      "stockName": "Hindustan Copper Limited",
+      "changePercent": 0.1681,
+      "closePrice": 739.7
     },
     {
-      "id": "EKC",
-      "stockName": "Everest Kanto Cylinder Limited",
-      "changePercent": 0.1273,
-      "closePrice": 114
+      "id": "GLAND",
+      "stockName": "Gland Pharma Limited",
+      "changePercent": 0.0799,
+      "closePrice": 1820.1
     },
     {
-      "id": "BAIDFIN",
-      "stockName": "Baid Finserv Limited",
-      "changePercent": 0.1184,
-      "closePrice": 11.24
+      "id": "MRPL",
+      "stockName": "Mangalore Refinery and Petrochemicals Limited",
+      "changePercent": 0.0773,
+      "closePrice": 174.05
     },
     {
-      "id": "AWHCL",
-      "stockName": "Antony Waste Handling Cell Limited",
-      "changePercent": 0.1164,
-      "closePrice": 560
+      "id": "OIL",
+      "stockName": "Oil India Limited",
+      "changePercent": 0.0498,
+      "closePrice": 516.85
     },
     {
-      "id": "CONSOFINVT",
-      "stockName": "Consolidated Finvest & Holdings Limited",
-      "changePercent": 0.1008,
-      "closePrice": 168.88
+      "id": "ECLERX",
+      "stockName": "eClerx Services Limited",
+      "changePercent": 0.048,
+      "closePrice": 4642
     },
     {
-      "id": "BCONCEPTS",
-      "stockName": "Brand Concepts Limited",
-      "changePercent": 0.0927,
-      "closePrice": 299.85
+      "id": "DBREALTY",
+      "stockName": "D B Realty Limited",
+      "changePercent": 0.04,
+      "closePrice": 105.98
     },
     {
-      "id": "KITEX",
-      "stockName": "Kitex Garments Limited",
-      "changePercent": 0.0854,
-      "closePrice": 164
+      "id": "NATIONALUM",
+      "stockName": "National Aluminium Company Limited",
+      "changePercent": 0.0379,
+      "closePrice": 422.4
     },
     {
-      "id": "BTML",
-      "stockName": "Bodhi Tree Multimedia Limited",
-      "changePercent": 0.0811,
-      "closePrice": 8.4
+      "id": "VGUARD",
+      "stockName": "V-Guard Industries Limited",
+      "changePercent": 0.0376,
+      "closePrice": 329.85
     },
     {
-      "id": "NKIND",
-      "stockName": "NK Industries Limited",
-      "changePercent": 0.0712,
-      "closePrice": 64.4
+      "id": "JINDALSTEL",
+      "stockName": "Jindal Steel & Power Limited",
+      "changePercent": 0.0326,
+      "closePrice": 1156
     },
     {
-      "id": "JPOLYINVST",
-      "stockName": "Jindal Poly Investment and Finance Company Limited",
-      "changePercent": 0.0641,
-      "closePrice": 956
+      "id": "MCX",
+      "stockName": "Multi Commodity Exchange of India Limited",
+      "changePercent": 0.0309,
+      "closePrice": 2667
     }
   ],
   "topLosers": [
     {
-      "id": "ADANIGREEN",
-      "stockName": "Adani Green Energy Limited",
-      "changePercent": -0.1381,
-      "closePrice": 779.4
+      "id": "FIVESTAR",
+      "stockName": "Five-Star Business Finance Limited",
+      "changePercent": -0.0644,
+      "closePrice": 469.35
     },
     {
-      "id": "SIMPLEXINF",
-      "stockName": "Simplex Infrastructures Limited",
-      "changePercent": -0.1087,
-      "closePrice": 191
+      "id": "RTNINDIA",
+      "stockName": "RattanIndia Enterprises Limited",
+      "changePercent": -0.0532,
+      "closePrice": 33.83
     },
     {
-      "id": "ADANIENT",
-      "stockName": "Adani Enterprises Limited",
-      "changePercent": -0.1076,
-      "closePrice": 1861.8
+      "id": "MOTILALOFS",
+      "stockName": "Motilal Oswal Financial Services Limited",
+      "changePercent": -0.0527,
+      "closePrice": 754.15
     },
     {
-      "id": "ADANIENSOL",
-      "stockName": "Adani Energy Solutions Limited",
-      "changePercent": -0.1071,
-      "closePrice": 825.8
+      "id": "RPOWER",
+      "stockName": "Reliance Power Limited",
+      "changePercent": -0.0493,
+      "closePrice": 27.95
     },
     {
-      "id": "HGINFRA",
-      "stockName": "H.G. Infra Engineering Limited",
-      "changePercent": -0.1009,
-      "closePrice": 596.1
+      "id": "JPPOWER",
+      "stockName": "Jaiprakash Power Ventures Limited",
+      "changePercent": -0.0455,
+      "closePrice": 15.12
     },
     {
-      "id": "TATVA",
-      "stockName": "Tatva Chintan Pharma Chem Limited",
-      "changePercent": -0.0985,
-      "closePrice": 1147.8
+      "id": "SWSOLAR",
+      "stockName": "Sterling and Wilson Renewable Energy Limited",
+      "changePercent": -0.0376,
+      "closePrice": 182.65
     },
     {
-      "id": "SPENCERS",
-      "stockName": "Spencer's Retail Limited",
-      "changePercent": -0.0983,
-      "closePrice": 31.65
+      "id": "SOLARINDS",
+      "stockName": "Solar Industries India Limited",
+      "changePercent": -0.037,
+      "closePrice": 13477
     },
     {
-      "id": "INFOBEAN",
-      "stockName": "InfoBeans Technologies Limited",
-      "changePercent": -0.0958,
-      "closePrice": 808.95
+      "id": "KAYNES",
+      "stockName": "Kaynes Technology India Limited",
+      "changePercent": -0.0367,
+      "closePrice": 3362.5
     },
     {
-      "id": "ASHAPURMIN",
-      "stockName": "Ashapura Minechem Limited",
-      "changePercent": -0.0956,
-      "closePrice": 678.95
+      "id": "BLS",
+      "stockName": "BLS International Services Limited",
+      "changePercent": -0.0365,
+      "closePrice": 254.75
     },
     {
-      "id": "GOLDTECH",
-      "stockName": "Goldstone Technologies Limited",
-      "changePercent": -0.0955,
-      "closePrice": 41
+      "id": "OLECTRA",
+      "stockName": "Olectra Greentech Limited",
+      "changePercent": -0.0362,
+      "closePrice": 1049
     }
   ]
 }

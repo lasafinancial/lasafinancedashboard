@@ -3,6 +3,35 @@ import { google } from 'googleapis';
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
 
+function parseDateFlexible(dateStr) {
+  if (!dateStr) return null;
+  
+  // Try standard ISO format first (YYYY-MM-DD)
+  let date = new Date(dateStr + 'T00:00:00');
+  if (!isNaN(date.getTime())) return date;
+  
+  // Try DD-MM-YYYY or DD/MM/YYYY format
+  const parts = dateStr.split(/[-\/]/);
+  if (parts.length === 3) {
+    const [p1, p2, p3] = parts.map(p => parseInt(p, 10));
+    
+    // If first part > 12, it's likely DD-MM-YYYY
+    if (p1 > 12) {
+      date = new Date(p3, p2 - 1, p1);
+      if (!isNaN(date.getTime())) return date;
+    }
+    
+    // If third part > 31, it's likely MM-DD-YYYY or DD-MM-YYYY
+    if (p3 > 31) {
+      // Try DD-MM-YYYY
+      date = new Date(p3, p2 - 1, p1);
+      if (!isNaN(date.getTime())) return date;
+    }
+  }
+  
+  return null;
+}
+
 function getCredentials() {
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!key) {
@@ -74,13 +103,18 @@ function formatSwingDate(dateStr) {
 }
 
 function rowsToObjects(rows) {
-  if (!rows || rows.length < 2) return [];
+  if (!rows || rows.length < 1) return [];
   const headers = rows[0];
   return rows.slice(1).map(row => {
     const obj = {};
     headers.forEach((header, i) => {
-      obj[header] = row[i] !== undefined ? row[i] : null;
+      if (header) {
+        obj[header] = row[i] !== undefined ? row[i] : null;
+      }
     });
+    // Specific mapping for Market Mood logic if headers are missing or unclear
+    if (row[58] !== undefined && !obj['STATUS']) obj['STATUS'] = row[58]; // Column BG
+    if (row[18] !== undefined && !obj['GROUP']) obj['GROUP'] = row[18];   // Column S
     return obj;
   });
 }
@@ -105,25 +139,13 @@ async function fetchData() {
   const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
   const latestDate = sortedDates[0];
 
-  const moodData = lasaMasterData.filter(row => row['DATE'] === latestDate);
-  
-  let bullish = 0, bearish = 0, neutral = 0;
-  moodData.forEach(row => {
-    const close = parseFloat((row['CLOSE_PRICE'] || '').toString().replace(/,/g, ''));
-    const res = parseFloat((row['UPPER_RANGE'] || '').toString().replace(/,/g, ''));
-    const sup = parseFloat((row['LOWER_RANGE'] || '').toString().replace(/,/g, ''));
-    if (isNaN(close) || isNaN(res) || isNaN(sup)) { neutral++; return; }
-    if ((res - close) / res <= 0.01) bullish++;
-    else if ((close - sup) / sup <= 0.01) bearish++;
-    else neutral++;
-  });
-  
-  const marketMood = {
-    bullish: moodData.length > 0 ? (bullish / moodData.length) * 100 : 0,
-    bearish: moodData.length > 0 ? (bearish / moodData.length) * 100 : 0,
-    neutral: moodData.length > 0 ? (neutral / moodData.length) * 100 : 0,
-    date: formatDate(new Date(latestDate))
-  };
+    const marketMood = {
+      bullish: 0,
+      bearish: 0,
+      neutral: 0,
+      date: formatDate(new Date(latestDate))
+    };
+
   
   const swingRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SWING_SHEET_ID,
@@ -190,8 +212,9 @@ async function fetchData() {
     lastUpdate: new Date().toLocaleTimeString()
   };
   
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  thirtyDaysAgo.setHours(0, 0, 0, 0);
   
   const history = {};
   const resistanceSlopeMap = {};
@@ -199,8 +222,9 @@ async function fetchData() {
   lasaMasterData.forEach(row => {
     const dateStr = row['DATE'];
     if (!dateStr) return;
-    const rowDate = new Date(dateStr);
-    if (rowDate < sixMonthsAgo) return;
+    
+    const rowDate = parseDateFlexible(dateStr);
+    if (!rowDate || rowDate < thirtyDaysAgo) return;
 
     const symbol = row['STOCK_NAME'];
     if (!symbol) return;
@@ -215,10 +239,6 @@ async function fetchData() {
     const closeStr = (row['CLOSE_PRICE'] || '').toString().replace(/,/g, '');
     const supportStr = (row['SUPPORT'] || '').toString().replace(/,/g, '');
     const resistanceStr = (row['RESISTANCE'] || '').toString().replace(/,/g, '');
-    const mlFutStr = (row['ML_FUT_PRICE_20D'] || '').toString().replace(/,/g, '');
-    const wolfeStr = (row['WOLFE_D'] || '').toString().replace(/,/g, '');
-    const projFvgStr = (row['PROJ_FVG'] || '').toString().replace(/,/g, '');
-    const resistanceSlopeDownward = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase() === 'true';
     
     history[symbol].push({
       dateObj: rowDate,
@@ -228,22 +248,14 @@ async function fetchData() {
       trend: row['DAILY_TREND'] || '',
       support: parseFloat(supportStr) || 0,
       resistance: parseFloat(resistanceStr) || 0,
-      mlFutPrice20d: parseFloat(mlFutStr) || 0,
-      wolfeD: parseFloat(wolfeStr) || 0,
-      projFvg: parseFloat(projFvgStr) || 0,
-      sector: row['SECTOR'] || '',
-      resistanceSlopeDownward
+      sector: row['SECTOR'] || ''
     });
   });
   
   const stockData = Object.keys(history).map(symbol => {
     const stockHistory = history[symbol].sort((a, b) => a.dateObj - b.dateObj);
-    
     if (stockHistory.length === 0) return null;
-    
     const latest = stockHistory[stockHistory.length - 1];
-    const resistanceSlopeDownward = resistanceSlopeMap[symbol] || false;
-    
     return {
       symbol,
       name: symbol,
@@ -251,40 +263,130 @@ async function fetchData() {
       price: latest.price,
       rsi: latest.rsi,
       trend: latest.trend,
-      resistanceSlopeDownward,
+      resistanceSlopeDownward: resistanceSlopeMap[symbol] || false,
       history: stockHistory.map(h => ({
         price: h.price,
         rsi: h.rsi,
         trend: h.trend,
         support: h.support,
         resistance: h.resistance,
-        mlFutPrice20d: h.mlFutPrice20d,
-        wolfeD: h.wolfeD,
-        projFvg: h.projFvg,
-        date: h.dateDisplay,
-        resistanceSlopeDownward: h.resistanceSlopeDownward
+        date: h.dateDisplay
       }))
     };
   }).filter(Boolean);
 
   let topMovers = { topGainers: [], topLosers: [] };
+  let indexPerformance = [];
   try {
     const currentRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
-      range: "'current'!A1:BZ",
+      range: "'current'!A1:FJ",
     });
     const currentData = rowsToObjects(currentRes.data.values);
     
+    // Calculate Market Mood based on new logic: top 470 rows, Large/Mid cap, Status BG (STATUS)
+    const moodStocks = currentData.slice(0, 470).filter(row => {
+      const group = (row['GROUP'] || '').toString().toUpperCase();
+      return group === 'LARGECAP' || group === 'MIDCAP';
+    });
+
+    let bullCount = 0, bearCount = 0, neutCount = 0;
+    moodStocks.forEach(row => {
+      const status = (row['STATUS'] || '').toString().toUpperCase();
+      if (status === 'BULLISH') bullCount++;
+      else if (status === 'BEARISH') bearCount++;
+      else neutCount++;
+    });
+
+    const totalMoodStocks = moodStocks.length;
+    if (totalMoodStocks > 0) {
+      marketMood.bullish = (bullCount / totalMoodStocks) * 100;
+      marketMood.bearish = (bearCount / totalMoodStocks) * 100;
+      marketMood.neutral = (neutCount / totalMoodStocks) * 100;
+    }
+    
+    const indexColumns = {
+      'NIFTY 50': 'NIFTY50',
+      'NIFTY BANK': 'NIFTYBANK',
+      'NIFTY IT': 'NIFTYIT',
+      'NIFTY AUTO': 'NIFTYAUTO',
+      'NIFTY PHARMA': 'NIFTYPHARMA',
+      'NIFTY METAL': 'NIFTYMETAL',
+      'NIFTY FMCG': 'NIFTYFMCG',
+      'NIFTY INFRA': 'NIFTYINFRA',
+      'NIFTY PSU BANK': 'NIFTYPSUBANK',
+      'NIFTY PVT BANK': 'NIFTYPVTBANK',
+      'NIFTY CPSE': 'NIFTYCPSE',
+      'NIFTY 500': 'NIFTY500'
+    };
+    
+    const indexStocksMap = {};
+    Object.keys(indexColumns).forEach(idx => {
+      indexStocksMap[idx] = { stocks: [], bullish: 0, bearish: 0 };
+    });
+    
+    const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
+    const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
+
+    stocksSource.forEach(row => {
+      const stockName = row['STOCK_NAME'];
+      const status = (row['STATUS'] || '').toString().toUpperCase();
+      const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+      const stockId = row['ID'] || stockName;
+      const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
+      const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
+      
+      if (!stockName) return;
+      
+      Object.keys(indexColumns).forEach(indexName => {
+        const colName = indexColumns[indexName];
+        const val = row[colName];
+        if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
+          const isBullish = status === 'BULLISH';
+          const isBearish = status === 'BEARISH';
+          
+          indexStocksMap[indexName].stocks.push({
+            id: stockId,
+            stockName,
+            price: closePrice,
+            status: status || 'NEUTRAL',
+            upperRange,
+            lowerRange
+          });
+          
+          if (isBullish) indexStocksMap[indexName].bullish++;
+          if (isBearish) indexStocksMap[indexName].bearish++;
+        }
+      });
+    });
+    
+    indexPerformance = Object.keys(indexStocksMap).map(indexName => {
+      const data = indexStocksMap[indexName];
+      const total = data.stocks.length;
+      const strengthScore = total > 0 ? Math.round((data.bullish / total) * 100) : 50;
+      return {
+        name: indexName,
+        stocksCount: total,
+        bullishCount: data.bullish,
+        bearishCount: data.bearish,
+        strengthScore,
+        stocks: data.stocks
+      };
+    }).filter(idx => idx.stocksCount > 0).sort((a, b) => b.strengthScore - a.strengthScore);
+
     const stocks = currentData
-      .filter(row => row['STOCK_NAME'] && row['CHANGE_PERCENT'] !== undefined && row['CHANGE_PERCENT'] !== '')
+      .filter(row => {
+        if (!row['STOCK_NAME'] || row['CHANGE_PERCENT'] === undefined || row['CHANGE_PERCENT'] === '') return false;
+        const group = (row['GROUP'] || '').toString().toUpperCase();
+        return group === 'LARGECAP' || group === 'MIDCAP';
+      })
       .map(row => ({
         id: row['ID'] || row['STOCK_NAME'],
         stockName: row['STOCK_NAME'],
         changePercent: parseFloat((row['CHANGE_PERCENT'] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
-        closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0,
-        idNum: parseInt(row['ID']) || 9999
+        closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0
       }))
-      .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice) && s.idNum <= 600);
+      .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
     
     const sortedByChange = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
     
@@ -293,7 +395,7 @@ async function fetchData() {
       topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
     };
   } catch (err) {
-    console.warn('Could not fetch top movers:', err.message);
+    console.warn('Could not fetch top movers or index performance:', err.message);
   }
   
   return {
@@ -302,6 +404,7 @@ async function fetchData() {
     marketPosition,
     stockData,
     topMovers,
+    indexPerformance,
     lastUpdated: new Date().toISOString()
   };
 }

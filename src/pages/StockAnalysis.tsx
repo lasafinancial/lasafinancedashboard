@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, TrendingUp, Activity, Layers, TrendingDown, Loader2 } from "lucide-react";
+import { Search, TrendingUp, Activity, TrendingDown, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StockPriceChart from "@/components/charts/StockPriceChart";
@@ -208,18 +208,6 @@ const StockAnalysis = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/10 shrink-0">
-                <Layers className="w-5 h-5 text-success" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Trend</p>
-                <p className={`text-lg font-black truncate ${currentStock?.trend === 'UP' ? 'text-success' : currentStock?.trend === 'DOWN' ? 'text-destructive' : 'text-warning'}`}>
-                  {currentStock?.trend}
-                </p>
-              </div>
-            </div>
-            
             <div className="flex-shrink-0 text-right">
                 <div className="inline-block px-4 py-2 rounded-xl bg-white/5 border border-white/10">
                     <span className="text-[10px] text-muted-foreground uppercase font-bold block">Sector</span>

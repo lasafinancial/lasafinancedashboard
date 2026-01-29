@@ -115,13 +115,18 @@ function formatSwingDate(dateStr) {
 }
 
 function rowsToObjects(rows) {
-  if (!rows || rows.length < 2) return [];
+  if (!rows || rows.length < 1) return [];
   const headers = rows[0];
   return rows.slice(1).map(row => {
     const obj = {};
     headers.forEach((header, i) => {
-      obj[header] = row[i] !== undefined ? row[i] : null;
+      if (header) {
+        obj[header] = row[i] !== undefined ? row[i] : null;
+      }
     });
+    // Specific mapping for Market Mood logic if headers are missing or unclear
+    if (row[58] !== undefined && !obj['STATUS']) obj['STATUS'] = row[58]; // Column BG
+    if (row[18] !== undefined && !obj['GROUP']) obj['GROUP'] = row[18];   // Column S
     return obj;
   });
 }
@@ -153,28 +158,15 @@ async function fetchData() {
     console.log(`Latest date in lasa-master: ${latestDate} (${latestLasaRows.length} rows)`);
 
 
-  console.log('Calculating Market Mood...');
-  const moodData = lasaMasterData.filter(row => row['DATE'] === latestDate);
-  
-  let bullish = 0, bearish = 0, neutral = 0;
-  moodData.forEach(row => {
-    const close = parseFloat((row['CLOSE_PRICE'] || '').toString().replace(/,/g, ''));
-    const res = parseFloat((row['UPPER_RANGE'] || '').toString().replace(/,/g, ''));
-    const sup = parseFloat((row['LOWER_RANGE'] || '').toString().replace(/,/g, ''));
-    if (isNaN(close) || isNaN(res) || isNaN(sup)) { neutral++; return; }
-    if ((res - close) / res <= 0.01) bullish++;
-    else if ((close - sup) / sup <= 0.01) bearish++;
-    else neutral++;
-  });
-  
-  const marketMood = {
-    bullish: moodData.length > 0 ? (bullish / moodData.length) * 100 : 0,
-    bearish: moodData.length > 0 ? (bearish / moodData.length) * 100 : 0,
-    neutral: moodData.length > 0 ? (neutral / moodData.length) * 100 : 0,
-    date: formatDate(new Date(latestDate))
-  };
-  
-  console.log('Fetching Swing DATA sheet...');
+    const marketMood = {
+      bullish: 0,
+      bearish: 0,
+      neutral: 0,
+      date: formatDate(new Date(latestDate))
+    };
+    
+    console.log('Fetching Swing DATA sheet...');
+
   const swingRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SWING_SHEET_ID,
     range: 'DATA',
@@ -326,11 +318,44 @@ async function fetchData() {
   let topMovers = { topGainers: [], topLosers: [] };
   let indexPerformance = [];
   try {
-    const currentRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: EOD_SHEET_ID,
-      range: "'current'!A1:FJ",
-    });
-    const currentData = rowsToObjects(currentRes.data.values);
+      const currentRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: EOD_SHEET_ID,
+        range: "'current'!A1:FJ",
+      });
+      const currentData = rowsToObjects(currentRes.data.values);
+      
+      // Calculate Market Mood based on new logic: top 470 rows, Large/Mid cap, Status BG (column 59/index 58)
+      const moodStocks = currentData.slice(0, 470).filter(row => {
+        const group = (row['GROUP'] || '').toString().toUpperCase();
+        return group === 'LARGECAP' || group === 'MIDCAP';
+      });
+
+      let bullCount = 0, bearCount = 0, neutCount = 0;
+      moodStocks.forEach(row => {
+        // Use column BG (index 58) if 'STATUS' header not found or empty
+        let statusValue = row['STATUS'];
+        if (statusValue === null || statusValue === undefined) {
+          // Fallback to direct index access if rowsToObjects didn't map it correctly
+          // We need the raw rows for this, but let's assume 'STATUS' is the header if it exists.
+          // If not, we'll try to find it in the object keys.
+        }
+        
+        const status = (statusValue || '').toString().toUpperCase();
+        if (status === 'BULLISH') bullCount++;
+        else if (status === 'BEARISH') bearCount++;
+        else if (status === 'NEUTRAL' || status === '') neutCount++;
+        else neutCount++; // Default to neutral for any other value
+      });
+
+      const totalMoodStocks = moodStocks.length;
+      if (totalMoodStocks > 0) {
+        marketMood.bullish = (bullCount / totalMoodStocks) * 100;
+        marketMood.bearish = (bearCount / totalMoodStocks) * 100;
+        marketMood.neutral = (neutCount / totalMoodStocks) * 100;
+      }
+
+      console.log(`Market Mood calculated from ${totalMoodStocks} Large/Mid Cap stocks: ${marketMood.bullish.toFixed(1)}% Bullish, ${marketMood.bearish.toFixed(1)}% Bearish, ${marketMood.neutral.toFixed(1)}% Neutral`);
+
     
       console.log('Current tab sample headers:', Object.keys(currentData[0] || {}).slice(0, 20));
       
