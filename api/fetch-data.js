@@ -4,31 +4,40 @@ const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
 
 function parseDateFlexible(dateStr) {
-  if (!dateStr) return null;
+  if (dateStr === null || dateStr === undefined || dateStr === '') return null;
   
-  // Try standard ISO format first (YYYY-MM-DD)
-  let date = new Date(dateStr + 'T00:00:00');
+  const num = Number(dateStr);
+  if (!isNaN(num) && typeof dateStr !== 'boolean' && num > 40000) {
+    const utc_days = Math.floor(num - 25569);
+    return new Date(utc_days * 86400 * 1000);
+  }
+
+  const str = String(dateStr).trim();
+  
+  let date = new Date(str + 'T00:00:00');
   if (!isNaN(date.getTime())) return date;
   
-  // Try DD-MM-YYYY or DD/MM/YYYY format
-  const parts = dateStr.split(/[-\/]/);
+  const parts = str.split(/[-\/]/);
   if (parts.length === 3) {
-    const [p1, p2, p3] = parts.map(p => parseInt(p, 10));
+    const p = parts.map(part => parseInt(part, 10));
     
-    // If first part > 12, it's likely DD-MM-YYYY
-    if (p1 > 12) {
-      date = new Date(p3, p2 - 1, p1);
+    if (p[0] > 1000) {
+      date = new Date(p[0], p[1] - 1, p[2]);
       if (!isNaN(date.getTime())) return date;
     }
     
-    // If third part > 31, it's likely MM-DD-YYYY or DD-MM-YYYY
-    if (p3 > 31) {
-      // Try DD-MM-YYYY
-      date = new Date(p3, p2 - 1, p1);
+    if (p[2] > 1000) {
+      date = new Date(p[2], p[1] - 1, p[0]);
       if (!isNaN(date.getTime())) return date;
     }
+    
+    date = new Date(p[2], p[0] - 1, p[1]);
+    if (!isNaN(date.getTime())) return date;
   }
   
+  date = new Date(str);
+  if (!isNaN(date.getTime())) return date;
+
   return null;
 }
 
@@ -119,7 +128,7 @@ function getDynamicStatus(price, lowerRange, upperRange) {
 
 function rowsToObjects(rows) {
   if (!rows || rows.length < 1) return [];
-  const headers = rows[0];
+  const headers = rows[0].map(h => (h || '').toString().trim());
   return rows.slice(1).map(row => {
     const obj = {};
     headers.forEach((header, i) => {
@@ -127,21 +136,18 @@ function rowsToObjects(rows) {
         obj[header] = row[i] !== undefined ? row[i] : null;
       }
     });
-    // Specific mapping for Market Mood logic if headers are missing or unclear
-    if (row[58] !== undefined && !obj['STATUS']) obj['STATUS'] = row[58]; // Column BG
-    if (row[18] !== undefined && !obj['GROUP']) obj['GROUP'] = row[18];   // Column S
+    if (row[58] !== undefined && !obj['STATUS']) obj['STATUS'] = row[58];
+    if (row[18] !== undefined && !obj['GROUP']) obj['GROUP'] = row[18];
     return obj;
   });
 }
 
 async function fetchData() {
   const credentials = getCredentials();
-  
   const auth = new google.auth.GoogleAuth({
     credentials,
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
   });
-  
   const sheets = google.sheets({ version: 'v4', auth });
   
   const lasaMasterRes = await sheets.spreadsheets.values.get({
@@ -154,14 +160,13 @@ async function fetchData() {
   const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
   const latestDate = sortedDates[0];
 
-    const marketMood = {
-      bullish: 0,
-      bearish: 0,
-      neutral: 0,
-      date: formatDate(new Date(latestDate))
-    };
+  const marketMood = {
+    bullish: 0,
+    bearish: 0,
+    neutral: 0,
+    date: formatDate(new Date(latestDate))
+  };
 
-  
   const swingRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SWING_SHEET_ID,
     range: 'DATA',
@@ -227,9 +232,9 @@ async function fetchData() {
     lastUpdate: new Date().toLocaleTimeString()
   };
   
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  thirtyDaysAgo.setHours(0, 0, 0, 0);
+  const historyCutoff = new Date();
+  historyCutoff.setDate(historyCutoff.getDate() - 180);
+  historyCutoff.setHours(0, 0, 0, 0);
   
   const history = {};
   const resistanceSlopeMap = {};
@@ -239,7 +244,7 @@ async function fetchData() {
     if (!dateStr) return;
     
     const rowDate = parseDateFlexible(dateStr);
-    if (!rowDate || rowDate < thirtyDaysAgo) return;
+    if (!rowDate || rowDate < historyCutoff) return;
 
     const symbol = row['STOCK_NAME'];
     if (!symbol) return;
@@ -254,6 +259,9 @@ async function fetchData() {
     const closeStr = (row['CLOSE_PRICE'] || '').toString().replace(/,/g, '');
     const supportStr = (row['SUPPORT'] || '').toString().replace(/,/g, '');
     const resistanceStr = (row['RESISTANCE'] || '').toString().replace(/,/g, '');
+    const mlFutPriceStr = (row['ML_FUT_PRICE_20D'] || '').toString().replace(/,/g, '');
+    const wolfeDStr = (row['WOLFE_D'] || '').toString().replace(/,/g, '');
+    const projFvgStr = (row['PROJ_FVG'] || '').toString().replace(/,/g, '');
     
     history[symbol].push({
       dateObj: rowDate,
@@ -263,6 +271,9 @@ async function fetchData() {
       trend: row['DAILY_TREND'] || '',
       support: parseFloat(supportStr) || 0,
       resistance: parseFloat(resistanceStr) || 0,
+      mlFutPrice20d: parseFloat(mlFutPriceStr) || 0,
+      wolfeD: parseFloat(wolfeDStr) || 0,
+      projFvg: parseFloat(projFvgStr) || 0,
       sector: row['SECTOR'] || ''
     });
   });
@@ -285,6 +296,9 @@ async function fetchData() {
         trend: h.trend,
         support: h.support,
         resistance: h.resistance,
+        mlFutPrice20d: h.mlFutPrice20d,
+        wolfeD: h.wolfeD,
+        projFvg: h.projFvg,
         date: h.dateDisplay
       }))
     };
@@ -299,7 +313,6 @@ async function fetchData() {
     });
     const currentData = rowsToObjects(currentRes.data.values);
     
-    // Calculate Market Mood based on new logic: top 470 rows, Large/Mid cap, Status BG (STATUS)
     const moodStocks = currentData.slice(0, 470).filter(row => {
       const group = (row['GROUP'] || '').toString().toUpperCase();
       return group === 'LARGECAP' || group === 'MIDCAP';
@@ -348,8 +361,8 @@ async function fetchData() {
       const status = (row['STATUS'] || '').toString().toUpperCase();
       const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
       const stockId = row['ID'] || stockName;
-      const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-      const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
+        const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+        const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
       
       if (!stockName) return;
       
@@ -431,8 +444,7 @@ export default async function handler(req, res) {
   
   try {
     const data = await fetchData();
-    
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
     res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching data:', error);

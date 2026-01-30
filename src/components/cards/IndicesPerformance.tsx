@@ -35,20 +35,20 @@ const StrengthGauge = ({ score }: { score: number }) => {
   };
 
   return (
-    <div className="flex items-center gap-3 w-full">
-      <span className="text-[10px] font-bold text-destructive uppercase tracking-wider w-16">Weak</span>
-      <div className="flex-1 h-3 rounded-full bg-gradient-to-r from-destructive/30 via-warning/30 to-success/30 relative overflow-hidden">
-        <div 
-          className={`absolute left-0 top-0 h-full rounded-full ${getColor(score)} transition-all duration-500 shadow-lg`}
-          style={{ width: `${score}%` }}
-        />
-        <div 
-          className={`absolute top-0 h-full w-1 bg-white/80 rounded-full shadow-md transition-all duration-500`}
-          style={{ left: `calc(${score}% - 2px)` }}
-        />
+      <div className="flex items-center gap-3 w-full">
+        <span className="text-[10px] font-bold text-destructive uppercase tracking-wider w-16">Support</span>
+        <div className="flex-1 h-3 rounded-full bg-gradient-to-r from-destructive/30 via-warning/30 to-success/30 relative overflow-hidden">
+          <div 
+            className={`absolute left-0 top-0 h-full rounded-full ${getColor(score)} transition-all duration-500 shadow-lg`}
+            style={{ width: `${score}%` }}
+          />
+          <div 
+            className={`absolute top-0 h-full w-1 bg-white/80 rounded-full shadow-md transition-all duration-500`}
+            style={{ left: `calc(${score}% - 2px)` }}
+          />
+        </div>
+        <span className="text-[10px] font-bold text-success uppercase tracking-wider w-16 text-right">Resistance</span>
       </div>
-      <span className="text-[10px] font-bold text-success uppercase tracking-wider w-16 text-right">Strong</span>
-    </div>
   );
 };
 
@@ -69,16 +69,16 @@ const StockRangeBar = ({ price, lowerRange, upperRange }: { price: number; lower
   
   return (
     <div className="mt-3 px-2">
-      <div className="flex items-center gap-2">
-        <span className="text-[9px] font-bold text-destructive/80 w-8">W</span>
-          <div className="flex-1 h-4 rounded-full bg-gradient-to-r from-destructive via-warning to-success relative shadow-inner overflow-hidden">
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white border-2 border-white shadow-[0_0_8px_rgba(255,255,255,0.8),0_0_16px_rgba(255,255,255,0.4)] transition-all duration-300"
-              style={{ left: `calc(${pricePosition}% - 7px)` }}
-            />
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] font-bold text-destructive/80 w-8">S</span>
+            <div className="flex-1 h-4 rounded-full bg-gradient-to-r from-destructive via-warning to-success relative shadow-inner overflow-hidden">
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white border-2 border-white shadow-[0_0_8px_rgba(255,255,255,0.8),0_0_16px_rgba(255,255,255,0.4)] transition-all duration-300"
+                style={{ left: `calc(${pricePosition}% - 7px)` }}
+              />
+          </div>
+          <span className="text-[9px] font-bold text-success/80 w-8 text-right">R</span>
         </div>
-        <span className="text-[9px] font-bold text-success/80 w-8 text-right">S</span>
-      </div>
       <div className="flex justify-between mt-1.5 text-[9px]">
         <span className="text-destructive/70 font-mono">₹{lowerRange?.toLocaleString()}</span>
         <span className="text-muted-foreground font-mono font-bold">₹{price?.toLocaleString()}</span>
@@ -326,11 +326,11 @@ export function IndicesPerformance() {
           },
           {
             heading: "Stock Cards with Glow",
-            content: "Green glow indicates bullish stocks, red glow indicates bearish stocks. Click on any stock to expand and see its position on the Weak-to-Strong range bar."
+            content: "Green glow indicates bullish stocks, red glow indicates bearish stocks. Click on any stock to expand and see its position on the Support-to-Resistance range bar."
           },
           {
-            heading: "Range Bar (W to S)",
-            content: "The range bar shows where the current price sits between the Weak (lower) and Strong (upper) range. A position closer to S indicates strength, while closer to W indicates weakness."
+            heading: "Range Bar (S to R)",
+            content: "The range bar shows where the current price sits between the Support (lower) and Resistance (upper) range. A position closer to R indicates strength, while closer to S indicates weakness relative to resistance."
           }
         ]}
         videoLink="#"

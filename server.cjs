@@ -1,35 +1,45 @@
 const express = require('express');
 const cors = require('cors');
 const { google } = require('googleapis');
+const XLSX = require('xlsx');
 const fs = require('fs');
 const path = require('path');
 
 function parseDateFlexible(dateStr) {
-  if (!dateStr) return null;
+  if (dateStr === null || dateStr === undefined || dateStr === '') return null;
   
-  // Try standard ISO format first (YYYY-MM-DD)
-  let date = new Date(dateStr + 'T00:00:00');
+  const num = Number(dateStr);
+  if (!isNaN(num) && typeof dateStr !== 'boolean' && num > 40000) {
+    const utc_days = Math.floor(num - 25569);
+    return new Date(utc_days * 86400 * 1000);
+  }
+
+  const str = String(dateStr).trim();
+  
+  let date = new Date(str + 'T00:00:00');
   if (!isNaN(date.getTime())) return date;
   
-  // Try DD-MM-YYYY or DD/MM/YYYY format
-  const parts = dateStr.split(/[-\/]/);
+  const parts = str.split(/[-\/]/);
   if (parts.length === 3) {
-    const [p1, p2, p3] = parts.map(p => parseInt(p, 10));
+    const p = parts.map(part => parseInt(part, 10));
     
-    // If first part > 12, it's likely DD-MM-YYYY
-    if (p1 > 12) {
-      date = new Date(p3, p2 - 1, p1);
+    if (p[0] > 1000) {
+      date = new Date(p[0], p[1] - 1, p[2]);
       if (!isNaN(date.getTime())) return date;
     }
     
-    // If third part > 31, it's likely MM-DD-YYYY or DD-MM-YYYY
-    if (p3 > 31) {
-      // Try DD-MM-YYYY
-      date = new Date(p3, p2 - 1, p1);
+    if (p[2] > 1000) {
+      date = new Date(p[2], p[1] - 1, p[0]);
       if (!isNaN(date.getTime())) return date;
     }
+    
+    date = new Date(p[2], p[0] - 1, p[1]);
+    if (!isNaN(date.getTime())) return date;
   }
   
+  date = new Date(str);
+  if (!isNaN(date.getTime())) return date;
+
   return null;
 }
 
@@ -129,9 +139,17 @@ function getDynamicStatus(price, lowerRange, upperRange) {
   return 'NEUTRAL';
 }
 
+function colToIdx(col) {
+  let idx = 0;
+  for (let i = 0; i < col.length; i++) {
+    idx = idx * 26 + (col.toUpperCase().charCodeAt(i) - 64);
+  }
+  return idx - 1;
+}
+
 function rowsToObjects(rows) {
   if (!rows || rows.length < 1) return [];
-  const headers = rows[0];
+  const headers = rows[0].map(h => (h || '').toString().trim());
   return rows.slice(1).map(row => {
     const obj = {};
     headers.forEach((header, i) => {
@@ -139,9 +157,8 @@ function rowsToObjects(rows) {
         obj[header] = row[i] !== undefined ? row[i] : null;
       }
     });
-    // Specific mapping for Market Mood logic if headers are missing or unclear
-    if (row[58] !== undefined && !obj['STATUS']) obj['STATUS'] = row[58]; // Column BG
-    if (row[18] !== undefined && !obj['GROUP']) obj['GROUP'] = row[18];   // Column S
+    if (row[58] !== undefined && !obj['STATUS']) obj['STATUS'] = row[58];
+    if (row[18] !== undefined && !obj['GROUP']) obj['GROUP'] = row[18];
     return obj;
   });
 }
@@ -162,26 +179,23 @@ async function fetchData() {
     spreadsheetId: EOD_SHEET_ID,
     range: 'lasa-master!A:FJ',
   });
-    const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
-    console.log(`Total rows fetched from lasa-master: ${lasaMasterData.length}`);
-    
-    // Parse and cache latestDate globally if needed, but for now we calculate locally
-    const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
-    const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
-    const latestDate = sortedDates[0];
-    const latestLasaRows = lasaMasterData.filter(row => row['DATE'] === latestDate);
-    console.log(`Latest date in lasa-master: ${latestDate} (${latestLasaRows.length} rows)`);
+  const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
+  console.log(`Total rows fetched from lasa-master: ${lasaMasterData.length}`);
+  
+  const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
+  const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
+  const latestDate = sortedDates[0];
+  const latestLasaRows = lasaMasterData.filter(row => row['DATE'] === latestDate);
+  console.log(`Latest date in lasa-master: ${latestDate} (${latestLasaRows.length} rows)`);
 
-
-    const marketMood = {
-      bullish: 0,
-      bearish: 0,
-      neutral: 0,
-      date: formatDate(new Date(latestDate))
-    };
-    
-    console.log('Fetching Swing DATA sheet...');
-
+  const marketMood = {
+    bullish: 0,
+    bearish: 0,
+    neutral: 0,
+    date: formatDate(new Date(latestDate))
+  };
+  
+  console.log('Fetching Swing DATA sheet...');
   const swingRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SWING_SHEET_ID,
     range: 'DATA',
@@ -247,36 +261,34 @@ async function fetchData() {
     lastUpdate: new Date().toLocaleTimeString()
   };
   
-    console.log('Processing stock history (30 days)...');
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    thirtyDaysAgo.setHours(0, 0, 0, 0);
-    console.log(`Thirty days ago cutoff: ${thirtyDaysAgo.toISOString()}`);
-    
-    const history = {};
-    const resistanceSlopeMap = {};
-
-    let parsedCount = 0;
-    let skippedCount = 0;
-    let invalidDateCount = 0;
+  console.log('Processing stock history (180 days)...');
+  const historyCutoff = new Date();
+  historyCutoff.setDate(historyCutoff.getDate() - 180);
+  historyCutoff.setHours(0, 0, 0, 0);
+  
+  const history = {};
+  const resistanceSlopeMap = {};
+  let parsedCount = 0;
+  let skippedCount = 0;
 
     lasaMasterData.forEach(row => {
       const dateStr = row['DATE'];
       if (!dateStr) return;
       
-      const rowDate = parseDateFlexible(dateStr);
-      if (!rowDate) {
-        invalidDateCount++;
+      // Filter by Group: Only LARGECAP, MIDCAP, and INDEX
+      const group = (row['GROUP'] || '').toString().toUpperCase();
+      if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX') {
         return;
       }
-      
-      if (rowDate < thirtyDaysAgo) {
-        skippedCount++;
-        return;
-      }
-      
-      parsedCount++;
 
+    
+    const rowDate = parseDateFlexible(dateStr);
+    if (!rowDate || rowDate < historyCutoff) {
+      skippedCount++;
+      return;
+    }
+    
+    parsedCount++;
     const symbol = row['STOCK_NAME'];
     if (!symbol) return;
     
@@ -290,6 +302,9 @@ async function fetchData() {
     const closeStr = (row['CLOSE_PRICE'] || '').toString().replace(/,/g, '');
     const supportStr = (row['SUPPORT'] || '').toString().replace(/,/g, '');
     const resistanceStr = (row['RESISTANCE'] || '').toString().replace(/,/g, '');
+    const mlFutPriceStr = (row['ML_FUT_PRICE_20D'] || '').toString().replace(/,/g, '');
+    const wolfeDStr = (row['WOLFE_D'] || '').toString().replace(/,/g, '');
+    const projFvgStr = (row['PROJ_FVG'] || '').toString().replace(/,/g, '');
     
     history[symbol].push({
       dateObj: rowDate,
@@ -299,181 +314,171 @@ async function fetchData() {
       trend: row['DAILY_TREND'] || '',
       support: parseFloat(supportStr) || 0,
       resistance: parseFloat(resistanceStr) || 0,
+      mlFutPrice20d: parseFloat(mlFutPriceStr) || 0,
+      wolfeD: parseFloat(wolfeDStr) || 0,
+      projFvg: parseFloat(projFvgStr) || 0,
       sector: row['SECTOR'] || ''
     });
   });
 
-  console.log(`History stats - Parsed: ${parsedCount}, Skipped: ${skippedCount}`);
-  
-  const stockData = Object.keys(history).map(symbol => {
-    const stockHistory = history[symbol].sort((a, b) => a.dateObj - b.dateObj);
-    if (stockHistory.length === 0) return null;
-    const latest = stockHistory[stockHistory.length - 1];
-    return {
-      symbol,
-      name: symbol,
-      sector: latest.sector,
-      price: latest.price,
-      rsi: latest.rsi,
-      trend: latest.trend,
-      resistanceSlopeDownward: resistanceSlopeMap[symbol] || false,
-      history: stockHistory.map(h => ({
-        price: h.price,
-        rsi: h.rsi,
-        trend: h.trend,
-        support: h.support,
-        resistance: h.resistance,
-        date: h.dateDisplay
-      }))
-    };
-  }).filter(Boolean);
+    console.log(`History stats - Parsed: ${parsedCount}, Skipped: ${skippedCount}`);
+    
+    const stockData = Object.keys(history).map(symbol => {
+      const stockHistory = history[symbol].sort((a, b) => a.dateObj - b.dateObj);
+      if (stockHistory.length === 0) return null;
+      const latest = stockHistory[stockHistory.length - 1];
+      return {
+        symbol,
+        name: symbol,
+        sector: latest.sector,
+        price: latest.price,
+        rsi: latest.rsi,
+        trend: latest.trend,
+        resistanceSlopeDownward: resistanceSlopeMap[symbol] || false,
+        history: stockHistory.map(h => ({
+          price: h.price,
+          rsi: h.rsi,
+          trend: h.trend,
+          support: h.support,
+          resistance: h.resistance,
+          mlFutPrice20d: h.mlFutPrice20d,
+          wolfeD: h.wolfeD,
+          projFvg: h.projFvg,
+          date: h.dateDisplay
+        }))
+      };
+    }).filter(Boolean);
+
+    console.log(`Final stockData count: ${stockData.length}`);
 
 
   console.log('Fetching Top Movers and Index Performance...');
   let topMovers = { topGainers: [], topLosers: [] };
   let indexPerformance = [];
   try {
-      const currentRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: "'current'!A1:FJ",
-      });
-      const currentData = rowsToObjects(currentRes.data.values);
+    const currentRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: EOD_SHEET_ID,
+      range: "'current'!A1:FJ",
+    });
+    const currentData = rowsToObjects(currentRes.data.values);
+    
+    const moodStocks = currentData.slice(0, 470).filter(row => {
+      const group = (row['GROUP'] || '').toString().toUpperCase();
+      return group === 'LARGECAP' || group === 'MIDCAP';
+    });
+
+    let bullCount = 0, bearCount = 0, neutCount = 0;
+      moodStocks.forEach(row => {
+        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+        const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+        const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
       
-      // Calculate Market Mood based on new logic: top 470 rows, Large/Mid cap, Status BG (column 59/index 58)
-      const moodStocks = currentData.slice(0, 470).filter(row => {
+      const status = getDynamicStatus(closePrice, lowerRange, upperRange);
+      if (status === 'BULLISH') bullCount++;
+      else if (status === 'BEARISH') bearCount++;
+      else neutCount++;
+    });
+
+    const totalMoodStocks = moodStocks.length;
+    if (totalMoodStocks > 0) {
+      marketMood.bullish = (bullCount / totalMoodStocks) * 100;
+      marketMood.bearish = (bearCount / totalMoodStocks) * 100;
+      marketMood.neutral = (neutCount / totalMoodStocks) * 100;
+    }
+    
+    const indexColumns = {
+      'NIFTY 50': 'NIFTY50',
+      'NIFTY BANK': 'NIFTYBANK',
+      'NIFTY IT': 'NIFTYIT',
+      'NIFTY AUTO': 'NIFTYAUTO',
+      'NIFTY PHARMA': 'NIFTYPHARMA',
+      'NIFTY METAL': 'NIFTYMETAL',
+      'NIFTY FMCG': 'NIFTYFMCG',
+      'NIFTY INFRA': 'NIFTYINFRA',
+      'NIFTY PSU BANK': 'NIFTYPSUBANK',
+      'NIFTY PVT BANK': 'NIFTYPVTBANK',
+      'NIFTY CPSE': 'NIFTYCPSE',
+      'NIFTY 500': 'NIFTY500'
+    };
+    
+    const indexStocksMap = {};
+    Object.keys(indexColumns).forEach(idx => {
+      indexStocksMap[idx] = { stocks: [], bullish: 0, bearish: 0 };
+    });
+    
+    const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
+    const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
+
+      stocksSource.forEach(row => {
+        const stockName = row['STOCK_NAME'];
+        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+        const stockId = row['ID'] || stockName;
+        const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+        const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
+      
+      if (!stockName) return;
+      
+      const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
+      
+      Object.keys(indexColumns).forEach(indexName => {
+        const colName = indexColumns[indexName];
+        const val = row[colName];
+        if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
+          const isBullish = dynamicStatus === 'BULLISH';
+          const isBearish = dynamicStatus === 'BEARISH';
+          
+          indexStocksMap[indexName].stocks.push({
+            id: stockId,
+            stockName,
+            price: closePrice,
+            status: dynamicStatus,
+            upperRange,
+            lowerRange
+          });
+          
+          if (isBullish) indexStocksMap[indexName].bullish++;
+          if (isBearish) indexStocksMap[indexName].bearish++;
+        }
+      });
+    });
+
+    indexPerformance = Object.keys(indexStocksMap).map(indexName => {
+      const data = indexStocksMap[indexName];
+      const total = data.stocks.length;
+      const strengthScore = total > 0 ? Math.round((data.bullish / total) * 100) : 50;
+      return {
+        name: indexName,
+        stocksCount: total,
+        bullishCount: data.bullish,
+        bearishCount: data.bearish,
+        strengthScore,
+        stocks: data.stocks
+      };
+    }).filter(idx => idx.stocksCount > 0).sort((a, b) => b.strengthScore - a.strengthScore);
+
+    const stocks = currentData
+      .filter(row => {
+        if (!row['STOCK_NAME'] || row['CHANGE_PERCENT'] === undefined || row['CHANGE_PERCENT'] === '') return false;
         const group = (row['GROUP'] || '').toString().toUpperCase();
         return group === 'LARGECAP' || group === 'MIDCAP';
-      });
-
-        let bullCount = 0, bearCount = 0, neutCount = 0;
-        moodStocks.forEach(row => {
-          const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-          const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-          const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-          
-          const status = getDynamicStatus(closePrice, lowerRange, upperRange);
-          if (status === 'BULLISH') bullCount++;
-          else if (status === 'BEARISH') bearCount++;
-          else neutCount++;
-        });
-
-
-      const totalMoodStocks = moodStocks.length;
-      if (totalMoodStocks > 0) {
-        marketMood.bullish = (bullCount / totalMoodStocks) * 100;
-        marketMood.bearish = (bearCount / totalMoodStocks) * 100;
-        marketMood.neutral = (neutCount / totalMoodStocks) * 100;
-      }
-
-      console.log(`Market Mood calculated from ${totalMoodStocks} Large/Mid Cap stocks: ${marketMood.bullish.toFixed(1)}% Bullish, ${marketMood.bearish.toFixed(1)}% Bearish, ${marketMood.neutral.toFixed(1)}% Neutral`);
-
-    
-      console.log('Current tab sample headers:', Object.keys(currentData[0] || {}).slice(0, 20));
-      
-      const indexColumns = {
-        'NIFTY 50': 'NIFTY50',
-        'NIFTY BANK': 'NIFTYBANK',
-        'NIFTY IT': 'NIFTYIT',
-        'NIFTY AUTO': 'NIFTYAUTO',
-        'NIFTY PHARMA': 'NIFTYPHARMA',
-        'NIFTY METAL': 'NIFTYMETAL',
-        'NIFTY FMCG': 'NIFTYFMCG',
-        'NIFTY INFRA': 'NIFTYINFRA',
-        'NIFTY PSU BANK': 'NIFTYPSUBANK',
-        'NIFTY PVT BANK': 'NIFTYPVTBANK',
-        'NIFTY CPSE': 'NIFTYCPSE',
-        'NIFTY 500': 'NIFTY500'
-      };
-      
-      const indexStocksMap = {};
-      Object.keys(indexColumns).forEach(idx => {
-        indexStocksMap[idx] = { stocks: [], bullish: 0, bearish: 0 };
-      });
-      
-      const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
-      
-      // Use currentData for live status, but latestLasaData for index mapping if needed
-      const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
-
-        stocksSource.forEach(row => {
-          const stockName = row['STOCK_NAME'];
-          const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-          const stockId = row['ID'] || stockName;
-          const upperRange = parseFloat((row['UPPER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-          const lowerRange = parseFloat((row['LOWER_RANGE'] || '0').toString().replace(/,/g, '')) || 0;
-          
-          if (!stockName) return;
-          
-          const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
-          
-          Object.keys(indexColumns).forEach(indexName => {
-            const colName = indexColumns[indexName];
-            const val = row[colName];
-            if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
-              const isBullish = dynamicStatus === 'BULLISH';
-              const isBearish = dynamicStatus === 'BEARISH';
-              
-              indexStocksMap[indexName].stocks.push({
-                id: stockId,
-                stockName,
-                price: closePrice,
-                status: dynamicStatus,
-                upperRange,
-                lowerRange
-              });
-              
-              if (isBullish) indexStocksMap[indexName].bullish++;
-              if (isBearish) indexStocksMap[indexName].bearish++;
-            }
-          });
-        });
-
-      
-      indexPerformance = Object.keys(indexStocksMap).map(indexName => {
-        const data = indexStocksMap[indexName];
-        const total = data.stocks.length;
-        const strengthScore = total > 0 ? Math.round((data.bullish / total) * 100) : 50;
-        return {
-          name: indexName,
-          stocksCount: total,
-          bullishCount: data.bullish,
-          bearishCount: data.bearish,
-          strengthScore,
-          stocks: data.stocks // Include stocks for the popup
-        };
-      }).filter(idx => idx.stocksCount > 0).sort((a, b) => b.strengthScore - a.strengthScore);
-
-    
-    console.log(`Index Performance: ${indexPerformance.length} indices processed`);
-    
-      const stocks = currentData
-        .filter(row => {
-          if (!row['STOCK_NAME'] || row['CHANGE_PERCENT'] === undefined || row['CHANGE_PERCENT'] === '') return false;
-          const group = (row['GROUP'] || '').toString().toUpperCase();
-          return group === 'LARGECAP' || group === 'MIDCAP';
-        })
-        .map(row => ({
-          id: row['ID'] || row['STOCK_NAME'],
-          stockName: row['STOCK_NAME'],
-          changePercent: parseFloat((row['CHANGE_PERCENT'] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
-          closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0
-        }))
-        .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
-    
-    console.log(`Top Movers: Filtered to ${stocks.length} Large Cap + Mid Cap stocks`);
+      })
+      .map(row => ({
+        id: row['ID'] || row['STOCK_NAME'],
+        stockName: row['STOCK_NAME'],
+        changePercent: parseFloat((row['CHANGE_PERCENT'] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
+        closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0
+      }))
+      .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
     
     const sortedByChange = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
     
-      topMovers = {
-        topGainers: sortedByChange.filter(s => s.changePercent > 0).slice(0, 10),
-        topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
-      };
-      console.log(`Top Movers: ${topMovers.topGainers.length} gainers, ${topMovers.topLosers.length} losers.`);
-    } catch (err) {
+    topMovers = {
+      topGainers: sortedByChange.filter(s => s.changePercent > 0).slice(0, 10),
+      topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
+    };
+  } catch (err) {
     console.warn('Could not fetch top movers from current tab:', err.message);
   }
-  
-  console.log('Data fetch complete!');
   
   return {
     marketMood,
@@ -488,7 +493,7 @@ async function fetchData() {
 
 let cachedData = null;
 let lastFetchTime = 0;
-const CACHE_DURATION = 5 * 60 * 1000;
+const CACHE_DURATION = 1 * 60 * 1000;
 
 app.get('/api/fetch-data', async (req, res) => {
   try {
@@ -510,9 +515,106 @@ app.get('/api/fetch-data', async (req, res) => {
   }
 });
 
+let cachedMultibagger = null;
+let lastMultibaggerFetch = 0;
+
+app.get('/api/multibagger', async (req, res) => {
+  try {
+    const now = Date.now();
+    if (cachedMultibagger && (now - lastMultibaggerFetch) < CACHE_DURATION) {
+      return res.json(cachedMultibagger);
+    }
+
+    let rows = [];
+    const localExcelPath = path.join(__dirname, 'datapulling', 'LASA-EOD-DATA.xlsx');
+    
+    if (fs.existsSync(localExcelPath)) {
+      console.log('Reading Multibagger data from local Excel file...');
+      const workbook = XLSX.readFile(localExcelPath);
+      // Try to find the 'current' sheet (sheet three as per friend)
+      const sheetName = workbook.SheetNames[2] || 'current';
+      const sheet = workbook.Sheets[sheetName];
+      rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    } else {
+      console.log('Local Excel file not found, falling back to Google Sheets...');
+      const credentials = getCredentials();
+      const auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+      });
+      const sheets = google.sheets({ version: 'v4', auth });
+
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: EOD_SHEET_ID,
+        range: "'current'!A:FJ",
+      });
+      rows = response.data.values;
+    }
+
+    if (!rows || rows.length < 2) {
+      return res.json([]);
+    }
+
+    // Indices based on friend's requirements (0-indexed)
+    const idx = {
+      sector: colToIdx('B'),
+      id: colToIdx('C'),
+      cmp: colToIdx('E'),
+      dRsiDiff: colToIdx('J'),
+      rsi: colToIdx('K'),
+      wRsi: colToIdx('Q'),
+      peRatio: colToIdx('EL'),
+      algoB: colToIdx('EM'),
+      dEma200: colToIdx('EO'),
+      dEma200Status: colToIdx('EP'),
+      fiveYHigh: colToIdx('ER'),
+      dEma63: colToIdx('ES'),
+      rsiAbove78: colToIdx('FI')
+    };
+
+    const mbData = rows.slice(1).filter(row => {
+      const signal = (row[idx.rsiAbove78] || '').toString().toUpperCase();
+      return signal === 'Y';
+    });
+
+    console.log(`Multibagger candidates found: ${mbData.length} (Expected ~214)`);
+    
+    const filtered = mbData
+      .map(row => {
+        const getNum = (val) => {
+          if (val === undefined || val === null || val === '') return 0;
+          return parseFloat(val.toString().replace(/,/g, '')) || 0;
+        };
+
+        return {
+          sector: row[idx.sector] || 'N/A',
+          id: row[idx.id] || 'N/A',
+          stockName: row[idx.id] || 'N/A', // Using ID as stockName if not separate
+          cmp: getNum(row[idx.cmp]),
+          rsi: getNum(row[idx.rsi]),
+          dRsiDiff: getNum(row[idx.dRsiDiff]),
+          wRsi: getNum(row[idx.wRsi]),
+          dEma200: getNum(row[idx.dEma200]),
+          dEma63: getNum(row[idx.dEma63]),
+          peRatio: (row[idx.peRatio] || 'N/A').toString(),
+          fiveYHigh: getNum(row[idx.fiveYHigh]),
+          dEma200Status: (row[idx.dEma200Status] || 'N/A').toString(),
+          algoB: (row[idx.algoB] || 'N/A').toString()
+        };
+      })
+      .sort((a, b) => a.rsi - b.rsi);
+
+    console.log(`Returning ${filtered.length} multibagger candidates sorted by RSI ascending`);
+    cachedMultibagger = filtered;
+    lastMultibaggerFetch = now;
+    res.json(filtered);
+  } catch (error) {
+    console.error('Error fetching multibagger data:', error);
+    res.status(500).json({ error: 'Failed to fetch multibagger data', message: error.message });
+  }
+});
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
-  console.log('Endpoints:');
-  console.log('  GET /api/fetch-data - Fetch live Google Sheets data');
 });

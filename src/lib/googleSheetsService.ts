@@ -63,7 +63,7 @@ export interface GoogleSheetsData {
 
 let cachedData: GoogleSheetsData | null = null;
 let lastFetchTime: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000;
+const CACHE_DURATION = 60 * 1000;
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
 const dataListeners: Set<(data: GoogleSheetsData) => void> = new Set();

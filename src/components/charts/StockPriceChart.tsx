@@ -133,24 +133,24 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-0.5 bg-[#ef4444] rounded" />
-                <span className="text-muted-foreground">Weak</span>
-                {localHovered && <span className="font-mono font-semibold text-[#ef4444]">{localHovered.support?.toLocaleString() ?? '-'}</span>}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-[#22c55e] rounded" />
-                <span className="text-muted-foreground">Strong</span>
-                {localHovered && <span className="font-mono font-semibold text-[#22c55e]">{localHovered.resistance?.toLocaleString() ?? '-'}</span>}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-[#f59e0b] rounded" />
-                <span className="text-muted-foreground">Model</span>
-                {localHovered && <span className="font-mono font-semibold text-[#f59e0b]">{localHovered.model?.toLocaleString() ?? '-'}</span>}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-[#8b5cf6] rounded" />
-                <span className="text-muted-foreground">Pattern</span>
-                {localHovered && <span className="font-mono font-semibold text-[#8b5cf6]">{localHovered.pattern?.toLocaleString() ?? '-'}</span>}
-              </div>
+                  <span className="text-muted-foreground">Support</span>
+                  {localHovered && <span className="font-mono font-semibold text-[#ef4444]">{localHovered.support?.toLocaleString() ?? '-'}</span>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-0.5 bg-[#22c55e] rounded" />
+                  <span className="text-muted-foreground">Resistance</span>
+                  {localHovered && <span className="font-mono font-semibold text-[#22c55e]">{localHovered.resistance?.toLocaleString() ?? '-'}</span>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-0.5 bg-[#f59e0b] rounded" />
+                  <span className="text-muted-foreground">ML 20D</span>
+                  {localHovered && <span className="font-mono font-semibold text-[#f59e0b]">{localHovered.model?.toLocaleString() ?? '-'}</span>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-0.5 bg-[#8b5cf6] rounded" />
+                  <span className="text-muted-foreground">Wolfe</span>
+                  {localHovered && <span className="font-mono font-semibold text-[#8b5cf6]">{localHovered.pattern?.toLocaleString() ?? '-'}</span>}
+                </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-0.5 bg-[#ec4899] rounded" />
                 <span className="text-muted-foreground">Balance</span>
@@ -176,24 +176,24 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
             </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-0.5 bg-[#ef4444] rounded" />
-                <span className="text-muted-foreground">Weak</span>
-                {localHovered && <span className="font-mono font-semibold text-[#ef4444]">{localHovered.support?.toLocaleString() ?? '-'}</span>}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-[#22c55e] rounded" />
-                <span className="text-muted-foreground">Strong</span>
-                {localHovered && <span className="font-mono font-semibold text-[#22c55e]">{localHovered.resistance?.toLocaleString() ?? '-'}</span>}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-[#f59e0b] rounded" />
-                <span className="text-muted-foreground">Model</span>
-                {localHovered && <span className="font-mono font-semibold text-[#f59e0b]">{localHovered.model?.toLocaleString() ?? '-'}</span>}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-[#8b5cf6] rounded" />
-                <span className="text-muted-foreground">Pattern</span>
-                {localHovered && <span className="font-mono font-semibold text-[#8b5cf6]">{localHovered.pattern?.toLocaleString() ?? '-'}</span>}
-              </div>
+                  <span className="text-muted-foreground">Support</span>
+                  {localHovered && <span className="font-mono font-semibold text-[#ef4444]">{localHovered.support?.toLocaleString() ?? '-'}</span>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-0.5 bg-[#22c55e] rounded" />
+                  <span className="text-muted-foreground">Resistance</span>
+                  {localHovered && <span className="font-mono font-semibold text-[#22c55e]">{localHovered.resistance?.toLocaleString() ?? '-'}</span>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-0.5 bg-[#f59e0b] rounded" />
+                  <span className="text-muted-foreground">ML 20D</span>
+                  {localHovered && <span className="font-mono font-semibold text-[#f59e0b]">{localHovered.model?.toLocaleString() ?? '-'}</span>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-0.5 bg-[#8b5cf6] rounded" />
+                  <span className="text-muted-foreground">Wolfe</span>
+                  {localHovered && <span className="font-mono font-semibold text-[#8b5cf6]">{localHovered.pattern?.toLocaleString() ?? '-'}</span>}
+                </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-0.5 bg-[#ec4899] rounded" />
                 <span className="text-muted-foreground">Balance</span>
@@ -275,7 +275,7 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
               <Line
                 type="monotone"
                 dataKey="support"
-                name="Weak"
+                name="Support"
                 stroke="#ef4444"
                 strokeWidth={1.5}
                 dot={false}
@@ -285,7 +285,7 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
               <Line
                 type="monotone"
                 dataKey="resistance"
-                name="Strong"
+                name="Resistance"
                 stroke="#22c55e"
                 strokeWidth={1.5}
                 dot={false}
@@ -295,7 +295,7 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
             <Line
               type="monotone"
               dataKey="model"
-              name="Model"
+              name="ML 20D"
               stroke="#f59e0b"
               strokeWidth={1.5}
               dot={false}
@@ -306,7 +306,7 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
             <Line
               type="monotone"
               dataKey="wolfeD"
-              name="Pattern"
+              name="Wolfe"
               stroke="#8b5cf6"
               strokeWidth={1.5}
               dot={false}

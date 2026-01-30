@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search, TrendingUp, Activity, TrendingDown, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -27,25 +27,104 @@ const StockAnalysis = () => {
   const [hoveredChartData, setHoveredChartData] = useState<HoveredData | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
+  // Helper for fuzzy matching and normalization
+  const normalize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const getMatchScore = (target: string, query: string) => {
+    const normTarget = normalize(target);
+    const normQuery = normalize(query);
+    
+    // Exact match after normalization
+    if (normTarget === normQuery) return 100;
+    
+    // Query is contained in target
+    if (normTarget.includes(normQuery)) return 80;
+    
+    // Target is contained in query
+    if (normQuery.includes(normTarget)) return 60;
+    
+    // Word based overlap
+    const targetWords = target.toLowerCase().split(/[^a-z0-9]/).filter(w => w.length > 1);
+    const queryWords = query.toLowerCase().split(/[^a-z0-9]/).filter(w => w.length > 1);
+    
+    let matches = 0;
+    queryWords.forEach(qw => {
+      if (targetWords.some(tw => tw.includes(qw) || qw.includes(tw))) matches++;
+    });
+    
+    if (matches > 0) return (matches / queryWords.length) * 50;
+    
+    return 0;
+  };
+
   useEffect(() => {
-    if (stocksData.length > 0 && !selectedStock) {
+    if (stocksData.length > 0) {
       if (symbolFromUrl) {
-        const found = stocksData.find(s => s.symbol === symbolFromUrl);
-        setSelectedStock(found ? found.symbol : stocksData[0].symbol);
-        if (found) setSearchQuery(found.name);
-      } else {
+        // Try exact match first
+        let found = stocksData.find(s => 
+          s.symbol.toLowerCase() === symbolFromUrl.toLowerCase() || 
+          s.name.toLowerCase() === symbolFromUrl.toLowerCase()
+        );
+        
+        // If not found, try normalization match
+        if (!found) {
+          const normUrl = normalize(symbolFromUrl);
+          found = stocksData.find(s => 
+            normalize(s.symbol) === normUrl || 
+            normalize(s.name) === normUrl
+          );
+        }
+
+        // If still not found, try best fuzzy match score
+        if (!found) {
+          const scoredStocks = stocksData.map(s => ({
+            stock: s,
+            score: Math.max(
+              getMatchScore(s.name, symbolFromUrl),
+              getMatchScore(s.symbol, symbolFromUrl)
+            )
+          })).filter(s => s.score > 30) // Minimum threshold
+          .sort((a, b) => b.score - a.score);
+
+          if (scoredStocks.length > 0) {
+            found = scoredStocks[0].stock;
+          }
+        }
+
+        if (found) {
+          if (selectedStock !== found.symbol) {
+            setSelectedStock(found.symbol);
+            setSearchQuery(found.name);
+          }
+        } else {
+          // If still not found, at least populate the search bar with what was requested
+          setSearchQuery(symbolFromUrl);
+          if (!selectedStock) {
+            setSelectedStock(stocksData[0].symbol);
+          }
+        }
+      } else if (!selectedStock) {
+        // No symbol in URL and no selection yet, default to first
         setSelectedStock(stocksData[0].symbol);
       }
     }
-  }, [symbolFromUrl, stocksData, selectedStock]);
+  }, [symbolFromUrl, stocksData]);
 
-  const searchSuggestions = searchQuery.length > 0 
-    ? stocksData.filter(
-        (stock) =>
-          stock.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 8)
-    : [];
+  const searchSuggestions = useMemo(() => {
+    if (searchQuery.length === 0) return [];
+    
+    return stocksData.map(s => ({
+      stock: s,
+      score: Math.max(
+        getMatchScore(s.name, searchQuery),
+        getMatchScore(s.symbol, searchQuery)
+      )
+    }))
+    .filter(s => s.score > 20)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+    .map(s => s.stock);
+  }, [searchQuery, stocksData]);
   
   const currentStockData = stocksData.find(s => s.symbol === selectedStock);
   const isSearchQueryCurrentStock = currentStockData && 

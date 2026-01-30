@@ -32,7 +32,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const fgAbove = payload.find((p: any) => p.dataKey === 'fg_above')?.value || 0;
     const fgBelow = payload.find((p: any) => p.dataKey === 'fg_below')?.value || 0;
-    const niftyClose = payload.find((p: any) => p.dataKey === 'nifty50_close')?.value || 0;
+    const niftyClose = payload.find((p: any) => p.payload?.nifty50_close)?.payload?.nifty50_close || 0;
+    const niftyPc = payload.find((p: any) => p.dataKey === 'nifty_pc')?.value || 0;
     const fgNet = fgAbove - fgBelow;
     
     return (
@@ -41,7 +42,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div className="space-y-0.5 text-xs">
           <p className="font-semibold text-success">Above: {fgAbove}</p>
           <p className="font-semibold text-destructive">Below: {fgBelow}</p>
-          <p className="font-semibold text-orange-500">Nifty: {niftyClose.toLocaleString()}</p>
+          <p className="font-semibold text-orange-500">Nifty: {niftyClose.toLocaleString()} ({niftyPc > 0 ? '+' : ''}{niftyPc}%)</p>
           <p className={`font-bold pt-1 border-t border-border/30 ${fgNet >= 0 ? 'text-cyan-400' : 'text-orange-400'}`}>
             Net: {fgNet > 0 ? '+' : ''}{fgNet}
           </p>
@@ -57,10 +58,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const { showModal, openModal, closeModal } = useInfoModal();
     
     const chartData = useMemo(() => {
-      return data.filter(item => item.date).map(item => ({
+      const filtered = data.filter(item => item.date);
+      if (filtered.length === 0) return [];
+      
+      const firstNifty = filtered[0].nifty50_close;
+      
+      return filtered.map(item => ({
         ...item,
         fg_above: item.fg_above,
         fg_below: item.fg_below,
+        nifty_pc: firstNifty ? Number(((item.nifty50_close - firstNifty) / firstNifty * 100).toFixed(2)) : 0
       }));
     }, [data]);
 
@@ -158,11 +165,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                         orientation="right"
                         className="fill-orange-500/70"
                         yAxisId="right"
-                        tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(0)}k` : value}
+                        domain={[-5, 5]}
+                        tickFormatter={(value) => `${value > 0 ? '+' : ''}${value}%`}
                       />
                       <Tooltip content={<CustomTooltip />} />
                       <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" strokeOpacity={0.2} yAxisId="left" />
-                        <ReferenceLine y={15} stroke="#fbbf24" strokeDasharray="5 5" strokeOpacity={0.6} label={{ value: 'Threshold: 15', position: 'insideTopRight', fontSize: 9, fill: '#fbbf24' }} yAxisId="left" />
+                      <ReferenceLine y={0} stroke="#f97316" strokeDasharray="3 3" strokeOpacity={0.3} yAxisId="right" />
+                      <ReferenceLine y={15} stroke="#fbbf24" strokeDasharray="5 5" strokeOpacity={0.6} label={{ value: 'Threshold: 15', position: 'insideTopRight', fontSize: 9, fill: '#fbbf24' }} yAxisId="left" />
                       
                       <Area
                         type="monotone"
@@ -196,15 +205,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                         activeDot={{ r: 4, fill: "#ef4444", stroke: "#fff", strokeWidth: 2 }}
                         yAxisId="left"
                       />
-                      <Line
-                        type="monotone"
-                        dataKey="nifty50_close"
-                        stroke="#f97316"
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 4, fill: "#f97316", stroke: "#fff", strokeWidth: 2 }}
-                        yAxisId="right"
-                      />
+                        <Line
+                          type="monotone"
+                          dataKey="nifty_pc"
+                          stroke="#f97316"
+                          strokeWidth={2}
+                          dot={false}
+                          activeDot={{ r: 4, fill: "#f97316", stroke: "#fff", strokeWidth: 2 }}
+                          yAxisId="right"
+                        />
                     </ComposedChart>
                 </ChartContainer>
               </div>

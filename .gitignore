@@ -30,14 +30,18 @@ dist-ssr
 .env.test.local
 .env.production.local
 
-# Google Service Account Keys - NEVER commit these!
+# Sensitive project files
 secerate_googlekey/
+api_output.json
+temp_response.json
 *.json
 !package.json
-!tsconfig*.json
+!tsconfig.json
+!components.json
+!package-lock.json
+*.cjs
+*.txt
+*.log
 
-# Vite temp files
-vite.config.ts.timestamp-*
-
-# Helper scripts
-read-file.cjs
+# Vercel
+.vercel
