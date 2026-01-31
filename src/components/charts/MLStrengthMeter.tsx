@@ -192,7 +192,6 @@ return (
               stroke="var(--color-ml_higher)"
               dot={{ r: 3, fill: "var(--color-ml_higher)", strokeWidth: 0 }}
               strokeWidth={3}
-              filter="url(#glow-ml)"
             />
             <Line
               dataKey="ml_lower"
@@ -201,7 +200,6 @@ return (
               stroke="var(--color-ml_lower)"
               dot={{ r: 3, fill: "var(--color-ml_lower)", strokeWidth: 0 }}
               strokeWidth={3}
-              filter="url(#glow-ml)"
             />
             <Line
               dataKey="nifty50_normalized"
@@ -211,12 +209,6 @@ return (
               dot={false}
               strokeWidth={3}
             />
-            <defs>
-              <filter id="glow-ml" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="2" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
           </LineChart>
         </ChartContainer>
       </div>

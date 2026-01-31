@@ -10,44 +10,73 @@ export default async function handler(req, res) {
 
   const result = {
     status: 'ok',
-    length: key.length,
-    startsWith: key.substring(0, 10),
-    endsWith: key.substring(key.length - 10),
-    type: typeof key,
-    parsing: {}
+    rawLength: key.length,
+    rawType: typeof key,
+    parsingSteps: []
   };
 
   try {
     let cleanKey = key.trim();
-    if (cleanKey.startsWith("'") && cleanKey.endsWith("'")) {
-      result.parsing.wrappedInSingleQuotes = true;
-      cleanKey = cleanKey.slice(1, -1);
-    }
-    if (cleanKey.startsWith('"') && cleanKey.endsWith('"')) {
-      result.parsing.wrappedInDoubleQuotes = true;
-      cleanKey = cleanKey.slice(1, -1);
+    result.parsingSteps.push(`Trimmed length: ${cleanKey.length}`);
+    
+    // Step 1: Unwrap quotes
+    if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
+        (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+      const type = cleanKey.startsWith("'") ? 'single' : 'double';
+      result.parsingSteps.push(`Unwrapped ${type} quotes`);
+      cleanKey = cleanKey.slice(1, -1).trim();
     }
 
-    const credentials = JSON.parse(cleanKey);
-    result.parsing.jsonValid = true;
-    result.parsing.hasPrivateKey = !!credentials.private_key;
-    result.parsing.hasClientEmail = !!credentials.client_email;
-    result.parsing.clientEmail = credentials.client_email;
+    // Step 2: JSON Parse (recursive)
+    let credentials;
+    try {
+      credentials = JSON.parse(cleanKey);
+      result.parsingSteps.push('First JSON.parse successful');
+      if (typeof credentials === 'string') {
+        result.parsingSteps.push('Result was a string, parsing again...');
+        credentials = JSON.parse(credentials);
+        result.parsingSteps.push('Second JSON.parse successful');
+      }
+    } catch (e) {
+      result.parsingSteps.push(`JSON Parse Error: ${e.message}`);
+      throw e;
+    }
+
+    result.hasPrivateKey = !!credentials.private_key;
+    result.hasClientEmail = !!credentials.client_email;
+    result.clientEmail = credentials.client_email;
+    result.projectId = credentials.project_id;
     
     if (credentials.private_key) {
-      result.parsing.privateKeyLength = credentials.private_key.length;
-      result.parsing.privateKeyStartsWith = credentials.private_key.substring(0, 30);
-      result.parsing.privateKeyEndsWith = credentials.private_key.substring(credentials.private_key.length - 30);
-      result.parsing.containsLiteralSlashN = credentials.private_key.includes('\\n');
-      result.parsing.containsActualNewlines = credentials.private_key.includes('\n');
+      const pk = credentials.private_key;
+      result.pkLength = pk.length;
+      result.pkContainsLiteralSlashN = pk.includes('\\n');
+      result.pkContainsActualNewlines = pk.includes('\n');
       
-      const fixedKey = credentials.private_key.replace(/\\n/g, '\n');
-      result.parsing.fixedKeyContainsActualNewlines = fixedKey.includes('\n');
-      result.parsing.fixedKeyLineCount = fixedKey.split('\n').length;
+      let fixedKey = pk.replace(/\\n/g, '\n').trim();
+      
+      // Secondary unwrap for the key itself
+      if (fixedKey.startsWith('"') && fixedKey.endsWith('"')) {
+        result.parsingSteps.push('Private key itself was wrapped in quotes, unwrapping...');
+        fixedKey = fixedKey.slice(1, -1).replace(/\\n/g, '\n').trim();
+      }
+      
+      result.fixedKeyLength = fixedKey.length;
+      result.fixedKeyLineCount = fixedKey.split('\n').length;
+      result.fixedKeyStartsWith = fixedKey.substring(0, 30) + '...';
+      result.fixedKeyEndsWith = '...' + fixedKey.substring(fixedKey.length - 30);
+      
+      // Validation checks
+      result.isValidPem = fixedKey.includes('-----BEGIN PRIVATE KEY-----') && 
+                          fixedKey.includes('-----END PRIVATE KEY-----');
+      
+      if (!result.isValidPem) {
+        result.warning = 'Private key does not contain standard PEM boundaries!';
+      }
     }
   } catch (e) {
-    result.parsing.jsonValid = false;
-    result.parsing.error = e.message;
+    result.error = e.message;
+    result.stack = e.stack;
   }
 
   return res.status(200).json(result);

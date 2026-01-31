@@ -55,12 +55,23 @@ function getCredentials() {
   
   if (key) {
     try {
-      // Remove potential surrounding quotes from Vercel env var
       let cleanKey = key.trim();
-      if (cleanKey.startsWith("'") && cleanKey.endsWith("'")) {
-        cleanKey = cleanKey.slice(1, -1);
+      
+      // Remove potential surrounding quotes from Vercel env var
+      if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
+          (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+        cleanKey = cleanKey.slice(1, -1).trim();
       }
-      credentials = JSON.parse(cleanKey);
+      
+      // In case the key was double-encoded as a JSON string
+      try {
+        credentials = JSON.parse(cleanKey);
+        if (typeof credentials === 'string') {
+          credentials = JSON.parse(credentials);
+        }
+      } catch (e) {
+        console.error('JSON Parse Error for GOOGLE_SERVICE_ACCOUNT_KEY:', e.message);
+      }
     } catch (e) {
       console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY from env:', e.message);
     }
@@ -80,6 +91,12 @@ function getCredentials() {
   if (credentials && credentials.private_key) {
     // Robustly replace escaped newlines
     credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+    
+    // Remove any leading/trailing quotes that might have been accidentally included in the private_key value
+    credentials.private_key = credentials.private_key.trim();
+    if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
+      credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
+    }
   }
 
   if (!credentials) {
