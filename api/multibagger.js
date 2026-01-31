@@ -15,7 +15,11 @@ function getCredentials() {
   if (!key) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable not set');
   }
-  return JSON.parse(key);
+  const credentials = JSON.parse(key);
+  if (credentials && credentials.private_key) {
+    credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+  }
+  return credentials;
 }
 
 export default async function handler(req, res) {

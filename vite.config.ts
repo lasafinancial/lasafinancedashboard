@@ -7,11 +7,11 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false
-      }
+        '/api': {
+          target: 'http://127.0.0.1:3001',
+          changeOrigin: true,
+          secure: false
+        }
     }
   },
   plugins: [

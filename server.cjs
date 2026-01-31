@@ -50,16 +50,24 @@ const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
 
 function getCredentials() {
+  let credentials;
   if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
-    return JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+    credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+  } else {
+    const keyPath = path.join(__dirname, 'secerate_googlekey', 'key-partition-484615-n5-3411b9e54bd0.json');
+    if (fs.existsSync(keyPath)) {
+      credentials = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+    }
   }
-  
-  const keyPath = path.join(__dirname, 'secerate_googlekey', 'key-partition-484615-n5-52acc9edc675.json');
-  if (fs.existsSync(keyPath)) {
-    return JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+
+  if (credentials && credentials.private_key) {
+    credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
   }
-  
-  throw new Error('No Google credentials found');
+
+  if (!credentials) {
+    throw new Error('No Google credentials found');
+  }
+  return credentials;
 }
 
 function getOrdinalSuffix(day) {
