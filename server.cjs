@@ -51,21 +51,39 @@ const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
 
 function getCredentials() {
   let credentials;
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
-    credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-  } else {
+  const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  
+  if (key) {
+    try {
+      // Remove potential surrounding quotes from Vercel env var
+      let cleanKey = key.trim();
+      if (cleanKey.startsWith("'") && cleanKey.endsWith("'")) {
+        cleanKey = cleanKey.slice(1, -1);
+      }
+      credentials = JSON.parse(cleanKey);
+    } catch (e) {
+      console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY from env:', e.message);
+    }
+  }
+
+  if (!credentials) {
     const keyPath = path.join(__dirname, 'secerate_googlekey', 'key-partition-484615-n5-3411b9e54bd0.json');
     if (fs.existsSync(keyPath)) {
-      credentials = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+      try {
+        credentials = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+      } catch (e) {
+        console.error('Failed to parse Google key file:', e.message);
+      }
     }
   }
 
   if (credentials && credentials.private_key) {
+    // Robustly replace escaped newlines
     credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
   }
 
   if (!credentials) {
-    throw new Error('No Google credentials found');
+    throw new Error('No Google credentials found (env or file)');
   }
   return credentials;
 }

@@ -8,7 +8,22 @@ async function checkHeaders() {
     console.error('GOOGLE_SERVICE_ACCOUNT_KEY not set');
     return;
   }
-  const credentials = JSON.parse(key);
+  
+  let credentials;
+  try {
+    // Remove potential surrounding quotes
+    let cleanKey = key.trim();
+    if (cleanKey.startsWith("'") && cleanKey.endsWith("'")) {
+      cleanKey = cleanKey.slice(1, -1);
+    }
+    credentials = JSON.parse(cleanKey);
+    if (credentials && credentials.private_key) {
+      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+    }
+  } catch (e) {
+    console.error('Failed to parse credentials:', e.message);
+    return;
+  }
   
   const auth = new google.auth.GoogleAuth({
     credentials,

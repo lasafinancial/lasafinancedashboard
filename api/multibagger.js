@@ -15,11 +15,23 @@ function getCredentials() {
   if (!key) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable not set');
   }
-  const credentials = JSON.parse(key);
-  if (credentials && credentials.private_key) {
-    credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+  
+  try {
+    // Remove potential surrounding quotes from Vercel env var
+    let cleanKey = key.trim();
+    if (cleanKey.startsWith("'") && cleanKey.endsWith("'")) {
+      cleanKey = cleanKey.slice(1, -1);
+    }
+    
+    const credentials = JSON.parse(cleanKey);
+    if (credentials && credentials.private_key) {
+      // Robustly replace escaped newlines
+      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+    }
+    return credentials;
+  } catch (e) {
+    throw new Error(`Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY: ${e.message}`);
   }
-  return credentials;
 }
 
 export default async function handler(req, res) {
