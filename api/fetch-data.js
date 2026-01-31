@@ -352,13 +352,17 @@ async function fetchData() {
       return group === 'LARGECAP' || group === 'MIDCAP';
     });
 
-    let bullCount = 0, bearCount = 0, neutCount = 0;
-    moodStocks.forEach(row => {
-      const status = (row['STATUS'] || '').toString().toUpperCase();
-      if (status === 'BULLISH') bullCount++;
-      else if (status === 'BEARISH') bearCount++;
-      else neutCount++;
-    });
+      let bullCount = 0, bearCount = 0, neutCount = 0;
+      moodStocks.forEach(row => {
+        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+        const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+        const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
+        
+        const status = getDynamicStatus(closePrice, lowerRange, upperRange);
+        if (status === 'BULLISH') bullCount++;
+        else if (status === 'BEARISH') bearCount++;
+        else neutCount++;
+      });
 
     const totalMoodStocks = moodStocks.length;
     if (totalMoodStocks > 0) {
@@ -390,37 +394,38 @@ async function fetchData() {
     const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
     const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
 
-    stocksSource.forEach(row => {
-      const stockName = row['STOCK_NAME'];
-      const status = (row['STATUS'] || '').toString().toUpperCase();
-      const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-      const stockId = row['ID'] || stockName;
+      stocksSource.forEach(row => {
+        const stockName = row['STOCK_NAME'];
+        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+        const stockId = row['ID'] || stockName;
         const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
         const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
-      
-      if (!stockName) return;
-      
-      Object.keys(indexColumns).forEach(indexName => {
-        const colName = indexColumns[indexName];
-        const val = row[colName];
-        if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
-          const isBullish = status === 'BULLISH';
-          const isBearish = status === 'BEARISH';
-          
-          indexStocksMap[indexName].stocks.push({
-            id: stockId,
-            stockName,
-            price: closePrice,
-            status: status || 'NEUTRAL',
-            upperRange,
-            lowerRange
-          });
-          
-          if (isBullish) indexStocksMap[indexName].bullish++;
-          if (isBearish) indexStocksMap[indexName].bearish++;
-        }
+        
+        if (!stockName) return;
+        
+        const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
+        
+        Object.keys(indexColumns).forEach(indexName => {
+          const colName = indexColumns[indexName];
+          const val = row[colName];
+          if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
+            const isBullish = dynamicStatus === 'BULLISH';
+            const isBearish = dynamicStatus === 'BEARISH';
+            
+            indexStocksMap[indexName].stocks.push({
+              id: stockId,
+              stockName,
+              price: closePrice,
+              status: dynamicStatus,
+              upperRange,
+              lowerRange
+            });
+            
+            if (isBullish) indexStocksMap[indexName].bullish++;
+            if (isBearish) indexStocksMap[indexName].bearish++;
+          }
+        });
       });
-    });
     
     indexPerformance = Object.keys(indexStocksMap).map(indexName => {
       const data = indexStocksMap[indexName];
