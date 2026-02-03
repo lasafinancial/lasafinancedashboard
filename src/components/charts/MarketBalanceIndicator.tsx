@@ -11,6 +11,7 @@ import { InfoModal, InfoModalTrigger, useInfoModal } from "@/components/ui/InfoM
 
 interface MarketBalanceIndicatorProps {
   data: any[];
+  eodDate?: string | null;
 }
 
 const chartConfig = {
@@ -53,7 +54,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-  export default function MarketBalanceIndicator({ data }: MarketBalanceIndicatorProps) {
+  export default function MarketBalanceIndicator({ data, eodDate }: MarketBalanceIndicatorProps) {
     const [hoveredData, setHoveredData] = useState<{ fg_above: number; fg_below: number } | null>(null);
     const { showModal, openModal, closeModal } = useInfoModal();
     
@@ -94,10 +95,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               <div className="p-1.5 rounded-lg bg-cyan-500/10">
                 <Scale className="w-5 h-5 text-cyan-400" />
               </div>
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Market Balance</h3>
-                <p className="text-xs text-muted-foreground/60 font-medium italic">Price Acceptance</p>
-              </div>
+<div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Market Balance {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
+                  </h3>
+                  <p className="text-xs text-muted-foreground/60 font-medium italic">Price Acceptance</p>
+                </div>
             </div>
             <div className="flex items-center gap-3">
               <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${verdictColor}`}>

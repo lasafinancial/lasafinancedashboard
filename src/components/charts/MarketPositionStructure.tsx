@@ -2,6 +2,10 @@ import { useMarketPosition } from "@/hooks/useLiveData";
 import { TrendingUp, TrendingDown, Activity, Target, RotateCcw, Loader2, Info, X, Play } from "lucide-react";
 import { useState } from "react";
 
+interface MarketPositionStructureProps {
+  eodDate?: string | null;
+}
+
 interface IndicatorBarProps {
   label: string;
   leftLabel: string;
@@ -57,7 +61,7 @@ function IndicatorBar({ label, leftLabel, rightLabel, leftValue, rightValue, ico
   );
 }
 
-export default function MarketPositionStructure() {
+export default function MarketPositionStructure({ eodDate }: MarketPositionStructureProps) {
   const { data, isLoading } = useMarketPosition();
 
   if (isLoading || !data) {
@@ -95,15 +99,17 @@ export default function MarketPositionStructure() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex justify-between items-center mb-6">
-        <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current Overall Market Position Structure</h3>
-          <p className="text-xs text-muted-foreground/60 font-medium italic">Multi-modal analytical engine</p>
+<div className="flex justify-between items-center mb-6">
+          <div className="space-y-1">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Current Overall Market Position Structure {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
+            </h3>
+            <p className="text-xs text-muted-foreground/60 font-medium italic">Multi-modal analytical engine</p>
+          </div>
+          <div className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${verdictColor} shadow-[0_0_20px_rgba(255,255,255,0.05)]`}>
+            {verdict}
+          </div>
         </div>
-        <div className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${verdictColor} shadow-[0_0_20px_rgba(255,255,255,0.05)]`}>
-          {verdict}
-        </div>
-      </div>
 
       <div className="flex-1 space-y-5">
         <IndicatorBar

@@ -11,6 +11,7 @@ import { InfoModal, InfoModalTrigger, useInfoModal } from "@/components/ui/InfoM
 
 interface MLStrengthMeterProps {
   data: any[];
+  eodDate?: string | null;
 }
 
 const chartConfig = {
@@ -35,7 +36,7 @@ interface HoveredData {
   nifty50: number | null;
 }
 
-export default function MLStrengthMeter({ data }: MLStrengthMeterProps) {
+export default function MLStrengthMeter({ data, eodDate }: MLStrengthMeterProps) {
     const [hoveredData, setHoveredData] = useState<HoveredData | null>(null);
     const { showModal, openModal, closeModal } = useInfoModal();
 
@@ -84,10 +85,12 @@ return (
             <div className="p-2 rounded-lg bg-accent/10">
               <BrainCircuit className="w-5 h-5 text-accent" />
             </div>
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model-Derived Trend Bias</h3>
-              <p className="text-xs text-muted-foreground/60 font-medium italic">Historical Pattern Analysis</p>
-            </div>
+<div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Model-Derived Trend Bias {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
+                </h3>
+                <p className="text-xs text-muted-foreground/60 font-medium italic">Historical Pattern Analysis</p>
+              </div>
           </div>
           <div className="flex items-center gap-3">
             {hoveredData ? (

@@ -11,6 +11,7 @@ import { InfoModal, InfoModalTrigger, useInfoModal } from "@/components/ui/InfoM
 
 interface MarketStrengthMeterProps {
   data: any[];
+  eodDate?: string | null;
 }
 
 const chartConfig = {
@@ -30,7 +31,7 @@ interface HoveredData {
   nifty50: number | null;
 }
 
-export default function MarketStrengthMeter({ data }: MarketStrengthMeterProps) {
+export default function MarketStrengthMeter({ data, eodDate }: MarketStrengthMeterProps) {
   const [hoveredData, setHoveredData] = useState<HoveredData | null>(null);
   const { showModal, openModal, closeModal } = useInfoModal();
 
@@ -70,10 +71,12 @@ return (
             <div className="p-2 rounded-lg bg-primary/10">
               <Activity className="w-5 h-5 text-primary" />
             </div>
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Momentum Oscillator</h3>
-              <p className="text-xs text-muted-foreground/60 font-medium italic">Trend Strength & Exhaustion Gauge</p>
-            </div>
+<div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Momentum Oscillator {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
+                </h3>
+                <p className="text-xs text-muted-foreground/60 font-medium italic">Trend Strength & Exhaustion Gauge</p>
+              </div>
           </div>
           <div className="flex items-center gap-3">
             {hoveredData && (

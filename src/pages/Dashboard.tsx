@@ -74,6 +74,11 @@ const Dashboard = () => {
     ? liveMarketStrength[liveMarketStrength.length - 1].date 
     : (moodData?.date || marketMoodData.date);
 
+  // EOD date from Swing Sheet (for EOD components)
+  const eodDate = liveMarketStrength.length > 0 
+    ? liveMarketStrength[liveMarketStrength.length - 1].date 
+    : null;
+
   return (
     <div className="min-h-screen bg-background selection:bg-primary/30 overflow-x-hidden">
       {/* SEBI Disclaimer Modal */}
@@ -140,8 +145,10 @@ const Dashboard = () => {
                 <div className="h-full flex flex-col">
                       <div className="flex justify-between items-center mb-10">
                         <div className="space-y-1">
-                        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Market Mood Today</h3>
-                          <p className="text-xs text-muted-foreground/60 font-medium italic">Current internal dynamics</p>
+<h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              Market Mood Today <span className="text-primary/80">(LIVE DATA)</span>
+                            </h3>
+                            <p className="text-xs text-muted-foreground/60 font-medium italic">Current internal dynamics</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <InfoModalTrigger onClick={openMarketMoodModal} />
@@ -175,7 +182,9 @@ const Dashboard = () => {
                 {/* Top Movers Section */}
                 {topMovers && (topMovers.topGainers?.length > 0 || topMovers.topLosers?.length > 0) && (
                   <div className="mt-8 pt-6 border-t border-white/5">
-                    <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">Market Mood</h4>
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">
+                        Market Mood <span className="text-primary/80">(LIVE DATA)</span>
+                      </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Top Gainers */}
                       <div className="rounded-xl bg-success/5 border border-success/10 p-3">
@@ -269,24 +278,24 @@ const Dashboard = () => {
                 </div>
               </GlassCard>
           
-          {/* Market Position Structure */}
-            <GlassCard delay={0.2} className="flex flex-col h-full">
-                <div className="h-full flex flex-col">
-                  <MarketPositionStructure />
-                </div>
-            </GlassCard>
+{/* Market Position Structure */}
+              <GlassCard delay={0.2} className="flex flex-col h-full">
+                  <div className="h-full flex flex-col">
+                    <MarketPositionStructure eodDate={eodDate} />
+                  </div>
+              </GlassCard>
           
             {/* ML Strength Meter */}
             <GlassCard delay={0.3} className="flex flex-col h-full">
               <div className="h-full flex flex-col">
-                <MLStrengthMeter data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} />
+                <MLStrengthMeter data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} eodDate={eodDate} />
               </div>
             </GlassCard>
           
           {/* Market Strength Meter (Momentum Oscillator) */}
           <GlassCard delay={0.4} className="flex flex-col h-full">
             <div className="h-full flex flex-col">
-              <MarketStrengthMeter data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} />
+              <MarketStrengthMeter data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} eodDate={eodDate} />
               <MarketDescription text={getMarketStrengthDescription(liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData)} />
             </div>
           </GlassCard>
@@ -294,7 +303,7 @@ const Dashboard = () => {
             {/* Market Balance Indicator - Full Width */}
             <GlassCard delay={0.5} className="flex flex-col h-full md:col-span-2">
               <div className="h-full flex flex-col">
-                <MarketBalanceIndicator data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} />
+                <MarketBalanceIndicator data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} eodDate={eodDate} />
               </div>
             </GlassCard>
           </div>
@@ -302,9 +311,10 @@ const Dashboard = () => {
             {/* Index Section */}
               <div className="mb-12">
                   <div className="animate-fade-in-up space-y-3 mb-6">
-                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                      Index <span className="gradient-text italic pr-2">Performance</span>
-                    </h2>
+<h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                        Index <span className="gradient-text italic pr-2">Performance</span>
+                        <span className="text-sm font-semibold text-primary/80 ml-2">(LIVE DATA)</span>
+                      </h2>
                     <p className="text-sm text-muted-foreground max-w-2xl font-medium">Sector strength analysis with weakness/strength indicators. Click any index to view stocks.</p>
                   </div>
               

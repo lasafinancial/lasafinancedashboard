@@ -277,6 +277,12 @@ async function fetchData() {
     const dateStr = row['DATE'];
     if (!dateStr) return;
     
+    // Filter by Group: Only LARGECAP, MIDCAP, and INDEX
+    const group = (row['GROUP'] || '').toString().toUpperCase();
+    if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX') {
+      return;
+    }
+    
     const rowDate = parseDateFlexible(dateStr);
     if (!rowDate || rowDate < historyCutoff) return;
 
