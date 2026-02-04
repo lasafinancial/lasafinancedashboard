@@ -6,11 +6,42 @@ import { google } from 'googleapis';
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 
+function getFirebaseCredentials() {
+  const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (!key) return null;
+
+  try {
+    let cleanKey = key.trim();
+    
+    // Remove potential surrounding quotes from Vercel env var
+    if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
+        (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+      cleanKey = cleanKey.slice(1, -1).trim();
+    }
+    
+    let credentials = JSON.parse(cleanKey);
+    if (typeof credentials === 'string') {
+      credentials = JSON.parse(credentials);
+    }
+    
+    if (credentials?.private_key) {
+      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+      credentials.private_key = credentials.private_key.trim();
+      if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
+        credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
+      }
+    }
+    
+    return credentials;
+  } catch (e) {
+    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', e.message);
+    return null;
+  }
+}
+
 // Initialize Firebase Admin (only once)
 if (!admin.apps.length) {
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY 
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-    : null;
+  const serviceAccount = getFirebaseCredentials();
 
   if (serviceAccount) {
     admin.initializeApp({
@@ -23,13 +54,27 @@ function getGoogleCredentials() {
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!key) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY not set');
   
-  let credentials = JSON.parse(key.trim());
+  let cleanKey = key.trim();
+  
+  // Remove potential surrounding quotes from Vercel env var
+  if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
+      (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+    cleanKey = cleanKey.slice(1, -1).trim();
+  }
+  
+  let credentials = JSON.parse(cleanKey);
   if (typeof credentials === 'string') {
     credentials = JSON.parse(credentials);
   }
+  
   if (credentials?.private_key) {
     credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+    credentials.private_key = credentials.private_key.trim();
+    if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
+      credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
+    }
   }
+  
   return credentials;
 }
 
