@@ -42,45 +42,48 @@ function parseDateFlexible(dateStr) {
 }
 
 function getCredentials() {
+  let credentials;
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  if (!key) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable not set');
-  }
   
-  try {
-    let cleanKey = key.trim();
-    
-    // Remove potential surrounding quotes from Vercel env var
-    if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
-        (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
-      cleanKey = cleanKey.slice(1, -1).trim();
-    }
-    
-    // In case the key was double-encoded as a JSON string
-    let credentials;
+  if (key) {
     try {
-      credentials = JSON.parse(cleanKey);
-      if (typeof credentials === 'string') {
-        credentials = JSON.parse(credentials);
+      let cleanKey = key.trim();
+      
+      // Remove potential surrounding quotes from Vercel env var
+      if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
+          (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+        cleanKey = cleanKey.slice(1, -1).trim();
+      }
+      
+      // In case the key was double-encoded as a JSON string
+      try {
+        credentials = JSON.parse(cleanKey);
+        if (typeof credentials === 'string') {
+          credentials = JSON.parse(credentials);
+        }
+      } catch (e) {
+        console.error('JSON Parse Error for GOOGLE_SERVICE_ACCOUNT_KEY:', e.message);
       }
     } catch (e) {
-      throw new Error(`JSON Parse Error: ${e.message}`);
+      console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY from env:', e.message);
     }
-
-    if (credentials && credentials.private_key) {
-      // Robustly replace escaped newlines
-      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
-      
-      // Remove any leading/trailing quotes that might have been accidentally included in the private_key value
-      credentials.private_key = credentials.private_key.trim();
-      if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
-        credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
-      }
-    }
-    return credentials;
-  } catch (e) {
-    throw new Error(`Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY: ${e.message}`);
   }
+
+  if (credentials && credentials.private_key) {
+    // Robustly replace escaped newlines
+    credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+    
+    // Remove any leading/trailing quotes that might have been accidentally included in the private_key value
+    credentials.private_key = credentials.private_key.trim();
+    if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
+      credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
+    }
+  }
+
+  if (!credentials) {
+    throw new Error('No Google credentials found (env)');
+  }
+  return credentials;
 }
 
 function getOrdinalSuffix(day) {

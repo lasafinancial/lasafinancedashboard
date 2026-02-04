@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   AreaChart,
   Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -35,6 +37,26 @@ interface MultibaggerStock {
   dEma200Status: string;
   algoB: string;
 }
+
+// Historical Strategy Performance Data (2014-2026)
+const strategyPerformanceData = [
+  { year: "2014", value: 18319932.39 },
+  { year: "2016", value: 44079749.07 },
+  { year: "2017", value: 70965682.41 },
+  { year: "2018", value: 68592280.29 },
+  { year: "2019", value: 49479686 },
+  { year: "2020", value: 68592280.29 },
+  { year: "2021", value: 119543188.2 },
+  { year: "2022", value: 114465781.5 },
+  { year: "2023", value: 163658631.7 },
+  { year: "2024", value: 210257307.5 },
+  { year: "2025", value: 178789623.5 },
+  { year: "2026", value: 185388176.1 },
+];
+
+const formatValueInCr = (value: number) => {
+  return `${(value / 10000000).toFixed(1)} Cr`;
+};
 
 const growthData = [
   { year: "Year 1", value: 1000 },
@@ -162,10 +184,92 @@ export function Multibagger() {
               </p>
             </div>
           </div>
-        </motion.div>
+          </motion.div>
 
-        {/* Main Content */}
-        <AnimatePresence mode="wait">
+          {/* Historical Strategy Performance Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-10"
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+              <div className="space-y-1">
+                <h2 className="text-xl md:text-2xl font-bold tracking-tight">
+                  Strategy <span className="gradient-text italic pr-1">Performance</span>
+                </h2>
+                <p className="text-sm text-muted-foreground font-medium">
+                  Historical returns from 2014 to 2026
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-4 px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md">
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground font-medium">2014</p>
+                  <p className="text-base font-bold tabular-nums">₹1.8 Cr</p>
+                </div>
+                <div className="w-px h-6 bg-white/10" />
+                <div>
+                  <p className="text-xs text-success font-medium">2024 Peak</p>
+                  <p className="text-base font-bold text-success tabular-nums">₹21 Cr</p>
+                </div>
+              </div>
+            </div>
+
+            <GlassCard 
+              className="p-4 h-[350px] border-white/10 relative overflow-hidden"
+              contentClassName="h-full w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={strategyPerformanceData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="strategyGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis 
+                    dataKey="year" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 500 }}
+                    dy={10}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 500 }}
+                    tickFormatter={(value) => formatValueInCr(value)}
+                    width={60}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                    }}
+                    itemStyle={{ color: 'hsl(var(--primary))', fontWeight: 600, fontSize: '13px' }}
+                    labelStyle={{ color: 'rgba(255,255,255,0.6)', fontWeight: 500, fontSize: '11px', marginBottom: '4px' }}
+                    formatter={(value: number) => [`₹${formatValueInCr(value)}`, "Portfolio Value"]}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2.5}
+                    dot={{ fill: 'hsl(var(--primary))', strokeWidth: 0, r: 4 }}
+                    activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: 'white', strokeWidth: 2 }}
+                    animationDuration={1500}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </GlassCard>
+          </motion.div>
+
+          {/* Main Content */}
+          <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div 
               key="loading"

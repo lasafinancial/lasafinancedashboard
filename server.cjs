@@ -4,6 +4,30 @@ const { google } = require('googleapis');
 const XLSX = require('xlsx');
 const fs = require('fs');
 const path = require('path');
+const admin = require('firebase-admin');
+
+function loadEnvFile() {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    if (!fs.existsSync(envPath)) return;
+    const content = fs.readFileSync(envPath, 'utf8');
+    content.split(/\r?\n/).forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return;
+      const eqIndex = trimmed.indexOf('=');
+      if (eqIndex === -1) return;
+      const key = trimmed.slice(0, eqIndex).trim();
+      const value = trimmed.slice(eqIndex + 1).trim();
+      if (!(key in process.env)) {
+        process.env[key] = value;
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to load .env file:', error.message);
+  }
+}
+
+loadEnvFile();
 
 function parseDateFlexible(dateStr) {
   if (dateStr === null || dateStr === undefined || dateStr === '') return null;
@@ -57,13 +81,11 @@ function getCredentials() {
     try {
       let cleanKey = key.trim();
       
-      // Remove potential surrounding quotes from Vercel env var
       if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
           (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
         cleanKey = cleanKey.slice(1, -1).trim();
       }
       
-      // In case the key was double-encoded as a JSON string
       try {
         credentials = JSON.parse(cleanKey);
         if (typeof credentials === 'string') {
@@ -89,10 +111,7 @@ function getCredentials() {
   }
 
   if (credentials && credentials.private_key) {
-    // Robustly replace escaped newlines
     credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
-    
-    // Remove any leading/trailing quotes that might have been accidentally included in the private_key value
     credentials.private_key = credentials.private_key.trim();
     if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
       credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
@@ -103,6 +122,46 @@ function getCredentials() {
     throw new Error('No Google credentials found (env or file)');
   }
   return credentials;
+}
+
+function getFirebaseServiceAccount() {
+  const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (!key) return null;
+
+  try {
+    let cleanKey = key.trim();
+    if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
+        (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+      cleanKey = cleanKey.slice(1, -1).trim();
+    }
+
+    let credentials = JSON.parse(cleanKey);
+    if (typeof credentials === 'string') {
+      credentials = JSON.parse(credentials);
+    }
+
+    if (credentials && credentials.private_key) {
+      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+      credentials.private_key = credentials.private_key.trim();
+      if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
+        credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
+      }
+    }
+
+    return credentials;
+  } catch (e) {
+    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', e.message);
+    return null;
+  }
+}
+
+if (!admin.apps.length) {
+  const serviceAccount = getFirebaseServiceAccount();
+  if (serviceAccount) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  }
 }
 
 function getOrdinalSuffix(day) {
@@ -314,17 +373,15 @@ async function fetchData() {
   let parsedCount = 0;
   let skippedCount = 0;
 
-    lasaMasterData.forEach(row => {
-      const dateStr = row['DATE'];
-      if (!dateStr) return;
-      
-      // Filter by Group: Only LARGECAP, MIDCAP, and INDEX
-      const group = (row['GROUP'] || '').toString().toUpperCase();
-      if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX') {
-        return;
-      }
-
+  lasaMasterData.forEach(row => {
+    const dateStr = row['DATE'];
+    if (!dateStr) return;
     
+    const group = (row['GROUP'] || '').toString().toUpperCase();
+    if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX') {
+      return;
+    }
+
     const rowDate = parseDateFlexible(dateStr);
     if (!rowDate || rowDate < historyCutoff) {
       skippedCount++;
@@ -364,36 +421,35 @@ async function fetchData() {
     });
   });
 
-    console.log(`History stats - Parsed: ${parsedCount}, Skipped: ${skippedCount}`);
-    
-    const stockData = Object.keys(history).map(symbol => {
-      const stockHistory = history[symbol].sort((a, b) => a.dateObj - b.dateObj);
-      if (stockHistory.length === 0) return null;
-      const latest = stockHistory[stockHistory.length - 1];
-      return {
-        symbol,
-        name: symbol,
-        sector: latest.sector,
-        price: latest.price,
-        rsi: latest.rsi,
-        trend: latest.trend,
-        resistanceSlopeDownward: resistanceSlopeMap[symbol] || false,
-        history: stockHistory.map(h => ({
-          price: h.price,
-          rsi: h.rsi,
-          trend: h.trend,
-          support: h.support,
-          resistance: h.resistance,
-          mlFutPrice20d: h.mlFutPrice20d,
-          wolfeD: h.wolfeD,
-          projFvg: h.projFvg,
-          date: h.dateDisplay
-        }))
-      };
-    }).filter(Boolean);
+  console.log(`History stats - Parsed: ${parsedCount}, Skipped: ${skippedCount}`);
+  
+  const stockData = Object.keys(history).map(symbol => {
+    const stockHistory = history[symbol].sort((a, b) => a.dateObj - b.dateObj);
+    if (stockHistory.length === 0) return null;
+    const latest = stockHistory[stockHistory.length - 1];
+    return {
+      symbol,
+      name: symbol,
+      sector: latest.sector,
+      price: latest.price,
+      rsi: latest.rsi,
+      trend: latest.trend,
+      resistanceSlopeDownward: resistanceSlopeMap[symbol] || false,
+      history: stockHistory.map(h => ({
+        price: h.price,
+        rsi: h.rsi,
+        trend: h.trend,
+        support: h.support,
+        resistance: h.resistance,
+        mlFutPrice20d: h.mlFutPrice20d,
+        wolfeD: h.wolfeD,
+        projFvg: h.projFvg,
+        date: h.dateDisplay
+      }))
+    };
+  }).filter(Boolean);
 
-    console.log(`Final stockData count: ${stockData.length}`);
-
+  console.log(`Final stockData count: ${stockData.length}`);
 
   console.log('Fetching Top Movers and Index Performance...');
   let topMovers = { topGainers: [], topLosers: [] };
@@ -411,10 +467,10 @@ async function fetchData() {
     });
 
     let bullCount = 0, bearCount = 0, neutCount = 0;
-      moodStocks.forEach(row => {
-        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-        const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
-        const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
+    moodStocks.forEach(row => {
+      const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+      const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+      const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
       
       const status = getDynamicStatus(closePrice, lowerRange, upperRange);
       if (status === 'BULLISH') bullCount++;
@@ -452,12 +508,12 @@ async function fetchData() {
     const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
     const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
 
-      stocksSource.forEach(row => {
-        const stockName = row['STOCK_NAME'];
-        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-        const stockId = row['ID'] || stockName;
-        const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
-        const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
+    stocksSource.forEach(row => {
+      const stockName = row['STOCK_NAME'];
+      const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+      const stockId = row['ID'] || stockName;
+      const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+      const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
       
       if (!stockName) return;
       
@@ -574,7 +630,6 @@ app.get('/api/multibagger', async (req, res) => {
     if (fs.existsSync(localExcelPath)) {
       console.log('Reading Multibagger data from local Excel file...');
       const workbook = XLSX.readFile(localExcelPath);
-      // Try to find the 'current' sheet (sheet three as per friend)
       const sheetName = workbook.SheetNames[2] || 'current';
       const sheet = workbook.Sheets[sheetName];
       rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
@@ -598,7 +653,6 @@ app.get('/api/multibagger', async (req, res) => {
       return res.json([]);
     }
 
-    // Indices based on friend's requirements (0-indexed)
     const idx = {
       sector: colToIdx('B'),
       id: colToIdx('C'),
@@ -632,7 +686,7 @@ app.get('/api/multibagger', async (req, res) => {
         return {
           sector: row[idx.sector] || 'N/A',
           id: row[idx.id] || 'N/A',
-          stockName: row[idx.id] || 'N/A', // Using ID as stockName if not separate
+          stockName: row[idx.id] || 'N/A',
           cmp: getNum(row[idx.cmp]),
           rsi: getNum(row[idx.rsi]),
           dRsiDiff: getNum(row[idx.dRsiDiff]),
@@ -654,6 +708,154 @@ app.get('/api/multibagger', async (req, res) => {
   } catch (error) {
     console.error('Error fetching multibagger data:', error);
     res.status(500).json({ error: 'Failed to fetch multibagger data', message: error.message });
+  }
+});
+
+app.all('/api/send-market-mood', async (req, res) => {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    if (!admin.apps.length) {
+      return res.status(500).json({
+        error: 'Firebase Admin not initialized',
+        message: 'Set FIREBASE_SERVICE_ACCOUNT_KEY in your environment'
+      });
+    }
+
+    const credentials = getCredentials();
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const currentRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: EOD_SHEET_ID,
+      range: "'current'!A1:FJ",
+    });
+
+    const rows = currentRes.data.values;
+    if (!rows || rows.length < 2) {
+      return res.status(500).json({ error: 'No data found in current sheet' });
+    }
+
+    const dataRows = rowsToObjects(rows);
+    const moodStocks = dataRows.slice(0, 470).filter(row => {
+      const group = (row['GROUP'] || '').toString().toUpperCase();
+      return group === 'LARGECAP' || group === 'MIDCAP';
+    });
+
+    let bullCount = 0, bearCount = 0, neutCount = 0;
+    moodStocks.forEach(row => {
+      const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+      const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+      const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
+
+      const status = getDynamicStatus(closePrice, lowerRange, upperRange);
+      if (status === 'BULLISH') bullCount++;
+      else if (status === 'BEARISH') bearCount++;
+      else neutCount++;
+    });
+
+    const total = moodStocks.length;
+    if (total === 0) {
+      return res.status(500).json({ error: 'No stocks found for mood calculation' });
+    }
+
+    const mood = {
+      bullish: Math.round((bullCount / total) * 100),
+      bearish: Math.round((bearCount / total) * 100),
+      neutral: Math.round((neutCount / total) * 100),
+    };
+
+    let dominantMood = 'NEUTRAL';
+    let moodPercent = mood.neutral;
+    if (mood.bullish >= mood.bearish && mood.bullish >= mood.neutral) {
+      dominantMood = 'BULLISH';
+      moodPercent = mood.bullish;
+    } else if (mood.bearish >= mood.bullish && mood.bearish >= mood.neutral) {
+      dominantMood = 'BEARISH';
+      moodPercent = mood.bearish;
+    }
+
+    const title = 'Market Mood Update';
+    const body = `Today's market is ${moodPercent}% ${dominantMood}`;
+
+    const tokensSnapshot = await admin.firestore().collection('fcm_tokens').get();
+    const tokens = [];
+    tokensSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.token) tokens.push(data.token);
+    });
+
+    let successCount = 0;
+    let failedCount = 0;
+    const invalidTokens = [];
+
+    for (const token of tokens) {
+      try {
+        await admin.messaging().send({
+          token,
+          notification: { title, body },
+          webpush: {
+            notification: {
+              icon: '/favicon.ico',
+              badge: '/favicon.ico',
+              requireInteraction: true,
+            },
+            fcmOptions: {
+              link: '/',
+            },
+          },
+        });
+        successCount++;
+      } catch (error) {
+        failedCount++;
+        if (error.code === 'messaging/registration-token-not-registered' ||
+            error.code === 'messaging/invalid-registration-token') {
+          invalidTokens.push(token);
+        }
+      }
+    }
+
+    if (invalidTokens.length > 0) {
+      const db = admin.firestore();
+      for (const token of invalidTokens) {
+        try {
+          await db.collection('fcm_tokens').doc(token).delete();
+        } catch (e) {
+          console.error('Failed to delete invalid token:', e);
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      mood: {
+        bullish: mood.bullish,
+        bearish: mood.bearish,
+        neutral: mood.neutral,
+        dominant: dominantMood,
+        percent: moodPercent
+      },
+      notification: {
+        title,
+        body,
+        sentTo: tokens.length,
+        successCount,
+        failedCount,
+        cleanedTokens: invalidTokens.length
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error sending market mood notification:', error);
+    res.status(500).json({
+      error: 'Failed to send market mood notification',
+      message: error.message
+    });
   }
 });
 
