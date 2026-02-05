@@ -15,16 +15,16 @@ function getCredentials() {
   if (!key) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable not set');
   }
-  
+
   try {
     let cleanKey = key.trim();
-    
+
     // Remove potential surrounding quotes from Vercel env var
-    if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
-        (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+    if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
+      (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
       cleanKey = cleanKey.slice(1, -1).trim();
     }
-    
+
     // In case the key was double-encoded as a JSON string
     let credentials;
     try {
@@ -39,7 +39,7 @@ function getCredentials() {
     if (credentials && credentials.private_key) {
       // Robustly replace escaped newlines
       credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
-      
+
       // Remove any leading/trailing quotes that might have been accidentally included in the private_key value
       credentials.private_key = credentials.private_key.trim();
       if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       spreadsheetId: EOD_SHEET_ID,
       range: "'current'!A:FJ",
     });
-    
+
     const rows = response.data.values;
     if (!rows || rows.length < 2) {
       return res.status(200).json([]);
@@ -82,6 +82,7 @@ export default async function handler(req, res) {
       dRsiDiff: colToIdx('J'),
       rsi: colToIdx('K'),
       wRsi: colToIdx('Q'),
+      isMb: colToIdx('BS'),
       peRatio: colToIdx('EL'),
       algoB: colToIdx('EM'),
       dEma200: colToIdx('EO'),
@@ -92,8 +93,12 @@ export default async function handler(req, res) {
     };
 
     const mbData = rows.slice(1).filter(row => {
+      const isMbVal = parseFloat((row[idx.isMb] || '0').toString().replace(/,/g, '')) || 0;
       const signal = (row[idx.rsiAbove78] || '').toString().toUpperCase();
-      return signal === 'Y';
+      const emaStatus = (row[idx.dEma200Status] || '').toString().toUpperCase();
+      const rsiVal = parseFloat((row[idx.rsi] || '0').toString().replace(/,/g, '')) || 0;
+
+      return isMbVal >= 2 && signal === 'Y' && emaStatus === 'ABOVE' && rsiVal < 60;
     });
 
     const filtered = mbData.map(row => {

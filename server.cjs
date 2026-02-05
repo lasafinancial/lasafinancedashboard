@@ -6,6 +6,32 @@ const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
 
+// Global error handlers to prevent silent crashes
+process.on('uncaughtException', (err) => {
+  console.error('FATAL: Uncaught Exception:', err);
+  // Give some time for logs to flush before exiting if it's a critical error
+  setTimeout(() => process.exit(1), 1000);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Process lifecycle logging
+process.on('exit', (code) => {
+  console.log(`Server process exiting with code: ${code}`);
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT. Shutting down...');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM. Shutting down...');
+  process.exit(0);
+});
+
 function loadEnvFile() {
   try {
     const envPath = path.join(__dirname, '.env');
@@ -31,7 +57,7 @@ loadEnvFile();
 
 function parseDateFlexible(dateStr) {
   if (dateStr === null || dateStr === undefined || dateStr === '') return null;
-  
+
   const num = Number(dateStr);
   if (!isNaN(num) && typeof dateStr !== 'boolean' && num > 40000) {
     const utc_days = Math.floor(num - 25569);
@@ -39,28 +65,28 @@ function parseDateFlexible(dateStr) {
   }
 
   const str = String(dateStr).trim();
-  
+
   let date = new Date(str + 'T00:00:00');
   if (!isNaN(date.getTime())) return date;
-  
+
   const parts = str.split(/[-\/]/);
   if (parts.length === 3) {
     const p = parts.map(part => parseInt(part, 10));
-    
+
     if (p[0] > 1000) {
       date = new Date(p[0], p[1] - 1, p[2]);
       if (!isNaN(date.getTime())) return date;
     }
-    
+
     if (p[2] > 1000) {
       date = new Date(p[2], p[1] - 1, p[0]);
       if (!isNaN(date.getTime())) return date;
     }
-    
+
     date = new Date(p[2], p[0] - 1, p[1]);
     if (!isNaN(date.getTime())) return date;
   }
-  
+
   date = new Date(str);
   if (!isNaN(date.getTime())) return date;
 
@@ -76,16 +102,16 @@ const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
 function getCredentials() {
   let credentials;
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  
+
   if (key) {
     try {
       let cleanKey = key.trim();
-      
-      if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
-          (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+
+      if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
+        (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
         cleanKey = cleanKey.slice(1, -1).trim();
       }
-      
+
       try {
         credentials = JSON.parse(cleanKey);
         if (typeof credentials === 'string') {
@@ -131,7 +157,7 @@ function getFirebaseServiceAccount() {
   try {
     let cleanKey = key.trim();
     if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
-        (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+      (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
       cleanKey = cleanKey.slice(1, -1).trim();
     }
 
@@ -201,7 +227,7 @@ function parseSwingDate(dateStr) {
   };
   const parts = dateStr.trim().split(/\s+/);
   if (parts.length < 2) return null;
-  
+
   let day, monthStr, year;
   if (!isNaN(parseInt(parts[0]))) {
     day = parseInt(parts[0]);
@@ -212,7 +238,7 @@ function parseSwingDate(dateStr) {
     day = parseInt(parts[1]);
     year = parts[2] ? parseInt(parts[2]) : new Date().getFullYear();
   }
-  
+
   const month = monthMap[monthStr];
   if (month === undefined || isNaN(day)) return null;
   return new Date(year, month, day);
@@ -233,9 +259,9 @@ function getDynamicStatus(price, lowerRange, upperRange) {
   const displayMin = actualMin - padding;
   const displayMax = actualMax + padding;
   const displayRange = displayMax - displayMin;
-  
+
   const pricePosition = displayRange > 0 ? ((price - displayMin) / displayRange) * 100 : 50;
-  
+
   if (pricePosition > 66.66) return 'BULLISH';
   if (pricePosition < 33.33) return 'BEARISH';
   return 'NEUTRAL';
@@ -268,14 +294,14 @@ function rowsToObjects(rows) {
 async function fetchData() {
   console.log('Fetching live data from Google Sheets...');
   const credentials = getCredentials();
-  
+
   const auth = new google.auth.GoogleAuth({
     credentials,
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
   });
-  
+
   const sheets = google.sheets({ version: 'v4', auth });
-  
+
   console.log('Fetching all data from lasa-master...');
   const lasaMasterRes = await sheets.spreadsheets.values.get({
     spreadsheetId: EOD_SHEET_ID,
@@ -283,7 +309,7 @@ async function fetchData() {
   });
   const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
   console.log(`Total rows fetched from lasa-master: ${lasaMasterData.length}`);
-  
+
   const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
   const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
   const latestDate = sortedDates[0];
@@ -296,14 +322,14 @@ async function fetchData() {
     neutral: 0,
     date: formatDate(new Date(latestDate))
   };
-  
+
   console.log('Fetching Swing DATA sheet...');
   const swingRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SWING_SHEET_ID,
     range: 'DATA',
   });
   const dataRows = rowsToObjects(swingRes.data.values);
-  
+
   const strengthData = dataRows.map(row => ({
     dateObj: parseSwingDate(row['DATE']),
     dateStr: row['DATE'],
@@ -362,21 +388,22 @@ async function fetchData() {
     },
     lastUpdate: new Date().toLocaleTimeString()
   };
-  
+
   console.log('Processing stock history (180 days)...');
   const historyCutoff = new Date();
   historyCutoff.setDate(historyCutoff.getDate() - 180);
   historyCutoff.setHours(0, 0, 0, 0);
-  
+
   const history = {};
   const resistanceSlopeMap = {};
+  const fullNameMap = {};
   let parsedCount = 0;
   let skippedCount = 0;
 
   lasaMasterData.forEach(row => {
     const dateStr = row['DATE'];
     if (!dateStr) return;
-    
+
     const group = (row['GROUP'] || '').toString().toUpperCase();
     if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX') {
       return;
@@ -387,25 +414,29 @@ async function fetchData() {
       skippedCount++;
       return;
     }
-    
+
     parsedCount++;
-    const symbol = row['STOCK_NAME'];
+    const symbol = row['ID'] || row['STOCK_NAME'];
     if (!symbol) return;
-    
+
+    if (!fullNameMap[symbol]) {
+      fullNameMap[symbol] = row['STOCK_NAME'] || symbol;
+    }
+
     if (dateStr === latestDate) {
       const val = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase();
       resistanceSlopeMap[symbol] = val === 'true';
     }
 
     if (!history[symbol]) history[symbol] = [];
-    
+
     const closeStr = (row['CLOSE_PRICE'] || '').toString().replace(/,/g, '');
     const supportStr = (row['SUPPORT'] || '').toString().replace(/,/g, '');
     const resistanceStr = (row['RESISTANCE'] || '').toString().replace(/,/g, '');
     const mlFutPriceStr = (row['ML_FUT_PRICE_20D'] || '').toString().replace(/,/g, '');
     const wolfeDStr = (row['WOLFE_D'] || '').toString().replace(/,/g, '');
     const projFvgStr = (row['PROJ_FVG'] || '').toString().replace(/,/g, '');
-    
+
     history[symbol].push({
       dateObj: rowDate,
       dateDisplay: formatDate(rowDate),
@@ -422,14 +453,14 @@ async function fetchData() {
   });
 
   console.log(`History stats - Parsed: ${parsedCount}, Skipped: ${skippedCount}`);
-  
+
   const stockData = Object.keys(history).map(symbol => {
     const stockHistory = history[symbol].sort((a, b) => a.dateObj - b.dateObj);
     if (stockHistory.length === 0) return null;
     const latest = stockHistory[stockHistory.length - 1];
     return {
       symbol,
-      name: symbol,
+      name: fullNameMap[symbol] || symbol,
       sector: latest.sector,
       price: latest.price,
       rsi: latest.rsi,
@@ -460,7 +491,7 @@ async function fetchData() {
       range: "'current'!A1:FJ",
     });
     const currentData = rowsToObjects(currentRes.data.values);
-    
+
     const moodStocks = currentData.slice(0, 470).filter(row => {
       const group = (row['GROUP'] || '').toString().toUpperCase();
       return group === 'LARGECAP' || group === 'MIDCAP';
@@ -471,7 +502,7 @@ async function fetchData() {
       const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
       const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
       const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
-      
+
       const status = getDynamicStatus(closePrice, lowerRange, upperRange);
       if (status === 'BULLISH') bullCount++;
       else if (status === 'BEARISH') bearCount++;
@@ -484,7 +515,7 @@ async function fetchData() {
       marketMood.bearish = (bearCount / totalMoodStocks) * 100;
       marketMood.neutral = (neutCount / totalMoodStocks) * 100;
     }
-    
+
     const indexColumns = {
       'NIFTY 50': 'NIFTY50',
       'NIFTY BANK': 'NIFTYBANK',
@@ -499,12 +530,12 @@ async function fetchData() {
       'NIFTY CPSE': 'NIFTYCPSE',
       'NIFTY 500': 'NIFTY500'
     };
-    
+
     const indexStocksMap = {};
     Object.keys(indexColumns).forEach(idx => {
       indexStocksMap[idx] = { stocks: [], bullish: 0, bearish: 0 };
     });
-    
+
     const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
     const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
 
@@ -514,18 +545,18 @@ async function fetchData() {
       const stockId = row['ID'] || stockName;
       const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
       const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
-      
+
       if (!stockName) return;
-      
+
       const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
-      
+
       Object.keys(indexColumns).forEach(indexName => {
         const colName = indexColumns[indexName];
         const val = row[colName];
         if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
           const isBullish = dynamicStatus === 'BULLISH';
           const isBearish = dynamicStatus === 'BEARISH';
-          
+
           indexStocksMap[indexName].stocks.push({
             id: stockId,
             stockName,
@@ -534,7 +565,7 @@ async function fetchData() {
             upperRange,
             lowerRange
           });
-          
+
           if (isBullish) indexStocksMap[indexName].bullish++;
           if (isBearish) indexStocksMap[indexName].bearish++;
         }
@@ -568,9 +599,9 @@ async function fetchData() {
         closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0
       }))
       .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
-    
+
     const sortedByChange = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
-    
+
     topMovers = {
       topGainers: sortedByChange.filter(s => s.changePercent > 0).slice(0, 10),
       topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
@@ -578,7 +609,7 @@ async function fetchData() {
   } catch (err) {
     console.warn('Could not fetch top movers from current tab:', err.message);
   }
-  
+
   return {
     marketMood,
     marketStrength: strengthData,
@@ -597,16 +628,16 @@ const CACHE_DURATION = 1 * 60 * 1000;
 app.get('/api/fetch-data', async (req, res) => {
   try {
     const now = Date.now();
-    
+
     if (cachedData && (now - lastFetchTime) < CACHE_DURATION) {
       console.log('Returning cached data');
       return res.json(cachedData);
     }
-    
+
     const data = await fetchData();
     cachedData = data;
     lastFetchTime = now;
-    
+
     res.json(data);
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -626,7 +657,7 @@ app.get('/api/multibagger', async (req, res) => {
 
     let rows = [];
     const localExcelPath = path.join(__dirname, 'datapulling', 'LASA-EOD-DATA.xlsx');
-    
+
     if (fs.existsSync(localExcelPath)) {
       console.log('Reading Multibagger data from local Excel file...');
       const workbook = XLSX.readFile(localExcelPath);
@@ -666,16 +697,21 @@ app.get('/api/multibagger', async (req, res) => {
       dEma200Status: colToIdx('EP'),
       fiveYHigh: colToIdx('ER'),
       dEma63: colToIdx('ES'),
-      rsiAbove78: colToIdx('FI')
+      rsiAbove78: colToIdx('FI'),
+      isMb: colToIdx('BS')
     };
 
     const mbData = rows.slice(1).filter(row => {
+      const isMbVal = parseFloat((row[idx.isMb] || '0').toString().replace(/,/g, '')) || 0;
       const signal = (row[idx.rsiAbove78] || '').toString().toUpperCase();
-      return signal === 'Y';
+      const emaStatus = (row[idx.dEma200Status] || '').toString().toUpperCase();
+      const rsiVal = parseFloat((row[idx.rsi] || '0').toString().replace(/,/g, '')) || 0;
+
+      return isMbVal >= 2 && signal === 'Y' && emaStatus === 'ABOVE' && rsiVal < 60;
     });
 
     console.log(`Multibagger candidates found: ${mbData.length} (Expected ~214)`);
-    
+
     const filtered = mbData
       .map(row => {
         const getNum = (val) => {
@@ -814,7 +850,7 @@ app.all('/api/send-market-mood', async (req, res) => {
       } catch (error) {
         failedCount++;
         if (error.code === 'messaging/registration-token-not-registered' ||
-            error.code === 'messaging/invalid-registration-token') {
+          error.code === 'messaging/invalid-registration-token') {
           invalidTokens.push(token);
         }
       }
@@ -862,4 +898,33 @@ app.all('/api/send-market-mood', async (req, res) => {
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
+
+  // Heartbeat to prove the server is alive
+  setInterval(() => {
+    console.log(`[${new Date().toLocaleTimeString()}] Server is active on port ${PORT}...`);
+  }, 30000);
+
+  // Initial fetch
+  console.log('Performing initial data fetch...');
+  fetchData()
+    .then(() => {
+      console.log('Initial fetch complete. Server is ready.');
+      const mem = process.memoryUsage();
+      console.log(`Memory Usage: RSS=${Math.round(mem.rss / 1024 / 1024)}MB, Heap=${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
+    })
+    .catch(err => console.error('Initial fetch failed:', err));
+
+  // Background refresh every 5 minutes
+  setInterval(() => {
+    console.log('--- Scheduled Background Refresh Started ---');
+    fetchData()
+      .then(() => {
+        console.log('--- Scheduled Background Refresh Complete ---');
+        const mem = process.memoryUsage();
+        console.log(`Memory Usage: RSS=${Math.round(mem.rss / 1024 / 1024)}MB, Heap=${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
+      })
+      .catch(err => console.error('Scheduled refresh failed:', err));
+  }, 5 * 60 * 1000);
+
+  console.log('Background refresh loop scheduled (5 minute interval)');
 });

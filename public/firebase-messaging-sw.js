@@ -23,8 +23,9 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification?.title || 'LASA Dashboard';
   const notificationOptions = {
     body: payload.notification?.body || 'You have a new notification',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/complogo.png',                          // Company logo
+    badge: '/complogo.png',                         // Company logo
+    image: payload.data?.image || '/testingnoti.png', // Banner image
     tag: payload.data?.tag || 'lasa-notification',
     data: payload.data,
     requireInteraction: true,
@@ -46,7 +47,7 @@ messaging.onBackgroundMessage((payload) => {
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
   console.log('[firebase-messaging-sw.js] Notification click:', event);
-  
+
   event.notification.close();
 
   if (event.action === 'dismiss') {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  requestNotificationPermission, 
-  onForegroundMessage, 
+import {
+  requestNotificationPermission,
+  onForegroundMessage,
   isNotificationEnabled,
   disableNotifications,
   getStoredToken,
@@ -35,7 +35,7 @@ export function useNotifications() {
     // Check if already enabled
     const enabled = isNotificationEnabled();
     setIsEnabled(enabled);
-    
+
     if (enabled) {
       setToken(getStoredToken());
     }
@@ -56,8 +56,9 @@ export function useNotifications() {
       if (document.hidden && Notification.permission === 'granted') {
         new Notification(payload.notification?.title || 'LASA Dashboard', {
           body: payload.notification?.body,
-          icon: '/favicon.ico',
-        });
+          icon: '/complogo.png',
+          image: payload.data?.image || '/testingnoti.png',
+        } as any);
       }
     });
 
@@ -81,21 +82,21 @@ export function useNotifications() {
 
     setIsLoading(true);
 
-try {
-        const fcmToken = await requestNotificationPermission();
-        
-        if (fcmToken) {
-          // Save token to Firestore for server-side notifications
-          await saveTokenToFirestore(fcmToken);
-          
-          setToken(fcmToken);
-          setIsEnabled(true);
-          toast({
-            title: 'Notifications Enabled',
-            description: 'You will now receive market alerts and updates.',
-          });
-          return true;
-        } else {
+    try {
+      const fcmToken = await requestNotificationPermission();
+
+      if (fcmToken) {
+        // Save token to Firestore for server-side notifications
+        await saveTokenToFirestore(fcmToken);
+
+        setToken(fcmToken);
+        setIsEnabled(true);
+        toast({
+          title: 'Notifications Enabled',
+          description: 'You will now receive market alerts and updates.',
+        });
+        return true;
+      } else {
         toast({
           title: 'Permission Denied',
           description: 'Please allow notifications in your browser settings.',
@@ -119,12 +120,12 @@ try {
   // Disable notifications
   const handleDisableNotifications = useCallback(async () => {
     const currentToken = getStoredToken();
-    
+
     // Remove token from Firestore
     if (currentToken) {
       await removeTokenFromFirestore(currentToken);
     }
-    
+
     disableNotifications();
     setIsEnabled(false);
     setToken(null);

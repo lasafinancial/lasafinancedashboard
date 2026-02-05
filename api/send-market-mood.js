@@ -222,8 +222,9 @@ async function sendNotificationToAll(tokens, title, body) {
         notification: { title, body },
         webpush: {
           notification: {
-            icon: '/favicon.ico',
-            badge: '/favicon.ico',
+            icon: '/complogo.png',           // Company logo as icon
+            badge: '/complogo.png',          // Company logo as badge
+            image: '/testingnoti.png',       // Large banner image
             requireInteraction: true,
           },
           fcmOptions: {

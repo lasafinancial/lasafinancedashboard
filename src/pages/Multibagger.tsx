@@ -79,24 +79,24 @@ const containerVariants = {
       staggerChildren: 0.05
     }
   }
-};
+} as const;
 
 const cardVariants = {
   hidden: { opacity: 0, y: 10 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
-    transition: { 
+    transition: {
       type: "spring",
       stiffness: 100,
       damping: 15
     }
-  },
-  hover: { 
+  } as const,
+  hover: {
     y: -2,
     transition: { duration: 0.2, ease: "easeOut" }
-  }
-};
+  } as const
+} as const;
 
 export function Multibagger() {
   const navigate = useNavigate();
@@ -120,9 +120,10 @@ export function Multibagger() {
 
     fetchMultibagger();
   }, []);
-  
+
   const filteredStocks = useMemo(() => {
-    return stocks.filter((stock) => stock.dEma200Status === "ABOVE" && Number(stock.rsi) < 60);
+    // All filters (is_mb > 2, RSI_ABOVE_78 == 'Y', EMA 200 ABOVE, RSI < 60) are now handled in the backend
+    return stocks;
   }, [stocks]);
 
   const stats = useMemo(() => {
@@ -148,7 +149,7 @@ export function Multibagger() {
 
       <div className="relative container mx-auto px-4 pt-12 pb-8 lg:pt-16">
         {/* Header Section - Dashboard style */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-12 animate-fade-in"
@@ -176,7 +177,7 @@ export function Multibagger() {
                 AI-driven momentum filtering and value scanning for high-potential opportunities.
               </p>
             </div>
-            
+
             <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Active Positions</p>
               <p className="text-2xl font-bold text-primary tabular-nums">
@@ -184,94 +185,94 @@ export function Multibagger() {
               </p>
             </div>
           </div>
-          </motion.div>
+        </motion.div>
 
-          {/* Historical Strategy Performance Chart */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-10"
-          >
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-              <div className="space-y-1">
-                <h2 className="text-xl md:text-2xl font-bold tracking-tight">
-                  Strategy <span className="gradient-text italic pr-1">Performance</span>
-                </h2>
-                <p className="text-sm text-muted-foreground font-medium">
-                  Historical returns from 2014 to 2026
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-4 px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md">
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground font-medium">2014</p>
-                  <p className="text-base font-bold tabular-nums">₹1.8 Cr</p>
-                </div>
-                <div className="w-px h-6 bg-white/10" />
-                <div>
-                  <p className="text-xs text-success font-medium">2024 Peak</p>
-                  <p className="text-base font-bold text-success tabular-nums">₹21 Cr</p>
-                </div>
-              </div>
+        {/* Historical Strategy Performance Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-10"
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div className="space-y-1">
+              <h2 className="text-xl md:text-2xl font-bold tracking-tight">
+                Strategy <span className="gradient-text italic pr-1">Performance</span>
+              </h2>
+              <p className="text-sm text-muted-foreground font-medium">
+                Historical returns from 2014 to 2026
+              </p>
             </div>
 
-            <GlassCard 
-              className="p-4 h-[350px] border-white/10 relative overflow-hidden"
-              contentClassName="h-full w-full"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={strategyPerformanceData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="strategyGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis 
-                    dataKey="year" 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 500 }}
-                    dy={10}
-                  />
-                  <YAxis 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 500 }}
-                    tickFormatter={(value) => formatValueInCr(value)}
-                    width={60}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                    }}
-                    itemStyle={{ color: 'hsl(var(--primary))', fontWeight: 600, fontSize: '13px' }}
-                    labelStyle={{ color: 'rgba(255,255,255,0.6)', fontWeight: 500, fontSize: '11px', marginBottom: '4px' }}
-                    formatter={(value: number) => [`₹${formatValueInCr(value)}`, "Portfolio Value"]}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={2.5}
-                    dot={{ fill: 'hsl(var(--primary))', strokeWidth: 0, r: 4 }}
-                    activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: 'white', strokeWidth: 2 }}
-                    animationDuration={1500}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </GlassCard>
-          </motion.div>
+            <div className="flex items-center gap-4 px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md">
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground font-medium">2014</p>
+                <p className="text-base font-bold tabular-nums">₹1.8 Cr</p>
+              </div>
+              <div className="w-px h-6 bg-white/10" />
+              <div>
+                <p className="text-xs text-success font-medium">2024 Peak</p>
+                <p className="text-base font-bold text-success tabular-nums">₹21 Cr</p>
+              </div>
+            </div>
+          </div>
 
-          {/* Main Content */}
-          <AnimatePresence mode="wait">
+          <GlassCard
+            className="p-4 h-[350px] border-white/10 relative overflow-hidden"
+            contentClassName="h-full w-full"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={strategyPerformanceData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="strategyGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis
+                  dataKey="year"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 500 }}
+                  dy={10}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 500 }}
+                  tickFormatter={(value) => formatValueInCr(value)}
+                  width={60}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                  }}
+                  itemStyle={{ color: 'hsl(var(--primary))', fontWeight: 600, fontSize: '13px' }}
+                  labelStyle={{ color: 'rgba(255,255,255,0.6)', fontWeight: 500, fontSize: '11px', marginBottom: '4px' }}
+                  formatter={(value: number) => [`₹${formatValueInCr(value)}`, "Portfolio Value"]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2.5}
+                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 0, r: 4 }}
+                  activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: 'white', strokeWidth: 2 }}
+                  animationDuration={1500}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </GlassCard>
+        </motion.div>
+
+        {/* Main Content */}
+        <AnimatePresence mode="wait">
           {isLoading ? (
-            <motion.div 
+            <motion.div
               key="loading"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -287,7 +288,7 @@ export function Multibagger() {
               <p className="mt-4 text-sm font-medium text-muted-foreground">Scanning markets...</p>
             </motion.div>
           ) : filteredStocks.length === 0 ? (
-            <motion.div 
+            <motion.div
               key="empty"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -302,7 +303,7 @@ export function Multibagger() {
               </p>
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               key="list"
               variants={containerVariants}
               initial="hidden"
@@ -319,14 +320,14 @@ export function Multibagger() {
                   <GlassCard className="relative p-0 overflow-hidden border-white/10 group">
                     {/* Status Accent */}
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/40 group-hover:bg-primary transition-all duration-300 z-20" />
-                    
+
                     <div className="flex flex-col sm:flex-row items-stretch">
                       {/* Stock Info */}
                       <div className="flex items-center gap-4 p-4 sm:w-[280px] border-b sm:border-b-0 sm:border-r border-white/5">
                         <span className="text-lg font-bold text-muted-foreground tabular-nums w-8">
                           {String(index + 1).padStart(2, "0")}
                         </span>
-                        
+
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <h3 className="text-base font-semibold tracking-tight group-hover:text-primary transition-colors truncate">
@@ -349,9 +350,8 @@ export function Multibagger() {
 
                         <div>
                           <p className="text-xs font-medium text-muted-foreground mb-0.5">RSI</p>
-                          <p className={`text-base font-semibold tabular-nums ${
-                            Number(stock.rsi) > 50 ? 'text-success' : 'text-blue-400'
-                          }`}>
+                          <p className={`text-base font-semibold tabular-nums ${Number(stock.rsi) > 50 ? 'text-success' : 'text-blue-400'
+                            }`}>
                             {Number(stock.rsi).toFixed(1)}
                           </p>
                         </div>
@@ -366,7 +366,7 @@ export function Multibagger() {
                       <div className="flex items-center gap-2 p-4 border-t sm:border-t-0 sm:border-l border-white/5">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <button 
+                            <button
                               className="h-9 px-4 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold hover:bg-white/10 hover:border-primary/30 transition-all"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -390,7 +390,7 @@ export function Multibagger() {
                                 </div>
                               </div>
                             </DialogHeader>
-                            
+
                             <div className="grid grid-cols-2 gap-3 mt-4">
                               {[
                                 { label: "PE Ratio", value: stock.peRatio || 'N/A' },
@@ -403,7 +403,7 @@ export function Multibagger() {
                                   <p className="font-semibold tabular-nums">{item.value}</p>
                                 </div>
                               ))}
-                              
+
                               <div className="col-span-2 p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-center justify-between">
                                 <div>
                                   <p className="text-xs text-primary font-medium mb-1">200-EMA Status</p>
@@ -417,7 +417,7 @@ export function Multibagger() {
                               </div>
                             </div>
 
-                            <button 
+                            <button
                               className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                               onClick={() => handleStockClick(stock)}
                             >
@@ -426,8 +426,8 @@ export function Multibagger() {
                             </button>
                           </DialogContent>
                         </Dialog>
-                        
-                        <button 
+
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleStockClick(stock);
@@ -462,7 +462,7 @@ export function Multibagger() {
                 10x return trajectory simulation (Year 1 to Year 10)
               </p>
             </div>
-            
+
             <div className="flex items-center gap-4 px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md">
               <div className="text-right">
                 <p className="text-xs text-muted-foreground font-medium">Initial</p>
@@ -476,39 +476,39 @@ export function Multibagger() {
             </div>
           </div>
 
-          <GlassCard 
+          <GlassCard
             className="p-6 h-[350px] border-white/10 relative overflow-hidden group"
             contentClassName="h-full w-full"
           >
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
               <Coins className="w-24 h-24 text-primary" />
             </div>
-            
+
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={growthData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis 
-                  dataKey="year" 
+                <XAxis
+                  dataKey="year"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 500 }}
                   dy={10}
                 />
-                <YAxis 
+                <YAxis
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 500 }}
                   tickFormatter={(value) => `₹${value}`}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '8px',
                     padding: '8px 12px',
@@ -517,13 +517,13 @@ export function Multibagger() {
                   labelStyle={{ color: 'rgba(255,255,255,0.6)', fontWeight: 500, fontSize: '11px', marginBottom: '4px' }}
                   formatter={(value: number) => [`₹${value.toLocaleString()}`, "Projected Value"]}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="hsl(var(--primary))" 
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="hsl(var(--primary))"
                   strokeWidth={2}
-                  fillOpacity={1} 
-                  fill="url(#growthGradient)" 
+                  fillOpacity={1}
+                  fill="url(#growthGradient)"
                   animationDuration={2000}
                 />
               </AreaChart>
@@ -534,11 +534,11 @@ export function Multibagger() {
 
       {/* Strategy Info Modal */}
       {showStrategyModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={() => setShowStrategyModal(false)}
         >
-          <div 
+          <div
             className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-background/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >

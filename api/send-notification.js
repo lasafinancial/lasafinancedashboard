@@ -6,7 +6,7 @@ import admin from 'firebase-admin';
 // Initialize Firebase Admin (only once)
 if (!admin.apps.length) {
   // For Vercel, use environment variables
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY 
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
     ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
     : null;
 
@@ -44,36 +44,37 @@ export default async function handler(req, res) {
       data: data || {},
       webpush: {
         notification: {
-          icon: '/favicon.ico',
-          badge: '/favicon.ico',
+          icon: '/complogo.png',                    // Company logo
+          badge: '/complogo.png',                   // Company logo
+          image: data?.image || '/testingnoti.png', // Banner image (default to test image)
           requireInteraction: true,
         },
         fcmOptions: {
-          link: '/',
+          link: data?.url || '/',
         },
       },
     };
 
     const response = await admin.messaging().send(message);
-    
-    return res.status(200).json({ 
-      success: true, 
+
+    return res.status(200).json({
+      success: true,
       messageId: response,
-      message: 'Notification sent successfully' 
+      message: 'Notification sent successfully'
     });
   } catch (error) {
     console.error('Error sending notification:', error);
-    
+
     // Handle specific FCM errors
     if (error.code === 'messaging/registration-token-not-registered') {
-      return res.status(400).json({ 
-        error: 'Token is no longer valid. User may have unsubscribed.' 
+      return res.status(400).json({
+        error: 'Token is no longer valid. User may have unsubscribed.'
       });
     }
-    
-    return res.status(500).json({ 
-      error: 'Failed to send notification', 
-      message: error.message 
+
+    return res.status(500).json({
+      error: 'Failed to send notification',
+      message: error.message
     });
   }
 }

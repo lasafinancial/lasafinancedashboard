@@ -5,7 +5,7 @@ const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
 
 function parseDateFlexible(dateStr) {
   if (dateStr === null || dateStr === undefined || dateStr === '') return null;
-  
+
   const num = Number(dateStr);
   if (!isNaN(num) && typeof dateStr !== 'boolean' && num > 40000) {
     const utc_days = Math.floor(num - 25569);
@@ -13,28 +13,28 @@ function parseDateFlexible(dateStr) {
   }
 
   const str = String(dateStr).trim();
-  
+
   let date = new Date(str + 'T00:00:00');
   if (!isNaN(date.getTime())) return date;
-  
+
   const parts = str.split(/[-\/]/);
   if (parts.length === 3) {
     const p = parts.map(part => parseInt(part, 10));
-    
+
     if (p[0] > 1000) {
       date = new Date(p[0], p[1] - 1, p[2]);
       if (!isNaN(date.getTime())) return date;
     }
-    
+
     if (p[2] > 1000) {
       date = new Date(p[2], p[1] - 1, p[0]);
       if (!isNaN(date.getTime())) return date;
     }
-    
+
     date = new Date(p[2], p[0] - 1, p[1]);
     if (!isNaN(date.getTime())) return date;
   }
-  
+
   date = new Date(str);
   if (!isNaN(date.getTime())) return date;
 
@@ -44,17 +44,17 @@ function parseDateFlexible(dateStr) {
 function getCredentials() {
   let credentials;
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  
+
   if (key) {
     try {
       let cleanKey = key.trim();
-      
+
       // Remove potential surrounding quotes from Vercel env var
-      if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || 
-          (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+      if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
+        (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
         cleanKey = cleanKey.slice(1, -1).trim();
       }
-      
+
       // In case the key was double-encoded as a JSON string
       try {
         credentials = JSON.parse(cleanKey);
@@ -72,7 +72,7 @@ function getCredentials() {
   if (credentials && credentials.private_key) {
     // Robustly replace escaped newlines
     credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
-    
+
     // Remove any leading/trailing quotes that might have been accidentally included in the private_key value
     credentials.private_key = credentials.private_key.trim();
     if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
@@ -123,7 +123,7 @@ function parseSwingDate(dateStr) {
   };
   const parts = dateStr.trim().split(/\s+/);
   if (parts.length < 2) return null;
-  
+
   let day, monthStr, year;
   if (!isNaN(parseInt(parts[0]))) {
     day = parseInt(parts[0]);
@@ -134,7 +134,7 @@ function parseSwingDate(dateStr) {
     day = parseInt(parts[1]);
     year = parts[2] ? parseInt(parts[2]) : new Date().getFullYear();
   }
-  
+
   const month = monthMap[monthStr];
   if (month === undefined || isNaN(day)) return null;
   return new Date(year, month, day);
@@ -155,9 +155,9 @@ function getDynamicStatus(price, lowerRange, upperRange) {
   const displayMin = actualMin - padding;
   const displayMax = actualMax + padding;
   const displayRange = displayMax - displayMin;
-  
+
   const pricePosition = displayRange > 0 ? ((price - displayMin) / displayRange) * 100 : 50;
-  
+
   if (pricePosition > 66.66) return "BULLISH";
   if (pricePosition < 33.33) return "BEARISH";
   return "NEUTRAL";
@@ -186,13 +186,13 @@ async function fetchData() {
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
   });
   const sheets = google.sheets({ version: 'v4', auth });
-  
+
   const lasaMasterRes = await sheets.spreadsheets.values.get({
     spreadsheetId: EOD_SHEET_ID,
     range: 'lasa-master!A:FJ',
   });
   const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
-  
+
   const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
   const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
   const latestDate = sortedDates[0];
@@ -209,7 +209,7 @@ async function fetchData() {
     range: 'DATA',
   });
   const dataRows = rowsToObjects(swingRes.data.values);
-  
+
   const strengthData = dataRows.map(row => ({
     dateObj: parseSwingDate(row['DATE']),
     dateStr: row['DATE'],
@@ -268,44 +268,49 @@ async function fetchData() {
     },
     lastUpdate: new Date().toLocaleTimeString()
   };
-  
+
   const historyCutoff = new Date();
   historyCutoff.setDate(historyCutoff.getDate() - 180);
   historyCutoff.setHours(0, 0, 0, 0);
-  
+
   const history = {};
   const resistanceSlopeMap = {};
+  const fullNameMap = {};
 
   lasaMasterData.forEach(row => {
     const dateStr = row['DATE'];
     if (!dateStr) return;
-    
+
     // Filter by Group: Only LARGECAP, MIDCAP, and INDEX
     const group = (row['GROUP'] || '').toString().toUpperCase();
     if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX') {
       return;
     }
-    
+
     const rowDate = parseDateFlexible(dateStr);
     if (!rowDate || rowDate < historyCutoff) return;
 
-    const symbol = row['STOCK_NAME'];
+    const symbol = row['ID'] || row['STOCK_NAME'];
     if (!symbol) return;
-    
+
+    if (!fullNameMap[symbol]) {
+      fullNameMap[symbol] = row['STOCK_NAME'] || symbol;
+    }
+
     if (dateStr === latestDate) {
       const val = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase();
       resistanceSlopeMap[symbol] = val === 'true';
     }
 
     if (!history[symbol]) history[symbol] = [];
-    
+
     const closeStr = (row['CLOSE_PRICE'] || '').toString().replace(/,/g, '');
     const supportStr = (row['SUPPORT'] || '').toString().replace(/,/g, '');
     const resistanceStr = (row['RESISTANCE'] || '').toString().replace(/,/g, '');
     const mlFutPriceStr = (row['ML_FUT_PRICE_20D'] || '').toString().replace(/,/g, '');
     const wolfeDStr = (row['WOLFE_D'] || '').toString().replace(/,/g, '');
     const projFvgStr = (row['PROJ_FVG'] || '').toString().replace(/,/g, '');
-    
+
     history[symbol].push({
       dateObj: rowDate,
       dateDisplay: formatDate(rowDate),
@@ -320,14 +325,14 @@ async function fetchData() {
       sector: row['SECTOR'] || ''
     });
   });
-  
+
   const stockData = Object.keys(history).map(symbol => {
     const stockHistory = history[symbol].sort((a, b) => a.dateObj - b.dateObj);
     if (stockHistory.length === 0) return null;
     const latest = stockHistory[stockHistory.length - 1];
     return {
       symbol,
-      name: symbol,
+      name: fullNameMap[symbol] || symbol,
       sector: latest.sector,
       price: latest.price,
       rsi: latest.rsi,
@@ -355,23 +360,23 @@ async function fetchData() {
       range: "'current'!A1:FJ",
     });
     const currentData = rowsToObjects(currentRes.data.values);
-    
+
     const moodStocks = currentData.slice(0, 470).filter(row => {
       const group = (row['GROUP'] || '').toString().toUpperCase();
       return group === 'LARGECAP' || group === 'MIDCAP';
     });
 
-      let bullCount = 0, bearCount = 0, neutCount = 0;
-      moodStocks.forEach(row => {
-        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-        const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
-        const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
-        
-        const status = getDynamicStatus(closePrice, lowerRange, upperRange);
-        if (status === 'BULLISH') bullCount++;
-        else if (status === 'BEARISH') bearCount++;
-        else neutCount++;
-      });
+    let bullCount = 0, bearCount = 0, neutCount = 0;
+    moodStocks.forEach(row => {
+      const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+      const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+      const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
+
+      const status = getDynamicStatus(closePrice, lowerRange, upperRange);
+      if (status === 'BULLISH') bullCount++;
+      else if (status === 'BEARISH') bearCount++;
+      else neutCount++;
+    });
 
     const totalMoodStocks = moodStocks.length;
     if (totalMoodStocks > 0) {
@@ -379,7 +384,7 @@ async function fetchData() {
       marketMood.bearish = (bearCount / totalMoodStocks) * 100;
       marketMood.neutral = (neutCount / totalMoodStocks) * 100;
     }
-    
+
     const indexColumns = {
       'NIFTY 50': 'NIFTY50',
       'NIFTY BANK': 'NIFTYBANK',
@@ -394,48 +399,48 @@ async function fetchData() {
       'NIFTY CPSE': 'NIFTYCPSE',
       'NIFTY 500': 'NIFTY500'
     };
-    
+
     const indexStocksMap = {};
     Object.keys(indexColumns).forEach(idx => {
       indexStocksMap[idx] = { stocks: [], bullish: 0, bearish: 0 };
     });
-    
+
     const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
     const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
 
-      stocksSource.forEach(row => {
-        const stockName = row['STOCK_NAME'];
-        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-        const stockId = row['ID'] || stockName;
-        const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
-        const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
-        
-        if (!stockName) return;
-        
-        const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
-        
-        Object.keys(indexColumns).forEach(indexName => {
-          const colName = indexColumns[indexName];
-          const val = row[colName];
-          if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
-            const isBullish = dynamicStatus === 'BULLISH';
-            const isBearish = dynamicStatus === 'BEARISH';
-            
-            indexStocksMap[indexName].stocks.push({
-              id: stockId,
-              stockName,
-              price: closePrice,
-              status: dynamicStatus,
-              upperRange,
-              lowerRange
-            });
-            
-            if (isBullish) indexStocksMap[indexName].bullish++;
-            if (isBearish) indexStocksMap[indexName].bearish++;
-          }
-        });
+    stocksSource.forEach(row => {
+      const stockName = row['STOCK_NAME'];
+      const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+      const stockId = row['ID'] || stockName;
+      const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+      const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
+
+      if (!stockName) return;
+
+      const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
+
+      Object.keys(indexColumns).forEach(indexName => {
+        const colName = indexColumns[indexName];
+        const val = row[colName];
+        if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
+          const isBullish = dynamicStatus === 'BULLISH';
+          const isBearish = dynamicStatus === 'BEARISH';
+
+          indexStocksMap[indexName].stocks.push({
+            id: stockId,
+            stockName,
+            price: closePrice,
+            status: dynamicStatus,
+            upperRange,
+            lowerRange
+          });
+
+          if (isBullish) indexStocksMap[indexName].bullish++;
+          if (isBearish) indexStocksMap[indexName].bearish++;
+        }
       });
-    
+    });
+
     indexPerformance = Object.keys(indexStocksMap).map(indexName => {
       const data = indexStocksMap[indexName];
       const total = data.stocks.length;
@@ -463,9 +468,9 @@ async function fetchData() {
         closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0
       }))
       .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
-    
+
     const sortedByChange = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
-    
+
     topMovers = {
       topGainers: sortedByChange.filter(s => s.changePercent > 0).slice(0, 10),
       topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
@@ -473,7 +478,7 @@ async function fetchData() {
   } catch (err) {
     console.warn('Could not fetch top movers or index performance:', err.message);
   }
-  
+
   return {
     marketMood,
     marketStrength: strengthData,
@@ -489,7 +494,7 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  
+
   try {
     const data = await fetchData();
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
