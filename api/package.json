@@ -1,0 +1,10 @@
+{
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "^13.6.0",
+    "googleapis": "^170.1.0",
+    "gaxios": "^6.7.1",
+    "gcp-metadata": "^6.1.0",
+    "google-auth-library": "^9.15.0"
+  }
+}
