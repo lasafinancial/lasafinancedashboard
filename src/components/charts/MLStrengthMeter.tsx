@@ -25,7 +25,7 @@ const chartConfig = {
   },
   nifty50_normalized: {
     label: "NIFTY 50",
-    color: "#f97316",
+    color: "#eab308",
   },
 } satisfies ChartConfig;
 
@@ -37,104 +37,104 @@ interface HoveredData {
 }
 
 export default function MLStrengthMeter({ data, eodDate }: MLStrengthMeterProps) {
-    const [hoveredData, setHoveredData] = useState<HoveredData | null>(null);
-    const { showModal, openModal, closeModal } = useInfoModal();
+  const [hoveredData, setHoveredData] = useState<HoveredData | null>(null);
+  const { showModal, openModal, closeModal } = useInfoModal();
 
-    const chartData = useMemo(() => {
-      const niftyValues = data.map(d => d.nifty50_close).filter(v => v > 0);
-      const minNifty = Math.min(...niftyValues);
-      const maxNifty = Math.max(...niftyValues);
-      const range = maxNifty - minNifty || 1;
-      
-      return data.map(d => ({
-        ...d,
-        nifty50_normalized: d.nifty50_close > 0 
-          ? ((d.nifty50_close - minNifty) / range) * 80 + 10
-          : null,
-      }));
-    }, [data]);
+  const chartData = useMemo(() => {
+    const niftyValues = data.map(d => d.nifty50_close).filter(v => v > 0);
+    const minNifty = Math.min(...niftyValues);
+    const maxNifty = Math.max(...niftyValues);
+    const range = maxNifty - minNifty || 1;
 
-    const handleMouseMove = useCallback((state: any) => {
-      if (state?.activePayload?.length) {
-        const payload = state.activePayload[0]?.payload;
-        setHoveredData({
-          date: payload?.date || '',
-          mlHigher: payload?.ml_higher ?? null,
-          mlLower: payload?.ml_lower ?? null,
-          nifty50: payload?.nifty50_close ?? null,
-        });
-      }
-    }, []);
+    return data.map(d => ({
+      ...d,
+      nifty50_normalized: d.nifty50_close > 0
+        ? ((d.nifty50_close - minNifty) / range) * 80 + 10
+        : null,
+    }));
+  }, [data]);
 
-    const handleMouseLeave = useCallback(() => {
-      setHoveredData(null);
-    }, []);
+  const handleMouseMove = useCallback((state: any) => {
+    if (state?.activePayload?.length) {
+      const payload = state.activePayload[0]?.payload;
+      setHoveredData({
+        date: payload?.date || '',
+        mlHigher: payload?.ml_higher ?? null,
+        mlLower: payload?.ml_lower ?? null,
+        nifty50: payload?.nifty50_close ?? null,
+      });
+    }
+  }, []);
 
-    const latest = data[data.length - 1];
-    const latestMlHigher = latest?.ml_higher ?? 0;
-    
-    const displayValue = hoveredData?.mlHigher ?? latestMlHigher;
-    const isAbove60 = displayValue > 60;
-    const isMixed = displayValue >= 50 && displayValue <= 60;
-    const isBelow50 = displayValue < 50;
+  const handleMouseLeave = useCallback(() => {
+    setHoveredData(null);
+  }, []);
 
-return (
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-accent/10">
-              <BrainCircuit className="w-5 h-5 text-accent" />
-            </div>
-<div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Model-Derived Trend Bias {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
-                </h3>
-                <p className="text-xs text-muted-foreground/60 font-medium italic">Historical Pattern Analysis</p>
-              </div>
+  const latest = data[data.length - 1];
+  const latestMlHigher = latest?.ml_higher ?? 0;
+
+  const displayValue = hoveredData?.mlHigher ?? latestMlHigher;
+  const isAbove60 = displayValue > 60;
+  const isMixed = displayValue >= 50 && displayValue <= 60;
+  const isBelow50 = displayValue < 50;
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-accent/10">
+            <BrainCircuit className="w-5 h-5 text-accent" />
           </div>
-          <div className="flex items-center gap-3">
-            {hoveredData ? (
-              <div className="bg-card/95 backdrop-blur-sm rounded-lg border border-border/50 px-3 py-2 shadow-lg">
-                <p className="text-xs text-muted-foreground mb-1">{hoveredData.date}</p>
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
-                    <span className="text-xs text-muted-foreground">Positive Bias</span>
-                    <span className="text-sm font-semibold text-[#22c55e]">{hoveredData.mlHigher ?? '-'}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
-                    <span className="text-xs text-muted-foreground">Negative Bias</span>
-                    <span className="text-sm font-semibold text-[#ef4444]">{hoveredData.mlLower ?? '-'}</span>
-                  </div>
-                  {hoveredData.nifty50 && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-[#f97316]" />
-                      <span className="text-xs text-muted-foreground">NIFTY 50</span>
-                      <span className="text-sm font-semibold text-[#f97316]">{hoveredData.nifty50.toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4 text-xs flex-wrap">
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Model-Derived Trend Bias {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
+            </h3>
+            <p className="text-xs text-muted-foreground/60 font-medium italic">Historical Pattern Analysis</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {hoveredData ? (
+            <div className="bg-card/95 backdrop-blur-sm rounded-lg border border-border/50 px-3 py-2 shadow-lg">
+              <p className="text-xs text-muted-foreground mb-1">{hoveredData.date}</p>
+              <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
-                  <span className="text-muted-foreground uppercase font-bold tracking-wide">Positive Bias</span>
+                  <span className="text-xs text-muted-foreground">Positive Bias</span>
+                  <span className="text-sm font-semibold text-[#22c55e]">{hoveredData.mlHigher ?? '-'}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
-                  <span className="text-muted-foreground uppercase font-bold tracking-wide">Negative Bias</span>
+                  <span className="text-xs text-muted-foreground">Negative Bias</span>
+                  <span className="text-sm font-semibold text-[#ef4444]">{hoveredData.mlLower ?? '-'}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-[#f97316]" />
-                  <span className="text-muted-foreground uppercase font-bold tracking-wide">NIFTY 50</span>
-                </div>
+                {hoveredData.nifty50 && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-[#eab308]" />
+                    <span className="text-xs text-muted-foreground">NIFTY 50</span>
+                    <span className="text-sm font-semibold text-[#eab308]">{hoveredData.nifty50.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
-            )}
-            <InfoModalTrigger onClick={openModal} />
-          </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4 text-xs flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                <span className="text-muted-foreground uppercase font-bold tracking-wide">Positive Bias</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
+                <span className="text-muted-foreground uppercase font-bold tracking-wide">Negative Bias</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-[#eab308]" />
+                <span className="text-muted-foreground uppercase font-bold tracking-wide">NIFTY 50</span>
+              </div>
+            </div>
+          )}
+          <InfoModalTrigger onClick={openModal} />
         </div>
+      </div>
 
       <div className="flex-1 min-h-[300px] relative">
         <ChartContainer config={chartConfig} className="h-full w-full">
@@ -149,10 +149,10 @@ return (
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
           >
-            <CartesianGrid 
-              vertical={false} 
-              strokeDasharray="4 4" 
-              className="stroke-muted/20" 
+            <CartesianGrid
+              vertical={false}
+              strokeDasharray="4 4"
+              className="stroke-muted/20"
             />
             <XAxis
               dataKey="date"
@@ -162,31 +162,31 @@ return (
               minTickGap={30}
               className="text-[10px] font-medium fill-muted-foreground"
             />
-            <YAxis 
+            <YAxis
               tick={{ fontSize: 10 }}
               axisLine={false}
               tickLine={false}
               className="text-[10px] fill-muted-foreground"
             />
-            <Tooltip 
+            <Tooltip
               content={() => null}
               cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
             />
-            <ReferenceLine 
-              y={60} 
-              stroke="#fbbf24" 
-              strokeDasharray="5 5" 
-              strokeOpacity={1} 
+            <ReferenceLine
+              y={60}
+              stroke="#fbbf24"
+              strokeDasharray="5 5"
+              strokeOpacity={1}
               strokeWidth={2}
               isFront={true}
-              label={{ 
-                value: 'Threshold: 60', 
-                position: 'insideTopRight', 
-                fontSize: 11, 
+              label={{
+                value: 'Threshold: 60',
+                position: 'insideTopRight',
+                fontSize: 11,
                 fontWeight: 'bold',
                 fill: '#fbbf24',
                 className: "drop-shadow-sm"
-              }} 
+              }}
             />
             <Line
               dataKey="ml_higher"
@@ -208,7 +208,7 @@ return (
               dataKey="nifty50_normalized"
               name="NIFTY 50"
               type="monotone"
-              stroke="#f97316"
+              stroke="#eab308"
               dot={false}
               strokeWidth={3}
             />

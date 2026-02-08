@@ -280,13 +280,18 @@ function rowsToObjects(rows) {
   const headers = rows[0].map(h => (h || '').toString().trim());
   return rows.slice(1).map(row => {
     const obj = {};
+    // Store row length for bounds checking if needed, but not strictly necessary here
+    row.forEach((val, i) => {
+      obj[i] = val !== undefined ? val : null; // Numeric index access
+    });
     headers.forEach((header, i) => {
       if (header) {
         obj[header] = row[i] !== undefined ? row[i] : null;
       }
     });
-    if (row[58] !== undefined && !obj['STATUS']) obj['STATUS'] = row[58];
-    if (row[18] !== undefined && !obj['GROUP']) obj['GROUP'] = row[18];
+    // Fallback status/group mapping if headers aren't correct
+    if (obj[58] !== undefined && !obj['STATUS']) obj['STATUS'] = obj[58];
+    if (obj[18] !== undefined && !obj['GROUP']) obj['GROUP'] = obj[18];
     return obj;
   });
 }
@@ -313,15 +318,42 @@ async function fetchData() {
   const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
   const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
   const latestDate = sortedDates[0];
-  const latestLasaRows = lasaMasterData.filter(row => row['DATE'] === latestDate);
-  console.log(`Latest date in lasa-master: ${latestDate} (${latestLasaRows.length} rows)`);
 
-  const marketMood = {
-    bullish: 0,
-    bearish: 0,
-    neutral: 0,
-    date: formatDate(new Date(latestDate))
+  // Helper to calculate sentiment for a set of rows
+  const calculateSentiment = (rows) => {
+    const moodStocks = rows.filter(row => {
+      const g = (row['GROUP'] || '').toString().toUpperCase();
+      return g === 'LARGECAP' || g === 'MIDCAP';
+    });
+    let bull = 0, bear = 0, neut = 0;
+    moodStocks.forEach(row => {
+      const gn = (v) => parseFloat((v || '0').toString().replace(/,/g, '')) || 0;
+      const cp = gn(row['CLOSE_PRICE'] || row[colToIdx('E')]);
+      const res = gn(row['RESISTANCE'] || row[colToIdx('DI')]);
+      const sup = gn(row['SUPPORT'] || row[colToIdx('DH')]);
+      const st = getDynamicStatus(cp, sup, res);
+      if (st === 'BULLISH') bull++; else if (st === 'BEARISH') bear++; else neut++;
+    });
+    if (moodStocks.length === 0) return { bullish: 0, bearish: 0, neutral: 0 };
+    return {
+      bullish: (bull / moodStocks.length) * 100,
+      bearish: (bear / moodStocks.length) * 100,
+      neutral: (neut / moodStocks.length) * 100
+    };
   };
+
+  const marketMood = { bullish: 0, bearish: 0, neutral: 0, date: formatDate(new Date(latestDate)), trend: [] };
+
+  // Calculate trend for last 5 available dates in master
+  const trendDates = sortedDates.slice(0, 5).reverse();
+  marketMood.trend = trendDates.map(dateStr => {
+    const dateRows = lasaMasterData.filter(r => r['DATE'] === dateStr);
+    const sentiment = calculateSentiment(dateRows);
+    return {
+      date: formatDate(new Date(dateStr)),
+      ...sentiment
+    };
+  });
 
   console.log('Fetching Swing DATA sheet...');
   const swingRes = await sheets.spreadsheets.values.get({
@@ -485,6 +517,8 @@ async function fetchData() {
   console.log('Fetching Top Movers and Index Performance...');
   let topMovers = { topGainers: [], topLosers: [] };
   let indexPerformance = [];
+  let nearResistance = [];
+  let supportReversal = [];
   try {
     const currentRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
@@ -511,10 +545,93 @@ async function fetchData() {
 
     const totalMoodStocks = moodStocks.length;
     if (totalMoodStocks > 0) {
-      marketMood.bullish = (bullCount / totalMoodStocks) * 100;
-      marketMood.bearish = (bearCount / totalMoodStocks) * 100;
-      marketMood.neutral = (neutCount / totalMoodStocks) * 100;
+      const sentiment = calculateSentiment(moodStocks);
+      marketMood.bullish = sentiment.bullish;
+      marketMood.bearish = sentiment.bearish;
+      marketMood.neutral = sentiment.neutral;
+
+      // Add current live point to trend
+      const liveDate = formatDate(new Date());
+      marketMood.trend.push({
+        date: `Live (${liveDate})`,
+        ...sentiment
+      });
+
+      // Keep only last 6 points max
+      if (marketMood.trend.length > 6) {
+        marketMood.trend.shift();
+      }
     }
+
+    // --- Near Resistance Screener Implementation ---
+    const nearResistanceIdx = {
+      ema200Status: colToIdx('EP'),
+      id: colToIdx('C'),
+      closePrice: colToIdx('E'),
+      resistance: colToIdx('DI'),
+      support: colToIdx('DH'),
+      breakout: colToIdx('DU'),
+      mlTargetPercent: colToIdx('EQ'),
+      algoB: colToIdx('EM'),
+      algFgPercent: colToIdx('FI'),
+      wProjection2: colToIdx('FJ'),
+      algoFG: colToIdx('DJ'),
+      algoM: colToIdx('AO'),
+      algoW: colToIdx('AR')
+    };
+
+    const mapStock = (row) => {
+      const getNum = (val) => {
+        if (val === undefined || val === null || val === '') return 0;
+        const strVal = val.toString().replace(/,/g, '');
+        if (strVal.includes('#')) return 0;
+        return parseFloat(strVal) || 0;
+      };
+
+      const closePrice = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
+
+      return {
+        dEma200Status: (row['D-EMA-200-Status'] || row[nearResistanceIdx.ema200Status] || '').toString(),
+        id: (row['ID'] || row[nearResistanceIdx.id] || '').toString(),
+        closePrice: closePrice,
+        resistance: getNum(row['RESISTANCE'] || row[nearResistanceIdx.resistance]),
+        support: getNum(row['SUPPORT'] || row[nearResistanceIdx.support]),
+        dBreakoutPrice: getNum(row['D_BREAKOUT_PRICE'] || row[nearResistanceIdx.breakout]),
+        mlTargetPercent: getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]),
+        algoB: getNum(row['ALGO_B'] || row[nearResistanceIdx.algoB]),
+        algFgPercent: getNum(row[nearResistanceIdx.algFgPercent]),
+        wProjection2: getNum(row['W_PROJECTION_2'] || row[nearResistanceIdx.wProjection2]),
+        wProjection3: 0,
+        algoFG: getNum(row['PROJ_FVG'] || row[nearResistanceIdx.algoFG]),
+        algoM: getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]),
+        algoW: getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW])
+      };
+    };
+
+    nearResistance = currentData.filter(row => {
+      const status = (row['STATUS'] || '').toString().toUpperCase();
+      const group = (row['GROUP'] || '').toString().toUpperCase();
+      return status === 'BULLISH' && (group === 'LARGECAP' || group === 'MIDCAP');
+    }).map(mapStock);
+
+    // --- Support (Reversal) Screener Implementation ---
+    supportReversal = currentData.filter(row => {
+      const getNum = (val) => {
+        if (val === undefined || val === null || val === '') return 0;
+        const strVal = val.toString().replace(/,/g, '');
+        if (strVal.includes('#')) return 0;
+        return parseFloat(strVal) || 0;
+      };
+      const cp = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
+      const sup = getNum(row['SUPPORT'] || row[nearResistanceIdx.support]);
+      const brk = getNum(row['D_BREAKOUT_PRICE'] || row[nearResistanceIdx.breakout]);
+      return cp > sup && brk < sup;
+    }).map(mapStock).sort((a, b) => {
+      if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
+      if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
+      return b.mlTargetPercent - a.mlTargetPercent;
+    });
+    // --- End Near Resistance ---
 
     const indexColumns = {
       'NIFTY 50': 'NIFTY50',
@@ -617,6 +734,8 @@ async function fetchData() {
     stockData,
     topMovers,
     indexPerformance,
+    nearResistance,
+    supportReversal,
     lastUpdated: new Date().toISOString()
   };
 }

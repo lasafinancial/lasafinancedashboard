@@ -6,6 +6,7 @@ import MLStrengthMeter from "@/components/charts/MLStrengthMeter";
 import MarketBalanceIndicator from "@/components/charts/MarketBalanceIndicator";
 
 import SentimentPieChart from "@/components/charts/SentimentPieChart";
+import SentimentTrendChart from "@/components/charts/SentimentTrendChart";
 import MarketPositionStructure from "@/components/charts/MarketPositionStructure";
 import SectorCard from "@/components/cards/SectorCard";
 import IndicesPerformance from "@/components/cards/IndicesPerformance";
@@ -188,7 +189,9 @@ const Dashboard = () => {
                   </div>
 
                 </div>
-                <p className="text-xs text-muted-foreground/40 text-center mt-10 uppercase tracking-wider font-semibold">
+                <SentimentTrendChart data={moodData.trend} />
+
+                <p className="text-xs text-muted-foreground/40 text-center mt-4 uppercase tracking-wider font-semibold">
                   Internal Relative Strength Analysis
                 </p>
               </div>

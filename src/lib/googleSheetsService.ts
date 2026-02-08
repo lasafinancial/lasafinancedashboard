@@ -25,6 +25,12 @@ export interface MarketMood {
   bearish: number;
   neutral: number;
   date: string;
+  trend: Array<{
+    date: string;
+    bullish: number;
+    bearish: number;
+    neutral: number;
+  }>;
 }
 
 export interface MarketStrengthItem {
@@ -51,6 +57,23 @@ export interface TopMoversData {
   topLosers: Array<{ id: string; stockName: string; changePercent: number; closePrice: number; marketCap: number }>;
 }
 
+export interface NearResistanceStock {
+  dEma200Status: string;
+  id: string;
+  closePrice: number;
+  resistance: number;
+  support: number;
+  dBreakoutPrice: number;
+  mlTargetPercent: number;
+  algoB: number;
+  algFgPercent: number;
+  wProjection2: number;
+  wProjection3: number;
+  algoFG: number;
+  algoM: number;
+  algoW: number;
+}
+
 export interface GoogleSheetsData {
   marketMood: MarketMood;
   marketStrength: MarketStrengthItem[];
@@ -58,6 +81,8 @@ export interface GoogleSheetsData {
   stockData: StockData[];
   topMovers: TopMoversData;
   indexPerformance: any[];
+  nearResistance: NearResistanceStock[];
+  supportReversal: NearResistanceStock[];
   lastUpdated: string;
 }
 
@@ -84,25 +109,25 @@ function notifyListeners(data: GoogleSheetsData) {
 
 export async function refreshAllData(): Promise<GoogleSheetsData | null> {
   const now = Date.now();
-  
+
   if (cachedData && (now - lastFetchTime) < CACHE_DURATION) {
     return cachedData;
   }
 
   try {
     const response = await fetch('/api/fetch-data');
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const data: GoogleSheetsData = await response.json();
-    
+
     cachedData = data;
     lastFetchTime = now;
-    
+
     notifyListeners(data);
-    
+
     console.log('Live data refreshed at:', new Date().toLocaleTimeString());
     return data;
   } catch (error) {
@@ -115,13 +140,13 @@ export function startAutoRefresh(intervalMs: number = 5 * 60 * 1000): void {
   if (refreshInterval) {
     clearInterval(refreshInterval);
   }
-  
+
   refreshAllData();
-  
+
   refreshInterval = setInterval(() => {
     refreshAllData();
   }, intervalMs);
-  
+
   console.log(`Auto-refresh started with ${intervalMs / 1000}s interval`);
 }
 
@@ -160,4 +185,9 @@ export async function getMarketPosition(): Promise<MarketPositionData | null> {
 export async function getTopMovers(): Promise<TopMoversData | null> {
   const data = await refreshAllData();
   return data?.topMovers || null;
+}
+
+export async function getNearResistance(): Promise<NearResistanceStock[]> {
+  const data = await refreshAllData();
+  return data?.nearResistance || [];
 }

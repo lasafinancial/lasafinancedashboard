@@ -14,12 +14,14 @@ import staticTopMovers from '../data/processed/top_movers.json';
 import staticMarketPosition from '../data/processed/market_position.json';
 
 export function useLiveData() {
-  const [stockData, setStockData] = useState<any[]>(staticStockData);
+  const [stockData, setStockData] = useState<any[]>(Array.isArray(staticStockData) ? staticStockData : []);
   const [marketMood, setMarketMood] = useState<any>(staticMarketMood);
   const [marketStrength, setMarketStrength] = useState<any[]>(staticMarketStrength);
   const [topMovers, setTopMovers] = useState<TopMoversData>(staticTopMovers as unknown as TopMoversData);
   const [marketPosition, setMarketPosition] = useState<MarketPositionData | null>(staticMarketPosition as unknown as MarketPositionData);
   const [indexPerformance, setIndexPerformance] = useState<any[]>([]);
+  const [nearResistance, setNearResistance] = useState<any[]>([]);
+  const [supportReversal, setSupportReversal] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
 
@@ -31,6 +33,8 @@ export function useLiveData() {
       setTopMovers(data.topMovers);
       setMarketPosition(data.marketPosition);
       setIndexPerformance(data.indexPerformance || []);
+      setNearResistance(data.nearResistance || []);
+      setSupportReversal(data.supportReversal || []);
       setLastUpdate(new Date().toLocaleTimeString());
       setIsLoading(false);
     });
@@ -51,6 +55,8 @@ export function useLiveData() {
     topMovers,
     marketPosition,
     indexPerformance,
+    nearResistance,
+    supportReversal,
     isLoading,
     lastUpdate,
     refresh: refreshAllData

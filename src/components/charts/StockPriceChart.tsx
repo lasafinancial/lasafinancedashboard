@@ -22,7 +22,7 @@ const CustomDot = (props: any) => {
   if (!payload || payload.resistanceSlopeDownward === undefined) return null;
 
   const isDownward = String(payload.resistanceSlopeDownward).toLowerCase() === 'true';
-  
+
   return (
     <g transform={`translate(${cx - 6}, ${cy - 6})`}>
       {isDownward ? (
@@ -119,94 +119,94 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Price Movement</h3>
-            <div className="hidden md:flex items-center gap-4 text-xs">
-              {localHovered && (
-                <div className="flex items-center gap-2 mr-4 px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full">
-                  <span className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Date</span>
-                  <span className="font-mono font-bold text-cyan-400">{localHovered.date}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-chart-primary rounded" />
-                <span className="text-muted-foreground">Price</span>
-                {localHovered && <span className="font-mono font-semibold text-cyan-400">{localHovered.price?.toLocaleString() ?? '-'}</span>}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-[#ef4444] rounded" />
-                  <span className="text-muted-foreground">Support</span>
-                  {localHovered && <span className="font-mono font-semibold text-[#ef4444]">{localHovered.support?.toLocaleString() ?? '-'}</span>}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-0.5 bg-[#22c55e] rounded" />
-                  <span className="text-muted-foreground">Resistance</span>
-                  {localHovered && <span className="font-mono font-semibold text-[#22c55e]">{localHovered.resistance?.toLocaleString() ?? '-'}</span>}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-0.5 bg-[#f59e0b] rounded" />
-                  <span className="text-muted-foreground">ML 20D</span>
-                  {localHovered && <span className="font-mono font-semibold text-[#f59e0b]">{localHovered.model?.toLocaleString() ?? '-'}</span>}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-0.5 bg-[#8b5cf6] rounded" />
-                  <span className="text-muted-foreground">Wolfe</span>
-                  {localHovered && <span className="font-mono font-semibold text-[#8b5cf6]">{localHovered.pattern?.toLocaleString() ?? '-'}</span>}
-                </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-[#ec4899] rounded" />
-                <span className="text-muted-foreground">Balance</span>
-                {localHovered && <span className="font-mono font-semibold text-[#ec4899]">{localHovered.projFvg?.toLocaleString() ?? '-'}</span>}
-              </div>
-          </div>
-        </div>
-        
-          <div className="md:hidden flex flex-col gap-3">
+          <div className="hidden md:flex items-center gap-4 text-xs">
             {localHovered && (
-              <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-                <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full flex items-center gap-2">
-                  <span className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Date</span>
-                  <span className="font-mono font-bold text-cyan-400">{localHovered.date}</span>
-                </div>
+              <div className="flex items-center gap-2 mr-4 px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full">
+                <span className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Date</span>
+                <span className="font-mono font-bold text-cyan-400">{localHovered.date}</span>
               </div>
             )}
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-chart-primary rounded" />
+              <span className="text-muted-foreground">Price</span>
+              {localHovered && <span className="font-mono font-semibold text-cyan-400">{localHovered.price?.toLocaleString() ?? '-'}</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-[#ef4444] rounded" />
+              <span className="text-muted-foreground">Support</span>
+              {localHovered && <span className="font-mono font-semibold text-[#ef4444]">{localHovered.support?.toLocaleString() ?? '-'}</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-[#22c55e] rounded" />
+              <span className="text-muted-foreground">Resistance</span>
+              {localHovered && <span className="font-mono font-semibold text-[#22c55e]">{localHovered.resistance?.toLocaleString() ?? '-'}</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-[#f59e0b] rounded" />
+              <span className="text-muted-foreground">ML 20D</span>
+              {localHovered && <span className="font-mono font-semibold text-[#f59e0b]">{localHovered.model?.toLocaleString() ?? '-'}</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-[#8b5cf6] rounded" />
+              <span className="text-muted-foreground">Wolfe</span>
+              {localHovered && <span className="font-mono font-semibold text-[#8b5cf6]">{localHovered.pattern?.toLocaleString() ?? '-'}</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-[#ec4899] rounded" />
+              <span className="text-muted-foreground">Balance</span>
+              {localHovered && <span className="font-mono font-semibold text-[#ec4899]">{localHovered.projFvg?.toLocaleString() ?? '-'}</span>}
+            </div>
+          </div>
+        </div>
+
+        <div className="md:hidden flex flex-col gap-3">
+          {localHovered && (
+            <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+              <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full flex items-center gap-2">
+                <span className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Date</span>
+                <span className="font-mono font-bold text-cyan-400">{localHovered.date}</span>
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-3 text-xs flex-wrap">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-0.5 bg-chart-primary rounded" />
               <span className="text-muted-foreground">Price</span>
               {localHovered && <span className="font-mono font-semibold text-cyan-400">{localHovered.price?.toLocaleString() ?? '-'}</span>}
             </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-[#ef4444] rounded" />
-                  <span className="text-muted-foreground">Support</span>
-                  {localHovered && <span className="font-mono font-semibold text-[#ef4444]">{localHovered.support?.toLocaleString() ?? '-'}</span>}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-0.5 bg-[#22c55e] rounded" />
-                  <span className="text-muted-foreground">Resistance</span>
-                  {localHovered && <span className="font-mono font-semibold text-[#22c55e]">{localHovered.resistance?.toLocaleString() ?? '-'}</span>}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-0.5 bg-[#f59e0b] rounded" />
-                  <span className="text-muted-foreground">ML 20D</span>
-                  {localHovered && <span className="font-mono font-semibold text-[#f59e0b]">{localHovered.model?.toLocaleString() ?? '-'}</span>}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-0.5 bg-[#8b5cf6] rounded" />
-                  <span className="text-muted-foreground">Wolfe</span>
-                  {localHovered && <span className="font-mono font-semibold text-[#8b5cf6]">{localHovered.pattern?.toLocaleString() ?? '-'}</span>}
-                </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-0.5 bg-[#ec4899] rounded" />
-                <span className="text-muted-foreground">Balance</span>
-                {localHovered && <span className="font-mono font-semibold text-[#ec4899]">{localHovered.projFvg?.toLocaleString() ?? '-'}</span>}
-              </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-[#ef4444] rounded" />
+              <span className="text-muted-foreground">Support</span>
+              {localHovered && <span className="font-mono font-semibold text-[#ef4444]">{localHovered.support?.toLocaleString() ?? '-'}</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-[#22c55e] rounded" />
+              <span className="text-muted-foreground">Resistance</span>
+              {localHovered && <span className="font-mono font-semibold text-[#22c55e]">{localHovered.resistance?.toLocaleString() ?? '-'}</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-[#f59e0b] rounded" />
+              <span className="text-muted-foreground">ML 20D</span>
+              {localHovered && <span className="font-mono font-semibold text-[#f59e0b]">{localHovered.model?.toLocaleString() ?? '-'}</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-[#8b5cf6] rounded" />
+              <span className="text-muted-foreground">Wolfe</span>
+              {localHovered && <span className="font-mono font-semibold text-[#8b5cf6]">{localHovered.pattern?.toLocaleString() ?? '-'}</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 bg-[#ec4899] rounded" />
+              <span className="text-muted-foreground">Balance</span>
+              {localHovered && <span className="font-mono font-semibold text-[#ec4899]">{localHovered.projFvg?.toLocaleString() ?? '-'}</span>}
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="h-[300px] chart-container relative">
+      <div className="h-[300px] chart-container relative">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart 
-            data={chartData} 
+          <ComposedChart
+            data={chartData}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
@@ -218,16 +218,16 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
                 <stop offset="100%" stopColor="hsl(var(--chart-primary))" stopOpacity={0} />
               </linearGradient>
             </defs>
-            
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke="hsl(var(--border))" 
+
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="hsl(var(--border))"
               opacity={0.3}
               vertical={false}
             />
-            
-            <XAxis 
-              dataKey="date" 
+
+            <XAxis
+              dataKey="date"
               axisLine={false}
               tickLine={false}
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
@@ -235,18 +235,18 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
               interval="preserveStartEnd"
               minTickGap={30}
             />
-            
-            <YAxis 
+
+            <YAxis
               axisLine={false}
               tickLine={false}
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
               domain={yDomain as [number, number]}
               dx={-10}
               width={60}
-              tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(0)}k` : value}
+              tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
             />
-            
-            <Tooltip 
+
+            <Tooltip
               content={<></>}
               cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
             />
@@ -264,33 +264,31 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
               stroke="hsl(var(--chart-primary))"
               strokeWidth={3}
               dot={<CustomDot />}
-              activeDot={{ 
-                r: 6, 
+              activeDot={{
+                r: 6,
                 fill: 'hsl(var(--chart-primary))',
                 stroke: 'hsl(var(--background))',
                 strokeWidth: 2
               }}
             />
 
-              <Line
-                type="monotone"
-                dataKey="support"
-                name="Support"
-                stroke="#ef4444"
-                strokeWidth={1.5}
-                dot={false}
-                strokeDasharray="3 3"
-              />
+            <Line
+              type="monotone"
+              dataKey="support"
+              name="Support"
+              stroke="#ef4444"
+              strokeWidth={1.5}
+              dot={false}
+            />
 
-              <Line
-                type="monotone"
-                dataKey="resistance"
-                name="Resistance"
-                stroke="#22c55e"
-                strokeWidth={1.5}
-                dot={false}
-                strokeDasharray="3 3"
-              />
+            <Line
+              type="monotone"
+              dataKey="resistance"
+              name="Resistance"
+              stroke="#22c55e"
+              strokeWidth={1.5}
+              dot={false}
+            />
 
             <Line
               type="monotone"

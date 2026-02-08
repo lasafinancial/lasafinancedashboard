@@ -17,7 +17,7 @@ interface HoveredData {
 }
 
 const StockAnalysis = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const symbolFromUrl = searchParams.get("symbol");
   const { stockData: stocksData, isLoading, lastUpdate } = useLiveData();
 
@@ -105,33 +105,23 @@ const StockAnalysis = () => {
           }
         }
       } else if (!selectedStock) {
-        // Smart default: Select the best performing stock of the day
-        // This provides better UX by showing an interesting stock by default
-        const stocksWithChange = stocksData
-          .map(stock => {
-            const history = stock.history || [];
-            if (history.length < 2) return { stock, changePercent: 0 };
+        // Default to RELIANCE for first-time page load
+        // We set it in the URL to trigger the robust 'symbolFromUrl' pipeline
+        const reliance = stocksData.find(s =>
+          s.symbol.trim().toUpperCase() === "RELIANCE" ||
+          s.name.trim().toUpperCase().includes("RELIANCE")
+        );
 
-            // Calculate today's change percentage
-            const latest = history[history.length - 1];
-            const previous = history[history.length - 2];
-            const changePercent = ((latest.price - previous.price) / previous.price) * 100;
+        const defaultStock = reliance || stocksData[0];
 
-            return { stock, changePercent };
-          })
-          .filter(item => item.changePercent > 0) // Only positive performers
-          .sort((a, b) => b.changePercent - a.changePercent); // Sort by highest gain
-
-        // Select best performer, or fallback to first stock if no gainers
-        const defaultStock = stocksWithChange.length > 0
-          ? stocksWithChange[0].stock
-          : stocksData[0];
-
-        setSelectedStock(defaultStock.symbol);
-        setSearchQuery(defaultStock.name);
+        if (defaultStock) {
+          setSearchParams({ symbol: defaultStock.symbol });
+          setSelectedStock(defaultStock.symbol);
+          setSearchQuery(defaultStock.name);
+        }
       }
     }
-  }, [symbolFromUrl, stocksData]);
+  }, [symbolFromUrl, stocksData, selectedStock, setSearchParams]);
 
   const searchSuggestions = useMemo(() => {
     if (searchQuery.length === 0) return [];
@@ -150,9 +140,12 @@ const StockAnalysis = () => {
       .map(s => s.stock);
   }, [searchQuery, stocksData]);
 
-  const currentStockData = stocksData.find(s => s.symbol === selectedStock);
+  const currentStockData = stocksData.find(s =>
+    s.symbol.trim().toUpperCase() === selectedStock.trim().toUpperCase()
+  );
   const isSearchQueryCurrentStock = currentStockData &&
-    (searchQuery === currentStockData.name || searchQuery === currentStockData.symbol);
+    (searchQuery.trim().toLowerCase() === currentStockData.name.trim().toLowerCase() ||
+      searchQuery.trim().toUpperCase() === currentStockData.symbol.trim().toUpperCase());
 
   const filteredStocks = isSearchQueryCurrentStock || searchQuery === ""
     ? stocksData
@@ -180,7 +173,9 @@ const StockAnalysis = () => {
     setShowSuggestions(false);
   };
 
-  const currentStock = stocksData.find((s) => s.symbol === selectedStock);
+  const currentStock = stocksData.find((s) =>
+    s.symbol.trim().toUpperCase() === selectedStock.trim().toUpperCase()
+  );
   const chartData = currentStock?.history || [];
 
   if (isLoading || stocksData.length === 0) {
