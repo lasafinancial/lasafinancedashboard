@@ -167,9 +167,7 @@ const StockAnalysis = () => {
   }, []);
 
   const handleSelectSuggestion = (symbol: string) => {
-    const stock = stocksData.find(s => s.symbol === symbol);
-    setSelectedStock(symbol);
-    setSearchQuery(stock ? stock.name : "");
+    setSearchParams({ symbol });
     setShowSuggestions(false);
   };
 
@@ -265,7 +263,7 @@ const StockAnalysis = () => {
             </div>
 
             {/* Stock Selector */}
-            <Select value={selectedStock} onValueChange={setSelectedStock}>
+            <Select value={selectedStock} onValueChange={(val) => setSearchParams({ symbol: val })}>
               <SelectTrigger className="w-full md:w-[280px] h-12 bg-secondary/50 border-border/50">
                 <SelectValue placeholder="Select a stock" />
               </SelectTrigger>
