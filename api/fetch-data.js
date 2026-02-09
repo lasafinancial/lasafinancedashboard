@@ -144,226 +144,271 @@ async function fetchData() {
   const auth = new google.auth.GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
   const sheets = google.sheets({ version: 'v4', auth });
 
+  const lasaMasterRes = await sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FJ' });
+  const lasaMasterRows = lasaMasterRes.data.values || [];
+  const lasaMasterData = rowsToObjects(lasaMasterRows);
+
+  const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
+  const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
+  const latestDate = sortedDates[0];
+
+  // Helper to calculate sentiment for a set of rows
+  const calculateSentiment = (rows) => {
+    const moodStocks = rows.filter(row => {
+      const g = (row['GROUP'] || '').toString().toUpperCase();
+      return g === 'LARGECAP' || g === 'MIDCAP';
+    });
+    let bull = 0, bear = 0, neut = 0;
+    moodStocks.forEach(row => {
+      const gn = (v) => parseFloat((v || '0').toString().replace(/,/g, '')) || 0;
+      const cp = gn(row['CLOSE_PRICE'] || row[colToIdx('E')]);
+      const res = gn(row['RESISTANCE'] || row[colToIdx('DI')]);
+      const sup = gn(row['SUPPORT'] || row[colToIdx('DH')]);
+      const st = getDynamicStatus(cp, sup, res);
+      if (st === 'BULLISH') bull++; else if (st === 'BEARISH') bear++; else neut++;
+    });
+    if (moodStocks.length === 0) return { bullish: 0, bearish: 0, neutral: 0 };
+    return {
+      bullish: (bull / moodStocks.length) * 100,
+      bearish: (bear / moodStocks.length) * 100,
+      neutral: (neut / moodStocks.length) * 100
+    };
+  };
+
+  const marketMood = { bullish: 0, bearish: 0, neutral: 0, date: formatDate(new Date(latestDate)), trend: [] };
+
+  // Calculate trend for last 5 available dates in master
+  const trendDates = sortedDates.slice(0, 5).reverse();
+  marketMood.trend = trendDates.map(dateStr => {
+    const dateRows = lasaMasterData.filter(r => r['DATE'] === dateStr);
+    const sentiment = calculateSentiment(dateRows);
+    return {
+      date: formatDate(new Date(dateStr)),
+      ...sentiment
+    };
+  });
+
+  const swingRes = await sheets.spreadsheets.values.get({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' });
+  const dataRows = rowsToObjects(swingRes.data.values || []);
+
+  const strengthData = dataRows.map(row => ({
+    dateObj: parseSwingDate(row['DATE']),
+    dateStr: row['DATE'],
+    rsi: parseFloat(row['NIFTY100_DAILY_RSI_ABOVE50']) || 50,
+    ml_higher: parseFloat(row['ML_ABOVE']) || 0,
+    ml_lower: parseFloat(row['ML_BELOW']) || 0,
+    fg_above: parseFloat(row['FG_ABOVE']) || 0,
+    fg_below: parseFloat(row['FG_BELOW']) || 0,
+    fg_net: parseFloat(row['FG_NET']) || 0,
+    nifty50_close: parseFloat((row['NIFTY50_CLOSE'] || '').toString().replace(/,/g, '')) || 0,
+    total_score: parseFloat(row['TOTAL_SCORE']) || 0,
+    ml_threshold: parseFloat(row['ML_THRESHOLD']) || 0,
+    momentum_oscillator: parseFloat(row['NIFTY100_DAILY_RSI_ABOVE50']) || 0
+  })).filter(r => r.dateObj && !isNaN(r.dateObj.getTime())).sort((a, b) => a.dateObj - b.dateObj).slice(-130).map(r => ({
+    date: formatSwingDate(r.dateStr), rsi: r.rsi, ml_higher: r.ml_higher, ml_lower: r.ml_lower, fg_above: r.fg_above, fg_below: r.fg_below, fg_net: r.fg_net, nifty50_close: r.nifty50_close, total_score: r.total_score, ml_threshold: r.ml_threshold, momentum_oscillator: r.momentum_oscillator
+  }));
+
+  const latestSwingData = dataRows[dataRows.length - 1] || {};
+  const marketPosition = {
+    model: { bullish: parseFloat(latestSwingData['ML_ABOVE']) || 0, bearish: parseFloat(latestSwingData['ML_BELOW']) || 0, neutral: Math.max(0, 100 - ((parseFloat(latestSwingData['ML_ABOVE']) || 0) + (parseFloat(latestSwingData['ML_BELOW']) || 0))) },
+    balance: { above: parseFloat(latestSwingData['FG_ABOVE']) || 0, below: parseFloat(latestSwingData['FG_BELOW']) || 0 },
+    momentum: { bullish: 100 - (parseFloat(latestSwingData['NIFTY100_DAILY_RSI_ABOVE50']) || 0), bearish: parseFloat(latestSwingData['NIFTY100_DAILY_RSI_ABOVE50']) || 0 },
+    sr: { atSupport: parseFloat(latestSwingData['TOTAL_SUPPORT']) || 0, atResistance: parseFloat(latestSwingData['TOTAL_RESITANCE']) || parseFloat(latestSwingData['TOTAL_RESISTANCE']) || 0, neutral: 0 },
+    reversal: { up: parseFloat(latestSwingData['REVERSAL_UP']) || 0, down: parseFloat(latestSwingData['REVERSAL_DOWN']) || 0, neutral: Math.max(0, 100 - ((parseFloat(latestSwingData['REVERSAL_UP']) || 0) + (parseFloat(latestSwingData['REVERSAL_DOWN']) || 0))) },
+    lastUpdate: new Date().toLocaleTimeString()
+  };
+
+  const historyCutoff = new Date();
+  historyCutoff.setDate(historyCutoff.getDate() - 180);
+  historyCutoff.setHours(0, 0, 0, 0);
+
+  const history = {};
+  const resistanceSlopeMap = {};
+  const fullNameMap = {};
+
+  lasaMasterData.forEach(row => {
+    const dateStr = row['DATE'];
+    if (!dateStr) return;
+    const group = (row['GROUP'] || '').toString().toUpperCase();
+    if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX') return;
+    const rowDate = parseDateFlexible(dateStr);
+    if (!rowDate || rowDate < historyCutoff) return;
+    const symbol = row['ID'] || row['STOCK_NAME'];
+    if (!symbol) return;
+    if (!fullNameMap[symbol]) fullNameMap[symbol] = row['STOCK_NAME'] || symbol;
+    if (dateStr === latestDate) resistanceSlopeMap[symbol] = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase() === 'true';
+    if (!history[symbol]) history[symbol] = [];
+    const gn = (v) => (v === undefined || v === null || v === '') ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
+    history[symbol].push({
+      dateObj: rowDate, dateDisplay: formatDate(rowDate), price: gn(row['CLOSE_PRICE'] || row[colToIdx('E')]), rsi: gn(row['RSI'] || row[colToIdx('Q')]), trend: row['DAILY_TREND'] || row[colToIdx('L')] || '', support: gn(row['SUPPORT'] || row[colToIdx('DH')]), resistance: gn(row['RESISTANCE'] || row[colToIdx('DI')]), mlFutPrice20d: gn(row['ML_FUT_PRICE_20D'] || row[colToIdx('EQ')]), wolfeD: gn(row['WOLFE_D'] || row[colToIdx('EF')]), projFvg: gn(row['PROJ_FVG'] || row[colToIdx('EH')]), sector: row['SECTOR'] || row[colToIdx('B')] || ''
+    });
+  });
+
+  const stockData = Object.keys(history).map(symbol => {
+    const stockHistory = history[symbol].sort((a, b) => a.dateObj - b.dateObj);
+    if (stockHistory.length === 0) return null;
+    const latest = stockHistory[stockHistory.length - 1];
+    return { symbol, name: fullNameMap[symbol] || symbol, sector: latest.sector, price: latest.price, rsi: latest.rsi, trend: latest.trend, resistanceSlopeDownward: resistanceSlopeMap[symbol] || false, history: stockHistory.map(h => ({ price: h.price, rsi: h.rsi, trend: h.trend, support: h.support, resistance: h.resistance, mlFutPrice20d: h.mlFutPrice20d, wolfeD: h.wolfeD, projFvg: h.projFvg, date: h.dateDisplay })) };
+  }).filter(Boolean);
+
   let topMovers = { topGainers: [], topLosers: [] };
   let indexPerformance = [];
   let nearResistance = [];
   let supportReversal = [];
 
   try {
-    const [lasaMasterRes, swingRes, currentRes] = await Promise.all([
-      sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FJ' }),
-      sheets.spreadsheets.values.get({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }),
-      sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FJ" })
-    ]);
-
-    const lasaMasterRows = lasaMasterRes.data.values || [];
-    const lasaMasterData = rowsToObjects(lasaMasterRows);
-
-    const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
-    const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
-    const latestDate = sortedDates[0];
-
-    // Helper to calculate sentiment for a set of rows
-    const calculateSentiment = (rows) => {
-      const moodStocks = rows.filter(row => {
-        const g = (row['GROUP'] || '').toString().toUpperCase();
-        return g === 'LARGECAP' || g === 'MIDCAP';
-      });
-      let bull = 0, bear = 0, neut = 0;
-      moodStocks.forEach(row => {
-        const gn = (v) => parseFloat((v || '0').toString().replace(/,/g, '')) || 0;
-        const cp = gn(row['CLOSE_PRICE'] || row[4]); // E
-        const res = gn(row['RESISTANCE'] || row[115]); // DI
-        const sup = gn(row['SUPPORT'] || row[114]); // DH
-        const st = getDynamicStatus(cp, sup, res);
-        if (st === 'BULLISH') bull++; else if (st === 'BEARISH') bear++; else neut++;
-      });
-      if (moodStocks.length === 0) return { bullish: 0, bearish: 0, neutral: 0 };
-      return {
-        bullish: (bull / moodStocks.length) * 100,
-        bearish: (bear / moodStocks.length) * 100,
-        neutral: (neut / moodStocks.length) * 100
-      };
-    };
-
-    const marketMood = { bullish: 0, bearish: 0, neutral: 0, date: formatDate(new Date(latestDate)), trend: [] };
-
-    // Calculate trend for last 5 available dates in master
-    const trendDates = sortedDates.slice(0, 5).reverse();
-    marketMood.trend = trendDates.map(dateStr => {
-      const dateRows = lasaMasterData.filter(r => r['DATE'] === dateStr);
-      const sentiment = calculateSentiment(dateRows);
-      return {
-        date: formatDate(new Date(dateStr)),
-        ...sentiment
-      };
-    });
-
-    const dataRows = rowsToObjects(swingRes.data.values || []);
-
-    const strengthData = dataRows.map(row => ({
-      dateObj: parseSwingDate(row['DATE']),
-      dateStr: row['DATE'],
-      rsi: parseFloat(row['NIFTY100_DAILY_RSI_ABOVE50']) || 50,
-      ml_higher: parseFloat(row['ML_ABOVE']) || 0,
-      ml_lower: parseFloat(row['ML_BELOW']) || 0,
-      fg_above: parseFloat(row['FG_ABOVE']) || 0,
-      fg_below: parseFloat(row['FG_BELOW']) || 0,
-      fg_net: parseFloat(row['FG_NET']) || 0,
-      nifty50_close: parseFloat((row['NIFTY50_CLOSE'] || '').toString().replace(/,/g, '')) || 0,
-      total_score: parseFloat(row['TOTAL_SCORE']) || 0,
-      ml_threshold: parseFloat(row['ML_THRESHOLD']) || 0,
-      momentum_oscillator: parseFloat(row['NIFTY100_DAILY_RSI_ABOVE50']) || 0
-    })).filter(r => r.dateObj && !isNaN(r.dateObj.getTime())).sort((a, b) => a.dateObj - b.dateObj).slice(-130).map(r => ({
-      date: formatSwingDate(r.dateStr), rsi: r.rsi, ml_higher: r.ml_higher, ml_lower: r.ml_lower, fg_above: r.fg_above, fg_below: r.fg_below, fg_net: r.fg_net, nifty50_close: r.nifty50_close, total_score: r.total_score, ml_threshold: r.ml_threshold, momentum_oscillator: r.momentum_oscillator
-    }));
-
-    const latestSwingData = dataRows[dataRows.length - 1] || {};
-    const marketPosition = {
-      model: { bullish: parseFloat(latestSwingData['ML_ABOVE']) || 0, bearish: parseFloat(latestSwingData['ML_BELOW']) || 0, neutral: Math.max(0, 100 - ((parseFloat(latestSwingData['ML_ABOVE']) || 0) + (parseFloat(latestSwingData['ML_BELOW']) || 0))) },
-      balance: { above: parseFloat(latestSwingData['FG_ABOVE']) || 0, below: parseFloat(latestSwingData['FG_BELOW']) || 0 },
-      momentum: { bullish: 100 - (parseFloat(latestSwingData['NIFTY100_DAILY_RSI_ABOVE50']) || 0), bearish: parseFloat(latestSwingData['NIFTY100_DAILY_RSI_ABOVE50']) || 0 },
-      sr: { atSupport: parseFloat(latestSwingData['TOTAL_SUPPORT']) || 0, atResistance: parseFloat(latestSwingData['TOTAL_RESITANCE']) || parseFloat(latestSwingData['TOTAL_RESISTANCE']) || 0, neutral: 0 },
-      reversal: { up: parseFloat(latestSwingData['REVERSAL_UP']) || 0, down: parseFloat(latestSwingData['REVERSAL_DOWN']) || 0, neutral: Math.max(0, 100 - ((parseFloat(latestSwingData['REVERSAL_UP']) || 0) + (parseFloat(latestSwingData['REVERSAL_DOWN']) || 0))) },
-      lastUpdate: new Date().toLocaleTimeString()
-    };
-
-    const historyCutoff = new Date();
-    historyCutoff.setDate(historyCutoff.getDate() - 180);
-    historyCutoff.setHours(0, 0, 0, 0);
-
-    const history = {};
-    const resistanceSlopeMap = {};
-    const fullNameMap = {};
-
-    lasaMasterData.forEach(row => {
-      const dateStr = row['DATE'];
-      if (!dateStr) return;
-      const group = (row['GROUP'] || '').toString().toUpperCase();
-      if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX') return;
-      const rowDate = parseDateFlexible(dateStr);
-      if (!rowDate || rowDate < historyCutoff) return;
-      const symbol = row['ID'] || row['STOCK_NAME'];
-      if (!symbol) return;
-      if (!fullNameMap[symbol]) fullNameMap[symbol] = row['STOCK_NAME'] || symbol;
-      if (dateStr === latestDate) resistanceSlopeMap[symbol] = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase() === 'true';
-      if (!history[symbol]) history[symbol] = [];
-      const gn = (v) => (v === undefined || v === null || v === '') ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
-      history[symbol].push({
-        dateObj: rowDate, dateDisplay: formatDate(rowDate), price: gn(row['CLOSE_PRICE'] || row[4]), rsi: gn(row['RSI'] || row[16]), trend: row['DAILY_TREND'] || row[11] || '', support: gn(row['SUPPORT'] || row[114]), resistance: gn(row['RESISTANCE'] || row[115]), mlFutPrice20d: gn(row['ML_FUT_PRICE_20D'] || row[134]), wolfeD: gn(row['WOLFE_D'] || row[135]), projFvg: gn(row['PROJ_FVG'] || row[137]), sector: row['SECTOR'] || row[1] || ''
-      });
-    });
-
-    const stockData = Object.keys(history).map(symbol => {
-      const stockHistory = history[symbol].sort((a, b) => a.dateObj - b.dateObj);
-      if (stockHistory.length === 0) return null;
-      const latest = stockHistory[stockHistory.length - 1];
-      return { symbol, name: fullNameMap[symbol] || symbol, sector: latest.sector, price: latest.price, rsi: latest.rsi, trend: latest.trend, resistanceSlopeDownward: resistanceSlopeMap[symbol] || false, history: stockHistory.map(h => ({ price: h.price, rsi: h.rsi, trend: h.trend, support: h.support, resistance: h.resistance, mlFutPrice20d: h.mlFutPrice20d, wolfeD: h.wolfeD, projFvg: h.projFvg, date: h.dateDisplay })) };
-    }).filter(Boolean);
-
+    const currentRes = await sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FJ" });
     const currentData = rowsToObjects(currentRes.data.values || []);
 
     if (currentData.length > 0) {
       const moodStocks = currentData.slice(0, 470).filter(row => { const g = (row['GROUP'] || '').toString().toUpperCase(); return g === 'LARGECAP' || g === 'MIDCAP'; });
       let bullCount = 0, bearCount = 0, neutCount = 0;
       moodStocks.forEach(row => {
-        const cp = parseFloat((row['CLOSE_PRICE'] || row[4] || '0').toString().replace(/,/g, '')) || 0;
-        const res = parseFloat((row['RESISTANCE'] || row[115] || '0').toString().replace(/,/g, '')) || 0;
-        const sup = parseFloat((row['SUPPORT'] || row[114] || '0').toString().replace(/,/g, '')) || 0;
+        const cp = parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0;
+        const res = parseFloat((row['RESISTANCE'] || row[colToIdx('DI')] || '0').toString().replace(/,/g, '')) || 0;
+        const sup = parseFloat((row['SUPPORT'] || row[colToIdx('DH')] || '0').toString().replace(/,/g, '')) || 0;
         const st = getDynamicStatus(cp, sup, res);
         if (st === 'BULLISH') bullCount++; else if (st === 'BEARISH') bearCount++; else neutCount++;
       });
+      if (moodStocks.length > 0) {
+        const sentiment = calculateSentiment(moodStocks);
+        marketMood.bullish = sentiment.bullish;
+        marketMood.bearish = sentiment.bearish;
+        marketMood.neutral = sentiment.neutral;
 
-      const sentiment = {
-        bullish: moodStocks.length > 0 ? (bullCount / moodStocks.length) * 100 : 0,
-        bearish: moodStocks.length > 0 ? (bearCount / moodStocks.length) * 100 : 0,
-        neutral: moodStocks.length > 0 ? (neutCount / moodStocks.length) * 100 : 0
-      };
+        // Add current live point to trend
+        const liveDate = formatDate(new Date());
+        marketMood.trend.push({
+          date: `Live (${liveDate})`,
+          ...sentiment
+        });
 
-      marketMood.bullish = sentiment.bullish;
-      marketMood.bearish = sentiment.bearish;
-      marketMood.neutral = sentiment.neutral;
-
-      // Add current live point to trend
-      const liveDate = formatDate(new Date());
-      marketMood.trend.push({
-        date: `Live (${liveDate})`,
-        ...sentiment
-      });
-
-      // Keep only last 6 points max
-      if (marketMood.trend.length > 6) {
-        marketMood.trend.shift();
-      }
-    }
-
-    // --- Near Resistance Screener Implementation ---
-    const nrIdx = { ep: colToIdx('EP'), c: colToIdx('C'), e: colToIdx('E'), di: colToIdx('DI'), dh: colToIdx('DH'), du: colToIdx('DU'), eq: colToIdx('EQ'), dj: colToIdx('DJ'), ao: colToIdx('AO'), ar: colToIdx('AR') };
-
-    const mapStock = (row) => {
-      const gn = (v) => (v === undefined || v === null || v === '' || v.toString().includes('#')) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
-      return {
-        dEma200Status: (row['D-EMA-200-Status'] || row[nrIdx.ep] || '').toString(),
-        id: (row['ID'] || row[nrIdx.c] || '').toString(),
-        closePrice: gn(row['CLOSE_PRICE'] || row[nrIdx.e]),
-        resistance: gn(row['RESISTANCE'] || row[nrIdx.di]),
-        support: gn(row['SUPPORT'] || row[nrIdx.dh]),
-        dBreakoutPrice: gn(row['D_BREAKOUT_PRICE'] || row[nrIdx.du]),
-        mlTargetPercent: gn(row['ML_TARGET_PERCENT'] || row[nrIdx.eq]),
-        algoB: gn(row['ALGO_B'] || row[colToIdx('EM')]),
-        algFgPercent: gn(row['ALG_FG_PERCENT'] || row[colToIdx('FI')]),
-        wProjection2: gn(row['W_PROJECTION_2'] || row[colToIdx('FJ')]),
-        wProjection3: 0,
-        algoFG: gn(row['PROJ_FVG'] || row[nrIdx.dj]),
-        algoM: gn(row['ML_FUT_PRICE_20D'] || row[nrIdx.ao]),
-        algoW: gn(row['WOLFE_D'] || row[nrIdx.ar])
-      };
-    };
-
-    nearResistance = currentData.filter(row => {
-      const st = (row['STATUS'] || row[colToIdx('BG')] || '').toString().toUpperCase();
-      const grp = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase();
-      return st === 'BULLISH' && (grp === 'LARGECAP' || grp === 'MIDCAP');
-    }).map(mapStock);
-
-    // --- Support (Reversal) Screener Implementation ---
-    // Query: Price > Support AND Breakout < Support
-    // Sort: EMA200Status (ABOVE first), then mlTargetPercent Decreasing
-    supportReversal = currentData.filter(row => {
-      const gn = (v) => (v === undefined || v === null || v === '' || v.toString().includes('#')) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
-      const cp = gn(row['CLOSE_PRICE'] || row[nrIdx.e]);
-      const sup = gn(row['SUPPORT'] || row[nrIdx.dh]);
-      const brk = gn(row['D_BREAKOUT_PRICE'] || row[nrIdx.du]);
-      return cp > sup && brk < sup;
-    }).map(mapStock).sort((a, b) => {
-      if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
-      if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
-      return b.mlTargetPercent - a.mlTargetPercent;
-    });
-
-    const idxCols = { 'NIFTY 50': 'NIFTY50', 'NIFTY BANK': 'NIFTYBANK', 'NIFTY IT': 'NIFTYIT', 'NIFTY AUTO': 'NIFTYAUTO', 'NIFTY PHARMA': 'NIFTYPHARMA', 'NIFTY METAL': 'NIFTYMETAL', 'NIFTY FMCG': 'NIFTYFMCG', 'NIFTY INFRA': 'NIFTYINFRA', 'NIFTY PSU BANK': 'NIFTYPSUBANK', 'NIFTY PVT BANK': 'NIFTYPVTBANK', 'NIFTY CPSE': 'NIFTYCPSE', 'NIFTY 500': 'NIFTY500' };
-    const idxMap = {}; Object.keys(idxCols).forEach(k => { idxMap[k] = { stocks: [], bullish: 0, bearish: 0 }; });
-    currentData.forEach(row => {
-      const name = row['STOCK_NAME'] || row[colToIdx('D')];
-      const cp = parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0;
-      const res = parseFloat((row['RESISTANCE'] || row[colToIdx('DI')] || '0').toString().replace(/,/g, '')) || 0;
-      const sup = parseFloat((row['SUPPORT'] || row[colToIdx('DH')] || '0').toString().replace(/,/g, '')) || 0;
-      const st = getDynamicStatus(cp, sup, res);
-      if (!name) return;
-      Object.keys(idxCols).forEach(k => {
-        if (row[idxCols[k]] && row[idxCols[k]].toString().trim() !== '' && row[idxCols[k]].toString().toUpperCase() !== 'FALSE') {
-          idxMap[k].stocks.push({ id: row['ID'] || row[colToIdx('C')] || name, stockName: name, price: cp, status: st });
-          if (st === 'BULLISH') idxMap[k].bullish++; else if (st === 'BEARISH') idxMap[k].bearish++;
+        // Keep only last 6 points max
+        if (marketMood.trend.length > 6) {
+          marketMood.trend.shift();
         }
-      });
-    });
-    indexPerformance = Object.keys(idxMap).map(k => { const d = idxMap[k]; return { name: k, stocksCount: d.stocks.length, bullishCount: d.bullish, bearishCount: d.bearish, strengthScore: d.stocks.length > 0 ? Math.round((d.bullish / d.stocks.length) * 100) : 50, stocks: d.stocks }; }).filter(i => i.stocksCount > 0).sort((a, b) => b.strengthScore - a.strengthScore);
+      }
 
-    const ms = currentData.filter(row => { const g = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase(); return (g === 'LARGECAP' || g === 'MIDCAP') && (row['STOCK_NAME'] || row[colToIdx('D')]) && row['CHANGE_PERCENT'] !== undefined; }).map(row => ({
-      id: row['ID'] || row[colToIdx('C')] || row['STOCK_NAME'] || row[colToIdx('D')], stockName: row['STOCK_NAME'] || row[colToIdx('D')], changePercent: parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0, closePrice: parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0
-    }));
-    const sorted = [...ms].sort((a, b) => b.changePercent - a.changePercent);
-    topMovers = { topGainers: sorted.filter(s => s.changePercent > 0).slice(0, 10), topLosers: sorted.filter(s => s.changePercent < 0).slice(-10).reverse() };
+      // --- Near Resistance Screener Implementation ---
+      const nrIdx = { ep: colToIdx('EP'), c: colToIdx('C'), e: colToIdx('E'), di: colToIdx('DI'), dh: colToIdx('DH'), du: colToIdx('DU'), eq: colToIdx('EQ'), dj: colToIdx('DJ'), ao: colToIdx('AO'), ar: colToIdx('AR') };
+
+      const mapStock = (row) => {
+        const gn = (v) => (v === undefined || v === null || v === '' || v.toString().includes('#')) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
+        return {
+          dEma200Status: (row['D-EMA-200-Status'] || row[nrIdx.ep] || '').toString(),
+          id: (row['ID'] || row[nrIdx.c] || '').toString(),
+          closePrice: gn(row['CLOSE_PRICE'] || row[nrIdx.e]),
+          resistance: gn(row['RESISTANCE'] || row[nrIdx.di]),
+          support: gn(row['SUPPORT'] || row[nrIdx.dh]),
+          dBreakoutPrice: gn(row['D_BREAKOUT_PRICE'] || row[nrIdx.du]),
+          mlTargetPercent: gn(row['ML_TARGET_PERCENT'] || row[nrIdx.eq]),
+          algoB: gn(row['ALGO_B'] || row[colToIdx('EM')]),
+          algFgPercent: gn(row['ALG_FG_PERCENT'] || row[colToIdx('FI')]),
+          wProjection2: gn(row['W_PROJECTION_2'] || row[colToIdx('FJ')]),
+          wProjection3: 0,
+          algoFG: gn(row['PROJ_FVG'] || row[nrIdx.dj]),
+          algoM: gn(row['ML_FUT_PRICE_20D'] || row[nrIdx.ao]),
+          algoW: gn(row['WOLFE_D'] || row[nrIdx.ar])
+        };
+      };
+
+      nearResistance = currentData.filter(row => {
+        const st = (row['STATUS'] || row[colToIdx('BG')] || '').toString().toUpperCase();
+        const grp = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase();
+        return st === 'BULLISH' && (grp === 'LARGECAP' || grp === 'MIDCAP');
+      }).map(mapStock);
+
+      // --- Support (Reversal) Screener Implementation ---
+      // Query: Price > Support AND Breakout < Support
+      // Sort: EMA200Status (ABOVE first), then mlTargetPercent Decreasing
+      supportReversal = currentData.filter(row => {
+        const gn = (v) => (v === undefined || v === null || v === '' || v.toString().includes('#')) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
+        const cp = gn(row['CLOSE_PRICE'] || row[nrIdx.e]);
+        const sup = gn(row['SUPPORT'] || row[nrIdx.dh]);
+        const brk = gn(row['D_BREAKOUT_PRICE'] || row[nrIdx.du]);
+        return cp > sup && brk < sup;
+      }).map(mapStock).sort((a, b) => {
+        if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
+        if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
+        return b.mlTargetPercent - a.mlTargetPercent;
+      });
+
+      const indexColumns = {
+        'NIFTY 50': 'NIFTY50',
+        'NIFTY BANK': 'NIFTYBANK',
+        'NIFTY IT': 'NIFTYIT',
+        'NIFTY AUTO': 'NIFTYAUTO',
+        'NIFTY PHARMA': 'NIFTYPHARMA',
+        'NIFTY METAL': 'NIFTYMETAL',
+        'NIFTY FMCG': 'NIFTYFMCG',
+        'NIFTY INFRA': 'NIFTYINFRA',
+        'NIFTY PSU BANK': 'NIFTYPSUBANK',
+        'NIFTY PVT BANK': 'NIFTYPVTBANK',
+        'NIFTY CPSE': 'NIFTYCPSE',
+        'NIFTY 500': 'NIFTY500'
+      };
+
+      const indexStocksMap = {};
+      Object.keys(indexColumns).forEach(idx => {
+        indexStocksMap[idx] = { stocks: [], bullish: 0, bearish: 0 };
+      });
+
+      const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
+      const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
+
+      stocksSource.forEach(row => {
+        const stockName = row['STOCK_NAME'] || row[colToIdx('D')];
+        const closePrice = parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0;
+        const stockId = row['ID'] || row[colToIdx('C')] || stockName;
+        const upperRange = parseFloat((row['RESISTANCE'] || row[colToIdx('DI')] || '0').toString().replace(/,/g, '')) || 0;
+        const lowerRange = parseFloat((row['SUPPORT'] || row[colToIdx('DH')] || '0').toString().replace(/,/g, '')) || 0;
+
+        if (!stockName) return;
+
+        const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
+
+        Object.keys(indexColumns).forEach(indexName => {
+          const colName = indexColumns[indexName];
+          const val = row[colName];
+          if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
+            const isBullish = dynamicStatus === 'BULLISH';
+            const isBearish = dynamicStatus === 'BEARISH';
+
+            indexStocksMap[indexName].stocks.push({
+              id: stockId,
+              stockName,
+              price: closePrice,
+              status: dynamicStatus,
+              upperRange,
+              lowerRange
+            });
+
+            if (isBullish) indexStocksMap[indexName].bullish++;
+            if (isBearish) indexStocksMap[indexName].bearish++;
+          }
+        });
+      });
+
+      indexPerformance = Object.keys(indexStocksMap).map(indexName => {
+        const data = indexStocksMap[indexName];
+        const total = data.stocks.length;
+        const strengthScore = total > 0 ? Math.round((data.bullish / total) * 100) : 50;
+        return {
+          name: indexName,
+          stocksCount: total,
+          bullishCount: data.bullish,
+          bearishCount: data.bearish,
+          strengthScore,
+          stocks: data.stocks
+        };
+      }).filter(idx => idx.stocksCount > 0).sort((a, b) => b.strengthScore - a.strengthScore);
+
+      const ms = currentData.filter(row => { const g = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase(); return (g === 'LARGECAP' || g === 'MIDCAP') && (row['STOCK_NAME'] || row[colToIdx('D')]) && row['CHANGE_PERCENT'] !== undefined; }).map(row => ({
+        id: row['ID'] || row[colToIdx('C')] || row['STOCK_NAME'] || row[colToIdx('D')], stockName: row['STOCK_NAME'] || row[colToIdx('D')], changePercent: parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0, closePrice: parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0
+      }));
+      const sorted = [...ms].sort((a, b) => b.changePercent - a.changePercent);
+      topMovers = { topGainers: sorted.filter(s => s.changePercent > 0).slice(0, 10), topLosers: sorted.filter(s => s.changePercent < 0).slice(-10).reverse() };
+    }
   } catch (err) { console.warn('Current fetch failed:', err.message); }
 
   return { marketMood, marketStrength: strengthData, marketPosition, stockData, topMovers, indexPerformance, nearResistance, supportReversal, lastUpdated: new Date().toISOString() };
