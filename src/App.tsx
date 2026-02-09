@@ -17,6 +17,7 @@ import Screeners from "@/pages/Screeners";
 import NearResistance from "@/pages/NearResistance";
 import SupportReversal from "@/pages/SupportReversal";
 import Backtests from "@/pages/Backtests";
+import Admin from "@/pages/Admin";
 import NotFound from "./pages/NotFound";
 import LandingPage from "@/pages/Landing";
 import { startAutoRefresh } from "@/lib/googleSheetsService";
@@ -57,6 +58,7 @@ const AppContent = () => {
         <Route path="/screeners/near-resistance" element={<NearResistance />} />
         <Route path="/screeners/support-reversal" element={<SupportReversal />} />
         <Route path="/backtests" element={<Backtests />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatbot />

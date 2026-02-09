@@ -20,25 +20,22 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
+  // Parse image from either location, prioritizing data if explicit
+  const image = payload.data?.image || payload.notification?.image || '/testingnoti.png';
+
   const notificationTitle = payload.notification?.title || 'LASA Dashboard';
   const notificationOptions = {
     body: payload.notification?.body || 'You have a new notification',
-    icon: '/complogo.png',                          // Company logo
-    badge: '/complogo.png',                         // Company logo
-    image: payload.data?.image || '/testingnoti.png', // Banner image
+    icon: '/complogo.png',
+    badge: '/complogo.png',
+    image: image,
     tag: payload.data?.tag || 'lasa-notification',
     data: payload.data,
     requireInteraction: true,
     actions: [
-      {
-        action: 'open',
-        title: 'Open Dashboard',
-      },
-      {
-        action: 'dismiss',
-        title: 'Dismiss',
-      },
-    ],
+      { action: 'open', title: 'Open Dashboard' },
+      { action: 'dismiss', title: 'Dismiss' }
+    ]
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

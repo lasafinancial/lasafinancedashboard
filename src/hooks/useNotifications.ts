@@ -14,6 +14,7 @@ interface NotificationPayload {
   notification?: {
     title?: string;
     body?: string;
+    image?: string;
   };
   data?: Record<string, string>;
 }
@@ -57,7 +58,7 @@ export function useNotifications() {
         new Notification(payload.notification?.title || 'LASA Dashboard', {
           body: payload.notification?.body,
           icon: '/complogo.png',
-          image: payload.data?.image || '/testingnoti.png',
+          image: payload.data?.image || payload.notification?.image || '/testingnoti.png',
         } as any);
       }
     });

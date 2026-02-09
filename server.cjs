@@ -95,6 +95,7 @@ function parseDateFlexible(dateStr) {
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
@@ -612,7 +613,11 @@ async function fetchData() {
       const status = (row['STATUS'] || '').toString().toUpperCase();
       const group = (row['GROUP'] || '').toString().toUpperCase();
       return status === 'BULLISH' && (group === 'LARGECAP' || group === 'MIDCAP');
-    }).map(mapStock);
+    }).map(mapStock).sort((a, b) => {
+      if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
+      if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
+      return b.mlTargetPercent - a.mlTargetPercent;
+    });
 
     // --- Support (Reversal) Screener Implementation ---
     supportReversal = currentData.filter(row => {
@@ -622,10 +627,11 @@ async function fetchData() {
         if (strVal.includes('#')) return 0;
         return parseFloat(strVal) || 0;
       };
+      const group = (row['GROUP'] || '').toString().toUpperCase();
       const cp = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
       const sup = getNum(row['SUPPORT'] || row[nearResistanceIdx.support]);
       const brk = getNum(row['D_BREAKOUT_PRICE'] || row[nearResistanceIdx.breakout]);
-      return cp > sup && brk < sup;
+      return (group === 'LARGECAP' || group === 'MIDCAP') && cp > sup && brk < sup;
     }).map(mapStock).sort((a, b) => {
       if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
       if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
@@ -1011,6 +1017,94 @@ app.all('/api/send-market-mood', async (req, res) => {
       error: 'Failed to send market mood notification',
       message: error.message
     });
+  }
+});
+
+// --- Admin Broadcast Endpoint (Local) ---
+app.post('/api/admin/send-broadcast', async (req, res) => {
+  const { title, body, image } = req.body;
+  const authHeader = req.headers.authorization;
+  const adminSecret = process.env.ADMIN_SECRET || 'lasa_admin_secret_123';
+
+  if (!authHeader || authHeader !== `Bearer ${adminSecret}`) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid Admin Secret' });
+  }
+
+  if (!title || !body) {
+    return res.status(400).json({ error: 'Title and Body are required' });
+  }
+
+  try {
+    const db = admin.firestore();
+    const tokensSnapshot = await db.collection('fcm_tokens').get();
+
+    const tokens = [];
+    tokensSnapshot.forEach(doc => {
+      if (doc.data().token) tokens.push(doc.data().token);
+    });
+
+    if (tokens.length === 0) {
+      return res.status(200).json({ successCount: 0, failedCount: 0, message: 'No users subscribed.' });
+    }
+
+    let successCount = 0;
+    let failedCount = 0;
+    const invalidTokens = [];
+
+    // Send to each token
+    for (const token of tokens) {
+      try {
+        console.log(`Sending to ${token.slice(0, 10)}... Image: ${image}`); // Debug log
+
+        const message = {
+          token,
+          notification: {
+            title,
+            body,
+            image: image || '/testingnoti.png' // Add here for broader compatibility
+          },
+          data: image ? { image } : {},
+          webpush: {
+            notification: {
+              icon: '/complogo.png',
+              badge: '/complogo.png',
+              image: image || '/testingnoti.png',
+              requireInteraction: true,
+            }
+          }
+        };
+
+        await admin.messaging().send(message);
+        successCount++;
+      } catch (error) {
+        failedCount++;
+        console.error(`Failed to send to ${token.slice(0, 10)}...:`, error.message);
+        if (error.code === 'messaging/registration-token-not-registered' ||
+          error.code === 'messaging/invalid-registration-token') {
+          invalidTokens.push(token);
+        }
+      }
+    }
+
+    // Cleanup invalid tokens
+    if (invalidTokens.length > 0) {
+      const batch = db.batch();
+      invalidTokens.forEach(token => {
+        batch.delete(db.collection('fcm_tokens').doc(token));
+      });
+      await batch.commit();
+    }
+
+    res.json({
+      success: true,
+      successCount,
+      failedCount,
+      sentTo: tokens.length
+    });
+
+  } catch (error) {
+    console.error('Broadcast Error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

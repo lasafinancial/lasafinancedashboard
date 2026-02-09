@@ -41,8 +41,6 @@ const Navbar = () => {
   const navItems = [
     { path: "/", label: "Dashboard", icon: BarChart3 },
     { path: "/stocks", label: "Stock Analysis", icon: Search },
-    { path: "/sectors", label: "Sectors", icon: Grid3X3 },
-    { path: "/multibagger", label: "Multibagger", icon: Rocket },
     { path: "/screeners", label: "Screeners", icon: Filter },
     { path: "/backtests", label: "Backtests", icon: FlaskConical },
   ];
@@ -81,26 +79,29 @@ const Navbar = () => {
                     <div className="absolute top-[calc(100%+5px)] left-0 min-w-[200px] p-2 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover/dropdown:opacity-100 group-hover/dropdown:translate-y-0 group-hover/dropdown:pointer-events-auto transition-all duration-200">
                       <Link
                         to="/screeners/near-resistance"
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item"
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item text-left"
                       >
-                        <div className="p-1.5 rounded-md bg-primary/10 group-hover/item:bg-primary/20 transition-colors">
-                          <Filter className="h-4 w-4 text-primary" />
-                        </div>
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Near Resistance</span>
+                          <span className="text-sm font-semibold">Breakout's</span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Bullish Setups</span>
                         </div>
                       </Link>
                       <Link
                         to="/screeners/support-reversal"
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1"
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
-                        <div className="p-1.5 rounded-md bg-primary/10 group-hover/item:bg-primary/20 transition-colors">
-                          <Filter className="h-4 w-4 text-primary" />
-                        </div>
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Support (Reversal)</span>
+                          <span className="text-sm font-semibold">Reversal's</span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Potential Reversals</span>
+                        </div>
+                      </Link>
+                      <Link
+                        to="/multibagger"
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold">Multibagger</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">High Growth Picks</span>
                         </div>
                       </Link>
                     </div>

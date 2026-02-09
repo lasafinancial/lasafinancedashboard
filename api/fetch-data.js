@@ -316,17 +316,22 @@ async function fetchData() {
         const st = (row['STATUS'] || row[colToIdx('BG')] || '').toString().toUpperCase();
         const grp = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase();
         return st === 'BULLISH' && (grp === 'LARGECAP' || grp === 'MIDCAP');
-      }).map(mapStock);
+      }).map(mapStock).sort((a, b) => {
+        if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
+        if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
+        return b.mlTargetPercent - a.mlTargetPercent;
+      });
 
       // --- Support (Reversal) Screener Implementation ---
       // Query: Price > Support AND Breakout < Support
       // Sort: EMA200Status (ABOVE first), then mlTargetPercent Decreasing
       supportReversal = currentData.filter(row => {
         const gn = (v) => (v === undefined || v === null || v === '' || v.toString().includes('#')) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
+        const group = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase();
         const cp = gn(row['CLOSE_PRICE'] || row[nrIdx.e]);
         const sup = gn(row['SUPPORT'] || row[nrIdx.dh]);
         const brk = gn(row['D_BREAKOUT_PRICE'] || row[nrIdx.du]);
-        return cp > sup && brk < sup;
+        return (group === 'LARGECAP' || group === 'MIDCAP') && cp > sup && brk < sup;
       }).map(mapStock).sort((a, b) => {
         if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
         if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;

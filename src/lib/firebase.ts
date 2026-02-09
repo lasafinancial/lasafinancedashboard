@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 import { getFirestore, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -18,6 +19,9 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore
 const db = getFirestore(app);
+
+// Initialize Storage
+const storage = getStorage(app);
 
 // Initialize Firebase Cloud Messaging
 let messaging: Messaging | null = null;
@@ -41,7 +45,7 @@ export async function requestNotificationPermission(): Promise<string | null> {
   try {
     // Request permission
     const permission = await Notification.requestPermission();
-    
+
     if (permission !== 'granted') {
       console.log('Notification permission denied');
       return null;
@@ -49,7 +53,7 @@ export async function requestNotificationPermission(): Promise<string | null> {
 
     // Register service worker
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    
+
     // Get FCM token
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
@@ -130,4 +134,4 @@ export async function removeTokenFromFirestore(token: string): Promise<boolean> 
   }
 }
 
-export { app, messaging, db };
+export { app, messaging, db, storage };

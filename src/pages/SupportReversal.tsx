@@ -1,6 +1,14 @@
 import { useState, useMemo } from "react";
-import { Search, ArrowUpRight, Target, Loader2, Sparkles, AlertCircle, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, ArrowUpRight, Target, Loader2, Sparkles, AlertCircle, TrendingUp, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
@@ -107,11 +115,63 @@ export function SupportReversal() {
                         <div className="space-y-2">
                             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider w-fit">
                                 <Sparkles className="w-3 h-3" />
-                                Screener: Support (Reversal)
+                                Screener: Reversals
                             </div>
-                            <h1 className="text-3xl font-bold tracking-tight">
-                                Support <span className="gradient-text italic">Reversal</span>
-                            </h1>
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-3xl font-bold tracking-tight">
+                                    Trend <span className="gradient-text italic">Reversals</span>
+                                </h1>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <button className="p-1 rounded-full hover:bg-white/10 transition-colors text-muted-foreground hover:text-primary">
+                                            <Info className="w-5 h-5" />
+                                        </button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-[#0f172a]/95 backdrop-blur-xl border-white/10">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-2xl font-bold gradient-text">Reversal Zone — Stocks Showing Early Turn Signals</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="space-y-4 text-sm text-gray-300 mt-4 leading-relaxed">
+                                            <p>This section highlights stocks that are testing important support or weak zones and showing early signs of a possible reversal.</p>
+
+                                            <p>Our algorithms look for structural exhaustion, loss of downside momentum, and balance shifts to identify areas where selling pressure may be weakening and buyers may start to step in.</p>
+
+                                            <div className="space-y-2">
+                                                <h3 className="text-lg font-semibold text-primary">What this means for traders:</h3>
+                                                <ul className="list-disc pl-5 space-y-1 text-gray-400">
+                                                    <li>These stocks are near support or weak structure levels</li>
+                                                    <li>Downside risk is clearly defined and relatively small</li>
+                                                    <li>Even a modest turn can lead to strong risk-reward opportunities</li>
+                                                </ul>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <h3 className="text-lg font-semibold text-primary">How to trade this section responsibly:</h3>
+                                                <ul className="space-y-2 text-gray-400">
+                                                    <li className="flex gap-2"><span className="text-red-500">📉 Risk control:</span> Place tight stop-loss below support or weak zones. If structure breaks, the reversal thesis is invalid</li>
+                                                    <li className="flex gap-2"><span className="text-emerald-500">📈 Upside potential:</span> If price holds and turns, targets are derived from previous balance areas, resistance zones, or algorithmic levels</li>
+                                                    <li className="flex gap-2"><span>⚖️ Context matters:</span> Always align trades with broader market structure and trend. Reversals work best when the overall market is stable or supportive</li>
+                                                </ul>
+                                            </div>
+
+                                            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 space-y-2">
+                                                <h3 className="font-semibold text-primary flex items-center gap-2">Important note:</h3>
+                                                <p>Not every support hold becomes a reversal. That’s why our system focuses on:</p>
+                                                <ul className="list-disc pl-5 space-y-1 text-gray-400">
+                                                    <li>Location (support / weak zones)</li>
+                                                    <li>Structure confirmation</li>
+                                                    <li>Market context</li>
+                                                </ul>
+                                                <p>to help you avoid catching falling knives and take controlled, asymmetric bets.</p>
+                                            </div>
+
+                                            <div className="pt-2 border-t border-white/10">
+                                                <p className="italic text-gray-400"><span className="font-semibold text-primary">In simple terms:</span> These are stocks at risk of turning. The loss is small if wrong. The payoff can be meaningful if the turn holds.</p>
+                                            </div>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
                             <p className="text-muted-foreground text-sm flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-primary" />
                                 Identifying potential bullish reversals near key support levels.
@@ -147,9 +207,9 @@ export function SupportReversal() {
                         <div className="overflow-auto scroll-smooth h-full custom-scrollbar">
                             <div className="min-w-[1200px] flex flex-col gap-2 relative">
                                 {/* Header */}
-                                <div className="sticky top-0 z-50 bg-[#020617] border-b border-white/10 px-4 py-4 flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider shadow-md">
+                                <div className="sticky top-0 z-50 bg-[#020617] border-b border-white/10 px-3 py-3 md:px-4 md:py-4 flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider shadow-md">
                                     <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("id")}>
-                                        Symbol {sortField === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        Stocks {sortField === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dEma200Status")}>
                                         EMA200 {sortField === "dEma200Status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
@@ -192,12 +252,9 @@ export function SupportReversal() {
                                             className="group"
                                         >
                                             <GlassCard className="p-0 border-white/5 hover:border-primary/30 transition-all duration-300 group-hover:bg-white/[0.03]">
-                                                <div className="flex items-center w-full px-4 py-4">
-                                                    <div className="flex-1 flex items-center gap-3">
-                                                        <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-                                                            <Target className="w-4 h-4 text-primary" />
-                                                        </div>
-                                                        <span className="font-bold tracking-tight">
+                                                <div className="flex items-center w-full px-3 py-3 md:px-4 md:py-4">
+                                                    <div className="flex-1 flex items-center gap-2">
+                                                        <span className="font-bold tracking-tight text-sm md:text-base">
                                                             {stock.id.replace(/\D/g, '') || stock.id.replace(/[\[\]\(\):-]/g, '')}
                                                         </span>
                                                     </div>
