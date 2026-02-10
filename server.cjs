@@ -832,7 +832,7 @@ app.get('/api/multibagger', async (req, res) => {
       const emaStatus = (row[idx.dEma200Status] || '').toString().toUpperCase();
       const rsiVal = parseFloat((row[idx.rsi] || '0').toString().replace(/,/g, '')) || 0;
 
-      return isMbVal >= 2 && signal === 'Y' && emaStatus === 'ABOVE' && rsiVal < 60;
+      return isMbVal >= 2 && signal === 'Y' && emaStatus === 'ABOVE' && rsiVal < 50;
     });
 
     console.log(`Multibagger candidates found: ${mbData.length} (Expected ~214)`);

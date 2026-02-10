@@ -208,11 +208,14 @@ export function SupportReversal() {
                             <div className="min-w-[1200px] flex flex-col gap-2 relative">
                                 {/* Header */}
                                 <div className="sticky top-0 z-50 bg-[#020617] border-b border-white/10 px-3 py-3 md:px-4 md:py-4 flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider shadow-md">
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("id")}>
-                                        Stocks {sortField === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
                                     <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dEma200Status")}>
                                         EMA200 {sortField === "dEma200Status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                    </div>
+                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("mlTargetPercent")}>
+                                        Model % {sortField === "mlTargetPercent" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                    </div>
+                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("id")}>
+                                        Stocks {sortField === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("closePrice")}>
                                         Price {sortField === "closePrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
@@ -225,9 +228,6 @@ export function SupportReversal() {
                                     </div>
                                     <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dBreakoutPrice")}>
                                         Breakout {sortField === "dBreakoutPrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("mlTargetPercent")}>
-                                        Model % {sortField === "mlTargetPercent" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoFG")}>
                                         Algo FG {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
@@ -253,21 +253,21 @@ export function SupportReversal() {
                                         >
                                             <GlassCard className="p-0 border-white/5 hover:border-primary/30 transition-all duration-300 group-hover:bg-white/[0.03]">
                                                 <div className="flex items-center w-full px-3 py-3 md:px-4 md:py-4">
-                                                    <div className="flex-1 flex items-center gap-2">
-                                                        <span className="font-bold tracking-tight text-sm md:text-base">
-                                                            {stock.id.replace(/\D/g, '') || stock.id.replace(/[\[\]\(\):-]/g, '')}
-                                                        </span>
-                                                    </div>
                                                     <div className="flex-1">
                                                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stock.dEma200Status === 'ABOVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                                                             {stock.dEma200Status}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex-1 font-bold text-primary tabular-nums">{formatPercent(stock.mlTargetPercent)}</div>
+                                                    <div className="flex-1 flex items-center gap-2">
+                                                        <span className="font-bold tracking-tight text-sm md:text-base">
+                                                            {stock.id.replace(/\D/g, '') || stock.id.replace(/[\[\]\(\):-]/g, '')}
                                                         </span>
                                                     </div>
                                                     <div className="flex-1 font-semibold tabular-nums text-sm md:text-base">₹{formatNumber(stock.closePrice)}</div>
                                                     <div className="flex-1 text-red-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.resistance)}</div>
                                                     <div className="flex-1 text-emerald-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.support)}</div>
                                                     <div className="flex-1 font-medium tabular-nums text-muted-foreground text-sm md:text-base">₹{formatNumber(stock.dBreakoutPrice)}</div>
-                                                    <div className="flex-1 text-right font-bold text-primary tabular-nums">{formatPercent(stock.mlTargetPercent)}</div>
                                                     <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">{formatNumber(stock.algoFG)}</div>
                                                     <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.algoM)}</div>
                                                     <div className="flex-1 text-right font-medium tabular-nums text-muted-foreground text-sm md:text-base pr-4">₹{formatNumber(stock.algoW)}</div>

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Rocket, TrendingUp, Star, Filter, ArrowUpRight, Target, Loader2, BarChart3, Sparkles, Coins, Info, X } from "lucide-react";
+import { Rocket, TrendingUp, Star, Filter, ArrowUpRight, Target, Loader2, BarChart3, Sparkles, Info, X } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -58,18 +58,7 @@ const formatValueInCr = (value: number) => {
   return `${(value / 10000000).toFixed(1)} Cr`;
 };
 
-const growthData = [
-  { year: "Year 1", value: 1000 },
-  { year: "Year 2", value: 1000 },
-  { year: "Year 3", value: 1333 },
-  { year: "Year 4", value: 1778 },
-  { year: "Year 5", value: 2371 },
-  { year: "Year 6", value: 3162 },
-  { year: "Year 7", value: 4216 },
-  { year: "Year 8", value: 5623 },
-  { year: "Year 9", value: 7498 },
-  { year: "Year 10", value: 10000 },
-];
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -179,7 +168,7 @@ export function Multibagger() {
             </div>
 
             <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Active Positions</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Algorithm-Identified Stocks</p>
               <p className="text-2xl font-bold text-primary tabular-nums">
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : stats.total}
               </p>
@@ -445,91 +434,7 @@ export function Multibagger() {
           )}
         </AnimatePresence>
 
-        {/* Growth Visualization Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mt-16 space-y-6"
-        >
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                Wealth <span className="gradient-text italic pr-1">Projection</span>
-              </h2>
-              <p className="text-sm text-muted-foreground font-medium">
-                10x return trajectory simulation (Year 1 to Year 10)
-              </p>
-            </div>
 
-            <div className="flex items-center gap-4 px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md">
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground font-medium">Initial</p>
-                <p className="text-lg font-bold tabular-nums">₹1,000</p>
-              </div>
-              <div className="w-px h-6 bg-white/10" />
-              <div>
-                <p className="text-xs text-primary font-medium">Year 10</p>
-                <p className="text-lg font-bold text-primary tabular-nums">₹10,000</p>
-              </div>
-            </div>
-          </div>
-
-          <GlassCard
-            className="p-6 h-[350px] border-white/10 relative overflow-hidden group"
-            contentClassName="h-full w-full"
-          >
-            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-              <Coins className="w-24 h-24 text-primary" />
-            </div>
-
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={growthData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis
-                  dataKey="year"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 500 }}
-                  dy={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 500 }}
-                  tickFormatter={(value) => `₹${value}`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                  }}
-                  itemStyle={{ color: 'hsl(var(--primary))', fontWeight: 600, fontSize: '13px' }}
-                  labelStyle={{ color: 'rgba(255,255,255,0.6)', fontWeight: 500, fontSize: '11px', marginBottom: '4px' }}
-                  formatter={(value: number) => [`₹${value.toLocaleString()}`, "Projected Value"]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#growthGradient)"
-                  animationDuration={2000}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </GlassCard>
-        </motion.div>
       </div>
 
       {/* Strategy Info Modal */}
