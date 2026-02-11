@@ -140,7 +140,7 @@ function rowsToObjects(rows) {
 }
 
 async function fetchData() {
-  const gn = (v) => (v === undefined || v === null || v === '' || (typeof v === 'string' && v.includes('#'))) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
+  const getNum = (v) => (v === undefined || v === null || v === '' || (typeof v === 'string' && v.includes('#'))) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
   const credentials = getCredentials();
   const auth = new google.auth.GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
   const sheets = google.sheets({ version: 'v4', auth });
@@ -242,7 +242,7 @@ async function fetchData() {
     if (dateStr === latestDate) resistanceSlopeMap[symbol] = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase() === 'true';
     if (!history[symbol]) history[symbol] = [];
     history[symbol].push({
-      dateObj: rowDate, dateDisplay: formatDate(rowDate), price: gn(row['CLOSE_PRICE'] || row[colToIdx('E')]), rsi: gn(row['RSI'] || row[colToIdx('Q')]), trend: row['DAILY_TREND'] || row[colToIdx('L')] || '', support: gn(row['SUPPORT'] || row[colToIdx('DH')]), resistance: gn(row['RESISTANCE'] || row[colToIdx('DI')]), mlFutPrice20d: gn(row['ML_FUT_PRICE_20D'] || row[colToIdx('EQ')]), wolfeD: gn(row['WOLFE_D'] || row[colToIdx('EF')]), projFvg: gn(row['PROJ_FVG'] || row[colToIdx('EH')]), sector: row['SECTOR'] || row[colToIdx('B')] || ''
+      dateObj: rowDate, dateDisplay: formatDate(rowDate), price: getNum(row['CLOSE_PRICE'] || row[colToIdx('E')]), rsi: getNum(row['RSI'] || row[colToIdx('Q')]), trend: row['DAILY_TREND'] || row[colToIdx('L')] || '', support: getNum(row['SUPPORT'] || row[colToIdx('DH')]), resistance: getNum(row['RESISTANCE'] || row[colToIdx('DI')]), mlFutPrice20d: getNum(row['ML_FUT_PRICE_20D'] || row[colToIdx('EQ')]), wolfeD: getNum(row['WOLFE_D'] || row[colToIdx('EF')]), projFvg: getNum(row['PROJ_FVG'] || row[colToIdx('EH')]), sector: row['SECTOR'] || row[colToIdx('B')] || ''
     });
   });
 
@@ -299,18 +299,18 @@ async function fetchData() {
         return {
           dEma200Status: (row['D-EMA-200-Status'] || row[nrIdx.ep] || '').toString(),
           id: (row['ID'] || row[nrIdx.c] || '').toString(),
-          closePrice: gn(row['CLOSE_PRICE'] || row[nrIdx.e]),
-          resistance: gn(row['RESISTANCE'] || row[nrIdx.di]),
-          support: gn(row['SUPPORT'] || row[nrIdx.dh]),
-          dBreakoutPrice: gn(row['D_BREAKOUT_PRICE'] || row[nrIdx.du]),
-          mlTargetPercent: gn(row['ML_TARGET_PERCENT'] || row[nrIdx.eq]),
-          algoB: gn(row['ALGO_B'] || row[colToIdx('EM')]),
-          algFgPercent: gn(row['ALG_FG_PERCENT'] || row[colToIdx('FI')]),
-          wProjection2: gn(row['W_PROJECTION_2'] || row[colToIdx('FJ')]),
+          closePrice: getNum(row['CLOSE_PRICE'] || row[nrIdx.e]),
+          resistance: getNum(row['RESISTANCE'] || row[nrIdx.di]),
+          support: getNum(row['SUPPORT'] || row[nrIdx.dh]),
+          dBreakoutPrice: getNum(row['D_BREAKOUT_PRICE'] || row[nrIdx.du]),
+          mlTargetPercent: getNum(row['ML_TARGET_PERCENT'] || row[nrIdx.eq]),
+          algoB: getNum(row['ALGO_B'] || row[colToIdx('EM')]),
+          algFgPercent: getNum(row['ALG_FG_PERCENT'] || row[colToIdx('FI')]),
+          wProjection2: getNum(row['W_PROJECTION_2'] || row[colToIdx('FJ')]),
           wProjection3: 0,
-          algoFG: gn(row['PROJ_FVG'] || row[nrIdx.dj]),
-          algoM: gn(row['ML_FUT_PRICE_20D'] || row[nrIdx.ao]),
-          algoW: gn(row['WOLFE_D'] || row[nrIdx.ar])
+          algoFG: getNum(row['PROJ_FVG'] || row[nrIdx.dj]),
+          algoM: getNum(row['ML_FUT_PRICE_20D'] || row[nrIdx.ao]),
+          algoW: getNum(row['WOLFE_D'] || row[nrIdx.ar])
         };
       };
 
@@ -325,13 +325,11 @@ async function fetchData() {
       });
 
       // --- Support (Reversal) Screener Implementation ---
-      // Query: Price > Support AND Breakout < Support
-      // Sort: EMA200Status (ABOVE first), then mlTargetPercent Decreasing
       supportReversal = currentData.filter(row => {
         const group = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase();
-        const cp = gn(row['CLOSE_PRICE'] || row[nrIdx.e]);
-        const sup = gn(row['SUPPORT'] || row[nrIdx.dh]);
-        const brk = gn(row['D_BREAKOUT_PRICE'] || row[nrIdx.du]);
+        const cp = getNum(row['CLOSE_PRICE'] || row[nrIdx.e]);
+        const sup = getNum(row['SUPPORT'] || row[nrIdx.dh]);
+        const brk = getNum(row['D_BREAKOUT_PRICE'] || row[nrIdx.du]);
         return (group === 'LARGECAP' || group === 'MIDCAP') && cp > sup && brk < sup;
       }).map(mapStock).sort((a, b) => {
         if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
@@ -342,10 +340,10 @@ async function fetchData() {
       // --- Start Reaction Zone ---
       reactionZone = currentData.filter(row => {
         const group = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase();
-        const cp = gn(row['CLOSE_PRICE'] || row[nrIdx.e]);
-        const algoFG = gn(row['PROJ_FVG'] || row[nrIdx.dj]);
-        const algoM = gn(row['ML_FUT_PRICE_20D'] || row[nrIdx.ao]);
-        const algoW = gn(row['WOLFE_D'] || row[nrIdx.ar]);
+        const cp = getNum(row['CLOSE_PRICE'] || row[nrIdx.e]);
+        const algoFG = getNum(row['PROJ_FVG'] || row[nrIdx.dj]);
+        const algoM = getNum(row['ML_FUT_PRICE_20D'] || row[nrIdx.ao]);
+        const algoW = getNum(row['WOLFE_D'] || row[nrIdx.ar]);
 
         if (group !== 'LARGECAP' && group !== 'MIDCAP') return false;
 
@@ -436,8 +434,8 @@ async function fetchData() {
   } catch (err) { console.warn('Current fetch failed:', err.message); }
 
   return {
-    marketMood, marketStrength: strengthData, marketPosition,
-    indexPerformance: indexPerformanceData,
+    marketMood, marketStrength: strengthData, marketPosition, stockData, topMovers,
+    indexPerformance,
     nearResistance,
     supportReversal,
     reactionZone, lastUpdated: new Date().toISOString()
