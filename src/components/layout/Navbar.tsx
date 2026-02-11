@@ -46,7 +46,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+    <nav className="sticky top-0 z-[100] border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -93,6 +93,15 @@ const Navbar = () => {
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold">Reversal's</span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Potential Reversals</span>
+                        </div>
+                      </Link>
+                      <Link
+                        to="/screeners/reaction-zone"
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold">Reaction Zone</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Algo Level Proximity</span>
                         </div>
                       </Link>
                       <Link

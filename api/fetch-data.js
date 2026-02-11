@@ -140,6 +140,7 @@ function rowsToObjects(rows) {
 }
 
 async function fetchData() {
+  const gn = (v) => (v === undefined || v === null || v === '' || (typeof v === 'string' && v.includes('#'))) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
   const credentials = getCredentials();
   const auth = new google.auth.GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
   const sheets = google.sheets({ version: 'v4', auth });
@@ -238,7 +239,8 @@ async function fetchData() {
     if (!fullNameMap[symbol]) fullNameMap[symbol] = row['STOCK_NAME'] || symbol;
     if (dateStr === latestDate) resistanceSlopeMap[symbol] = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase() === 'true';
     if (!history[symbol]) history[symbol] = [];
-    const gn = (v) => (v === undefined || v === null || v === '') ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
+    if (dateStr === latestDate) resistanceSlopeMap[symbol] = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase() === 'true';
+    if (!history[symbol]) history[symbol] = [];
     history[symbol].push({
       dateObj: rowDate, dateDisplay: formatDate(rowDate), price: gn(row['CLOSE_PRICE'] || row[colToIdx('E')]), rsi: gn(row['RSI'] || row[colToIdx('Q')]), trend: row['DAILY_TREND'] || row[colToIdx('L')] || '', support: gn(row['SUPPORT'] || row[colToIdx('DH')]), resistance: gn(row['RESISTANCE'] || row[colToIdx('DI')]), mlFutPrice20d: gn(row['ML_FUT_PRICE_20D'] || row[colToIdx('EQ')]), wolfeD: gn(row['WOLFE_D'] || row[colToIdx('EF')]), projFvg: gn(row['PROJ_FVG'] || row[colToIdx('EH')]), sector: row['SECTOR'] || row[colToIdx('B')] || ''
     });
@@ -255,6 +257,7 @@ async function fetchData() {
   let indexPerformance = [];
   let nearResistance = [];
   let supportReversal = [];
+  let reactionZone = [];
 
   try {
     const currentRes = await sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FJ" });
@@ -293,7 +296,6 @@ async function fetchData() {
       const nrIdx = { ep: colToIdx('EP'), c: colToIdx('C'), e: colToIdx('E'), di: colToIdx('DI'), dh: colToIdx('DH'), du: colToIdx('DU'), eq: colToIdx('EQ'), dj: colToIdx('DJ'), ao: colToIdx('AO'), ar: colToIdx('AR') };
 
       const mapStock = (row) => {
-        const gn = (v) => (v === undefined || v === null || v === '' || v.toString().includes('#')) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
         return {
           dEma200Status: (row['D-EMA-200-Status'] || row[nrIdx.ep] || '').toString(),
           id: (row['ID'] || row[nrIdx.c] || '').toString(),
@@ -326,7 +328,6 @@ async function fetchData() {
       // Query: Price > Support AND Breakout < Support
       // Sort: EMA200Status (ABOVE first), then mlTargetPercent Decreasing
       supportReversal = currentData.filter(row => {
-        const gn = (v) => (v === undefined || v === null || v === '' || v.toString().includes('#')) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
         const group = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase();
         const cp = gn(row['CLOSE_PRICE'] || row[nrIdx.e]);
         const sup = gn(row['SUPPORT'] || row[nrIdx.dh]);
@@ -337,6 +338,24 @@ async function fetchData() {
         if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
         return b.mlTargetPercent - a.mlTargetPercent;
       });
+
+      // --- Start Reaction Zone ---
+      reactionZone = currentData.filter(row => {
+        const group = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase();
+        const cp = gn(row['CLOSE_PRICE'] || row[nrIdx.e]);
+        const algoFG = gn(row['PROJ_FVG'] || row[nrIdx.dj]);
+        const algoM = gn(row['ML_FUT_PRICE_20D'] || row[nrIdx.ao]);
+        const algoW = gn(row['WOLFE_D'] || row[nrIdx.ar]);
+
+        if (group !== 'LARGECAP' && group !== 'MIDCAP') return false;
+
+        const nearFG = algoFG > 0 && Math.abs(cp - algoFG) <= (algoFG * 0.01);
+        const nearM = algoM > 0 && Math.abs(cp - algoM) <= (algoM * 0.01);
+        const nearW = algoW > 0 && Math.abs(cp - algoW) <= (algoW * 0.01);
+
+        return nearFG || nearM || nearW;
+      }).map(mapStock).sort((a, b) => b.mlTargetPercent - a.mlTargetPercent);
+      // --- End Reaction Zone ---
 
       const indexColumns = {
         'NIFTY 50': 'NIFTY50',
@@ -416,7 +435,13 @@ async function fetchData() {
     }
   } catch (err) { console.warn('Current fetch failed:', err.message); }
 
-  return { marketMood, marketStrength: strengthData, marketPosition, stockData, topMovers, indexPerformance, nearResistance, supportReversal, lastUpdated: new Date().toISOString() };
+  return {
+    marketMood, marketStrength: strengthData, marketPosition,
+    indexPerformance: indexPerformanceData,
+    nearResistance,
+    supportReversal,
+    reactionZone, lastUpdated: new Date().toISOString()
+  };
 }
 
 export default async function handler(req, res) {

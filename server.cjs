@@ -298,6 +298,13 @@ function rowsToObjects(rows) {
 }
 
 async function fetchData() {
+  const getNum = (val) => {
+    if (val === undefined || val === null || val === '') return 0;
+    const strVal = val.toString().replace(/,/g, '');
+    if (strVal.includes('#')) return 0;
+    return parseFloat(strVal) || 0;
+  };
+
   console.log('Fetching live data from Google Sheets...');
   const credentials = getCredentials();
 
@@ -520,6 +527,7 @@ async function fetchData() {
   let indexPerformance = [];
   let nearResistance = [];
   let supportReversal = [];
+  let reactionZone = [];
   try {
     const currentRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
@@ -582,13 +590,6 @@ async function fetchData() {
     };
 
     const mapStock = (row) => {
-      const getNum = (val) => {
-        if (val === undefined || val === null || val === '') return 0;
-        const strVal = val.toString().replace(/,/g, '');
-        if (strVal.includes('#')) return 0;
-        return parseFloat(strVal) || 0;
-      };
-
       const closePrice = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
 
       return {
@@ -621,12 +622,6 @@ async function fetchData() {
 
     // --- Support (Reversal) Screener Implementation ---
     supportReversal = currentData.filter(row => {
-      const getNum = (val) => {
-        if (val === undefined || val === null || val === '') return 0;
-        const strVal = val.toString().replace(/,/g, '');
-        if (strVal.includes('#')) return 0;
-        return parseFloat(strVal) || 0;
-      };
       const group = (row['GROUP'] || '').toString().toUpperCase();
       const cp = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
       const sup = getNum(row['SUPPORT'] || row[nearResistanceIdx.support]);
@@ -638,6 +633,24 @@ async function fetchData() {
       return b.mlTargetPercent - a.mlTargetPercent;
     });
     // --- End Near Resistance ---
+
+    // --- Start Reaction Zone ---
+    reactionZone = currentData.filter(row => {
+      const group = (row['GROUP'] || '').toString().toUpperCase();
+      const cp = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
+      const algoFG = getNum(row['PROJ_FVG'] || row[nearResistanceIdx.algoFG]);
+      const algoM = getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]);
+      const algoW = getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW]);
+
+      if (group !== 'LARGECAP' && group !== 'MIDCAP') return false;
+
+      const nearFG = algoFG > 0 && Math.abs(cp - algoFG) <= (algoFG * 0.01);
+      const nearM = algoM > 0 && Math.abs(cp - algoM) <= (algoM * 0.01);
+      const nearW = algoW > 0 && Math.abs(cp - algoW) <= (algoW * 0.01);
+
+      return nearFG || nearM || nearW;
+    }).map(mapStock).sort((a, b) => b.mlTargetPercent - a.mlTargetPercent);
+    // --- End Reaction Zone ---
 
     const indexColumns = {
       'NIFTY 50': 'NIFTY50',
@@ -742,6 +755,7 @@ async function fetchData() {
     indexPerformance,
     nearResistance,
     supportReversal,
+    reactionZone,
     lastUpdated: new Date().toISOString()
   };
 }

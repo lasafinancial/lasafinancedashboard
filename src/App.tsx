@@ -16,6 +16,7 @@ import Multibagger from "@/pages/Multibagger";
 import Screeners from "@/pages/Screeners";
 import NearResistance from "@/pages/NearResistance";
 import SupportReversal from "@/pages/SupportReversal";
+import ReactionZone from "@/pages/ReactionZone";
 import Backtests from "@/pages/Backtests";
 import Admin from "@/pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -57,6 +58,7 @@ const AppContent = () => {
         <Route path="/screeners" element={<Screeners />} />
         <Route path="/screeners/near-resistance" element={<NearResistance />} />
         <Route path="/screeners/support-reversal" element={<SupportReversal />} />
+        <Route path="/screeners/reaction-zone" element={<ReactionZone />} />
         <Route path="/backtests" element={<Backtests />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<NotFound />} />

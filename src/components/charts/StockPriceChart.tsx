@@ -143,12 +143,12 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-0.5 bg-[#f59e0b] rounded" />
-              <span className="text-muted-foreground">ML 20D</span>
+              <span className="text-muted-foreground">Model</span>
               {localHovered && <span className="font-mono font-semibold text-[#f59e0b]">{localHovered.model?.toLocaleString() ?? '-'}</span>}
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-0.5 bg-[#8b5cf6] rounded" />
-              <span className="text-muted-foreground">Wolfe</span>
+              <span className="text-muted-foreground">Pattern</span>
               {localHovered && <span className="font-mono font-semibold text-[#8b5cf6]">{localHovered.pattern?.toLocaleString() ?? '-'}</span>}
             </div>
             <div className="flex items-center gap-1.5">
@@ -186,12 +186,12 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-0.5 bg-[#f59e0b] rounded" />
-              <span className="text-muted-foreground">ML 20D</span>
+              <span className="text-muted-foreground">Model</span>
               {localHovered && <span className="font-mono font-semibold text-[#f59e0b]">{localHovered.model?.toLocaleString() ?? '-'}</span>}
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-0.5 bg-[#8b5cf6] rounded" />
-              <span className="text-muted-foreground">Wolfe</span>
+              <span className="text-muted-foreground">Pattern</span>
               {localHovered && <span className="font-mono font-semibold text-[#8b5cf6]">{localHovered.pattern?.toLocaleString() ?? '-'}</span>}
             </div>
             <div className="flex items-center gap-1.5">
@@ -293,7 +293,7 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
             <Line
               type="monotone"
               dataKey="model"
-              name="ML 20D"
+              name="Model"
               stroke="#f59e0b"
               strokeWidth={1.5}
               dot={false}
@@ -304,7 +304,7 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
             <Line
               type="monotone"
               dataKey="wolfeD"
-              name="Wolfe"
+              name="Pattern"
               stroke="#8b5cf6"
               strokeWidth={1.5}
               dot={false}

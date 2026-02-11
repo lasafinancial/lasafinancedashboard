@@ -81,8 +81,9 @@ export interface GoogleSheetsData {
   stockData: StockData[];
   topMovers: TopMoversData;
   indexPerformance: any[];
-  nearResistance: NearResistanceStock[];
-  supportReversal: NearResistanceStock[];
+  nearResistance?: any[];
+  supportReversal?: any[];
+  reactionZone?: any[];
   lastUpdated: string;
 }
 

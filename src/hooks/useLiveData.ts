@@ -22,6 +22,7 @@ export function useLiveData() {
   const [indexPerformance, setIndexPerformance] = useState<any[]>([]);
   const [nearResistance, setNearResistance] = useState<any[]>([]);
   const [supportReversal, setSupportReversal] = useState<any[]>([]);
+  const [reactionZone, setReactionZone] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
 
@@ -35,6 +36,7 @@ export function useLiveData() {
       setIndexPerformance(data.indexPerformance || []);
       setNearResistance(data.nearResistance || []);
       setSupportReversal(data.supportReversal || []);
+      setReactionZone(data.reactionZone || []);
       setLastUpdate(new Date().toLocaleTimeString());
       setIsLoading(false);
     });
@@ -57,6 +59,7 @@ export function useLiveData() {
     indexPerformance,
     nearResistance,
     supportReversal,
+    reactionZone,
     isLoading,
     lastUpdate,
     refresh: refreshAllData
