@@ -293,7 +293,7 @@ async function fetchData() {
       }
 
       // --- Near Resistance Screener Implementation ---
-      const nrIdx = { ep: colToIdx('EP'), c: colToIdx('C'), e: colToIdx('E'), di: colToIdx('DI'), dh: colToIdx('DH'), du: colToIdx('DU'), eq: colToIdx('EQ'), dj: colToIdx('DJ'), ao: colToIdx('AO'), ar: colToIdx('AR') };
+      const nrIdx = { ep: colToIdx('EP'), c: colToIdx('C'), e: colToIdx('E'), di: colToIdx('DI'), dh: colToIdx('DH'), du: colToIdx('DU'), eq: colToIdx('EQ'), dj: colToIdx('DJ'), ao: colToIdx('AO'), ar: colToIdx('AR'), cpIdx: colToIdx('BR') };
 
       const mapStock = (row) => {
         return {
@@ -310,7 +310,8 @@ async function fetchData() {
           wProjection3: 0,
           algoFG: getNum(row['PROJ_FVG'] || row[nrIdx.dj]),
           algoM: getNum(row['ML_FUT_PRICE_20D'] || row[nrIdx.ao]),
-          algoW: getNum(row['WOLFE_D'] || row[nrIdx.ar])
+          algoW: getNum(row['WOLFE_D'] || row[nrIdx.ar]),
+          changePercent: getNum(row['CHANGE_PERCENT'] || row[nrIdx.cpIdx])
         };
       };
 

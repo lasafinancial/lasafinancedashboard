@@ -586,7 +586,8 @@ async function fetchData() {
       wProjection2: colToIdx('FJ'),
       algoFG: colToIdx('DJ'),
       algoM: colToIdx('AO'),
-      algoW: colToIdx('AR')
+      algoW: colToIdx('AR'),
+      changePercent: colToIdx('BR')
     };
 
     const mapStock = (row) => {
@@ -606,7 +607,8 @@ async function fetchData() {
         wProjection3: 0,
         algoFG: getNum(row['PROJ_FVG'] || row[nearResistanceIdx.algoFG]),
         algoM: getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]),
-        algoW: getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW])
+        algoW: getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW]),
+        changePercent: getNum(row['CHANGE_PERCENT'] || row[nearResistanceIdx.changePercent])
       };
     };
 

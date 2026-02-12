@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, TrendingUp, Activity, TrendingDown, Loader2, Info, X } from "lucide-react";
+import { Search, TrendingUp, Activity, TrendingDown, Loader2, Info, X, Youtube } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StockPriceChart from "@/components/charts/StockPriceChart";
@@ -26,6 +26,7 @@ const StockAnalysis = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [hoveredChartData, setHoveredChartData] = useState<HoveredData | null>(null);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Helper for fuzzy matching and normalization
@@ -210,6 +211,15 @@ const StockAnalysis = () => {
               >
                 <Info className="w-4 h-4 text-primary/70 group-hover:text-primary transition-colors" />
               </button>
+
+              <button
+                onClick={() => setShowVideoModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+                title="Watch Explanation Video"
+              >
+                <Youtube className="w-4 h-4 text-red-500 transition-colors" />
+                <span className="text-xs font-semibold text-red-500/90 group-hover:text-red-500 transition-colors uppercase tracking-wider">Explanation Video</span>
+              </button>
             </div>
             <p className="text-muted-foreground">Historical charts and data from lasa-master</p>
           </div>
@@ -324,7 +334,7 @@ const StockAnalysis = () => {
 
         {/* Chart */}
         <div className="mb-6 animate-fade-in-up-delay-2">
-          <StockPriceChart data={chartData} onHover={setHoveredChartData} />
+          <StockPriceChart data={chartData} onHover={setHoveredChartData} symbol={currentStock?.symbol} />
         </div>
 
         {/* Data Table */}
@@ -367,7 +377,7 @@ const StockAnalysis = () => {
                   Every day, our multimodal algorithms scan the top 500 stocks and generate price references using different analytical approaches:
                 </p>
                 <ul className="text-sm text-muted-foreground leading-relaxed list-disc list-inside ml-2 space-y-1">
-                  <li><span className="text-primary font-medium">Modal Target</span> – derived from machine-learning models</li>
+                  <li><span className="text-primary font-medium">Model</span> – derived from machine-learning models</li>
                   <li><span className="text-primary font-medium">Balance</span> – based on market balance and price equilibrium</li>
                   <li><span className="text-primary font-medium">Patterns</span> – identified using chart-pattern recognition</li>
                 </ul>
@@ -393,6 +403,50 @@ const StockAnalysis = () => {
                   All price projections are for informational purposes only. This tool does not provide trading or investment advice. Please consult your financial advisor before making any trading decisions.
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Modal */}
+      {showVideoModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          onClick={() => setShowVideoModal(false)}
+        >
+          <div
+            className="relative w-full max-w-4xl bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Youtube className="w-5 h-5 text-red-500" />
+                <h3 className="text-lg font-semibold text-foreground">Explanation Video</h3>
+              </div>
+              <button
+                onClick={() => setShowVideoModal(false)}
+                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="aspect-video w-full bg-black">
+              {/* Replace VIDEO_ID with the actual ID from your boss */}
+              <iframe
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/mT8WUACEckE?autoplay=1"
+                title="Explanation Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              ></iframe>
+            </div>
+
+            <div className="p-4 bg-primary/5 border-t border-white/10">
+              <p className="text-sm text-muted-foreground text-center italic">
+                Learn how to interpret our algorithmic price structures and trading zones.
+              </p>
             </div>
           </div>
         </div>

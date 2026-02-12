@@ -65,6 +65,7 @@ export interface NearResistanceStock {
   support: number;
   dBreakoutPrice: number;
   mlTargetPercent: number;
+  changePercent?: number;
   algoB: number;
   algFgPercent: number;
   wProjection2: number;

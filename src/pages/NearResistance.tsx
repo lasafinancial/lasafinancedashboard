@@ -159,7 +159,7 @@ export function NearResistance() {
                                                 <ul className="space-y-2 text-gray-400">
                                                     <li className="flex gap-2"><span className="text-emerald-500">📈 Upside:</span> If resistance breaks, price can expand quickly toward higher algorithmic targets</li>
                                                     <li className="flex gap-2"><span className="text-red-500">🛑 Risk control:</span> Always place stop-loss near support or weak structure levels</li>
-                                                    <li className="flex gap-2"><span>⚖️ Balance check:</span> Review the balance / equilibrium points identified by our algorithms. These zones indicate where price may pause, consolidate, or retest</li>
+                                                    <li className="flex gap-2"><span>⚖️ Balance check:</span> Review the Balance / equilibrium points identified by our algorithms. These zones indicate where price may pause, consolidate, or retest</li>
                                                 </ul>
                                             </div>
 
@@ -239,13 +239,13 @@ export function NearResistance() {
                                         Breakout {sortField === "dBreakoutPrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoFG")}>
-                                        Algo FG {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        Balance {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoM")}>
-                                        Algo M {sortField === "algoM" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        Model {sortField === "algoM" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 text-right pr-4 cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoW")}>
-                                        Algo W {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        Pattern {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-[0.5]"></div>
                                 </div>

@@ -15,6 +15,7 @@ interface HoveredData {
 interface StockPriceChartProps {
   data?: any[];
   onHover?: (data: HoveredData | null) => void;
+  symbol?: string;
 }
 
 const CustomDot = (props: any) => {
@@ -43,23 +44,30 @@ const calculateRollingMedian = (values: number[], index: number, windowSize: num
   return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
-const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
+const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) => {
   const [localHovered, setLocalHovered] = useState<HoveredData | null>(null);
 
   const chartData = useMemo(() => {
     const mlValues = data.map(d => d.mlFutPrice20d);
+    let lastWolfeD: number | null = null;
+    let lastProjFvg: number | null = null;
+
     return data.map((d, i) => {
       const { wolfeD: rawWolfe, projFvg: rawProjFvg, ...rest } = d;
+
+      if (rawWolfe && rawWolfe !== 0) {
+        lastWolfeD = rawWolfe;
+      }
+      if (rawProjFvg && rawProjFvg !== 0) {
+        lastProjFvg = rawProjFvg;
+      }
+
       const result: any = {
         ...rest,
         model: calculateRollingMedian(mlValues, i, 10),
+        wolfeD: lastWolfeD,
+        projFvg: lastProjFvg,
       };
-      if (rawWolfe && rawWolfe !== 0) {
-        result.wolfeD = rawWolfe;
-      }
-      if (rawProjFvg && rawProjFvg !== 0) {
-        result.projFvg = rawProjFvg;
-      }
       return result;
     });
   }, [data]);
@@ -122,6 +130,12 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
           <div className="hidden md:flex items-center gap-4 text-xs">
             {localHovered && (
               <div className="flex items-center gap-2 mr-4 px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full">
+                {symbol && (
+                  <>
+                    <span className="font-mono font-bold text-primary">{symbol}</span>
+                    <div className="w-px h-3 bg-primary/30 mx-1" />
+                  </>
+                )}
                 <span className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Date</span>
                 <span className="font-mono font-bold text-cyan-400">{localHovered.date}</span>
               </div>
@@ -163,6 +177,12 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
           {localHovered && (
             <div className="flex items-center gap-2 pb-2 border-b border-border/50">
               <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full flex items-center gap-2">
+                {symbol && (
+                  <>
+                    <span className="font-mono font-bold text-primary">{symbol}</span>
+                    <div className="w-px h-3 bg-primary/30 mx-1" />
+                  </>
+                )}
                 <span className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Date</span>
                 <span className="font-mono font-bold text-cyan-400">{localHovered.date}</span>
               </div>
@@ -213,6 +233,10 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
             onClick={handleClick}
           >
             <defs>
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
               <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="hsl(var(--chart-primary))" stopOpacity={0.3} />
                 <stop offset="100%" stopColor="hsl(var(--chart-primary))" stopOpacity={0} />
@@ -264,6 +288,7 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
               stroke="hsl(var(--chart-primary))"
               strokeWidth={3}
               dot={<CustomDot />}
+              filter="url(#glow)"
               activeDot={{
                 r: 6,
                 fill: 'hsl(var(--chart-primary))',
@@ -276,28 +301,31 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
               type="monotone"
               dataKey="support"
               name="Support"
-              stroke="#ef4444"
-              strokeWidth={1.5}
+              stroke="#ff4d4d"
+              strokeWidth={2}
               dot={false}
+              filter="url(#glow)"
             />
 
             <Line
               type="monotone"
               dataKey="resistance"
               name="Resistance"
-              stroke="#22c55e"
-              strokeWidth={1.5}
+              stroke="#00ff88"
+              strokeWidth={2}
               dot={false}
+              filter="url(#glow)"
             />
 
             <Line
               type="monotone"
               dataKey="model"
               name="Model"
-              stroke="#f59e0b"
-              strokeWidth={1.5}
+              stroke="#fbbf24"
+              strokeWidth={2}
               dot={false}
               strokeDasharray="3 3"
+              filter="url(#glow)"
               connectNulls
             />
 
@@ -305,20 +333,23 @@ const StockPriceChart = ({ data = [], onHover }: StockPriceChartProps) => {
               type="monotone"
               dataKey="wolfeD"
               name="Pattern"
-              stroke="#8b5cf6"
-              strokeWidth={1.5}
+              stroke="#a855f7"
+              strokeWidth={2}
               dot={false}
               strokeDasharray="3 3"
+              filter="url(#glow)"
+              connectNulls
             />
 
             <Line
               type="monotone"
               dataKey="projFvg"
               name="Balance"
-              stroke="#ec4899"
-              strokeWidth={1.5}
+              stroke="#f472b6"
+              strokeWidth={2}
               dot={false}
               strokeDasharray="3 3"
+              filter="url(#glow)"
               connectNulls
             />
           </ComposedChart>

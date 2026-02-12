@@ -149,7 +149,7 @@ export function SupportReversal() {
                                                 <h3 className="text-lg font-semibold text-primary">How to trade this section responsibly:</h3>
                                                 <ul className="space-y-2 text-gray-400">
                                                     <li className="flex gap-2"><span className="text-red-500">📉 Risk control:</span> Place tight stop-loss below support or weak zones. If structure breaks, the reversal thesis is invalid</li>
-                                                    <li className="flex gap-2"><span className="text-emerald-500">📈 Upside potential:</span> If price holds and turns, targets are derived from previous balance areas, resistance zones, or algorithmic levels</li>
+                                                    <li className="flex gap-2"><span className="text-emerald-500">📈 Upside potential:</span> If price holds and turns, targets are derived from previous Balance areas, resistance zones, or algorithmic levels</li>
                                                     <li className="flex gap-2"><span>⚖️ Context matters:</span> Always align trades with broader market structure and trend. Reversals work best when the overall market is stable or supportive</li>
                                                 </ul>
                                             </div>
@@ -230,13 +230,13 @@ export function SupportReversal() {
                                         Breakout {sortField === "dBreakoutPrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoFG")}>
-                                        Algo FG {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        Balance {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoM")}>
-                                        Algo M {sortField === "algoM" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        Model {sortField === "algoM" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 text-right pr-4 cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoW")}>
-                                        Algo W {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        Pattern {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-[0.5]"></div>
                                 </div>

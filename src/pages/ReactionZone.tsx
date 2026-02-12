@@ -72,7 +72,7 @@ export function ReactionZone() {
                 "closePrice",
                 "resistance",
                 "support",
-                "dBreakoutPrice",
+                "changePercent",
                 "algoFG",
                 "algoM",
                 "algoW"
@@ -84,6 +84,8 @@ export function ReactionZone() {
                 let dir = field === sortField ? sortDirection : "asc";
                 // Secondary sort for ML Target % should be descending by default
                 if (field === "mlTargetPercent" && field !== sortField) dir = "desc";
+                // Secondary sort for Change % should also be descending by default
+                if (field === "changePercent" && field !== sortField) dir = "desc";
 
                 const result = compareBy(field, dir);
                 if (result !== 0) return result;
@@ -132,16 +134,16 @@ export function ReactionZone() {
                                             <DialogTitle className="text-2xl font-bold gradient-text">Reaction Zone — Trading at Key Levels</DialogTitle>
                                         </DialogHeader>
                                         <div className="space-y-4 text-sm text-gray-300 mt-4 leading-relaxed">
-                                            <p>This screener identifies stocks that are trading in close proximity (±1%) to key algorithmic levels: Algo FG, Algo M, or Algo W.</p>
+                                            <p>This screener identifies stocks that are trading in close proximity (±1%) to key algorithmic levels: Balance, Model, or Pattern.</p>
 
                                             <p>These levels often act as significant support or resistance, where price action tends to react strongly. Trading near these zones offers defined risk and high reward potential.</p>
 
                                             <div className="space-y-2">
                                                 <h3 className="text-lg font-semibold text-primary">Key Levels Monitored:</h3>
                                                 <ul className="list-disc pl-5 space-y-1 text-gray-400">
-                                                    <li><span className="text-white font-medium">Algo FG:</span> Fibonacci/Gann confluence level</li>
-                                                    <li><span className="text-white font-medium">Algo M:</span> Monthly pivotal level</li>
-                                                    <li><span className="text-white font-medium">Algo W:</span> Weekly pivotal level</li>
+                                                    <li><span className="text-white font-medium">Balance:</span> Fibonacci/Gann confluence level</li>
+                                                    <li><span className="text-white font-medium">Model:</span> Monthly pivotal level</li>
+                                                    <li><span className="text-white font-medium">Pattern:</span> Weekly pivotal level</li>
                                                 </ul>
                                             </div>
 
@@ -206,17 +208,17 @@ export function ReactionZone() {
                                     <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("support")}>
                                         Support {sortField === "support" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dBreakoutPrice")}>
-                                        Breakout {sortField === "dBreakoutPrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("changePercent")}>
+                                        Change % {sortField === "changePercent" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoFG")}>
-                                        Algo FG {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        Balance {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoM")}>
-                                        Algo M {sortField === "algoM" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        Model {sortField === "algoM" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 text-right pr-4 cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoW")}>
-                                        Algo W {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        Pattern {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-[0.5]"></div>
                                 </div>
@@ -247,7 +249,9 @@ export function ReactionZone() {
                                                     <div className="flex-1 font-semibold tabular-nums text-sm md:text-base">₹{formatNumber(stock.closePrice)}</div>
                                                     <div className="flex-1 text-red-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.resistance)}</div>
                                                     <div className="flex-1 text-emerald-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.support)}</div>
-                                                    <div className="flex-1 font-medium tabular-nums text-muted-foreground text-sm md:text-base">₹{formatNumber(stock.dBreakoutPrice)}</div>
+                                                    <div className={`flex-1 font-medium tabular-nums text-sm md:text-base ${(stock.changePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                        {formatPercent(stock.changePercent ?? 0)}
+                                                    </div>
                                                     <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">{formatNumber(stock.algoFG)}</div>
                                                     <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.algoM)}</div>
                                                     <div className="flex-1 text-right font-medium tabular-nums text-muted-foreground text-sm md:text-base pr-4">₹{formatNumber(stock.algoW)}</div>
