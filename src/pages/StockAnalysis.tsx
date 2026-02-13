@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, TrendingUp, Activity, TrendingDown, Loader2, Info, X, Youtube } from "lucide-react";
+import { Search, TrendingUp, Activity, TrendingDown, Loader2, Info, X, PlayCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StockPriceChart from "@/components/charts/StockPriceChart";
@@ -177,6 +177,20 @@ const StockAnalysis = () => {
   );
   const chartData = currentStock?.history || [];
 
+  const calculatedTrend = useMemo(() => {
+    const history = currentStock?.history || [];
+    if (history.length >= 5) {
+      const latest = history[history.length - 1];
+      const prev = history[history.length - 5];
+      const isSupportIncreasing = latest.support > prev.support;
+      const isResistanceDecreasing = latest.resistance < prev.resistance;
+
+      if (isSupportIncreasing) return "UPTREND";
+      if (isResistanceDecreasing) return "DOWNTREND";
+    }
+    return "NEUTRAL";
+  }, [currentStock]);
+
   if (isLoading || stocksData.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -214,11 +228,11 @@ const StockAnalysis = () => {
 
               <button
                 onClick={() => setShowVideoModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(239,68,68,0.1)]"
-                title="Watch Explanation Video"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(var(--primary),0.1)]"
+                title="Watch Interactive Demo"
               >
-                <Youtube className="w-4 h-4 text-red-500 transition-colors" />
-                <span className="text-xs font-semibold text-red-500/90 group-hover:text-red-500 transition-colors uppercase tracking-wider">Explanation Video</span>
+                <PlayCircle className="w-4 h-4 text-primary transition-colors" />
+                <span className="text-xs font-semibold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Interactive Demo</span>
               </button>
             </div>
             <p className="text-muted-foreground">Historical charts and data from lasa-master</p>
@@ -247,27 +261,50 @@ const StockAnalysis = () => {
               />
               {showSuggestions && searchSuggestions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border/50 rounded-lg shadow-xl z-50 overflow-hidden max-h-[320px] overflow-y-auto">
-                  {searchSuggestions.map((stock, index) => (
-                    <button
-                      key={stock.symbol}
-                      onClick={() => handleSelectSuggestion(stock.symbol)}
-                      className="w-full px-4 py-3 text-left hover:bg-accent/50 transition-colors flex items-center gap-3 border-b border-border/20 last:border-b-0"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-primary">{stock.symbol.slice(0, 2).toUpperCase()}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{stock.name}</p>
-                        <p className="text-xs text-muted-foreground">{stock.sector}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-mono text-sm font-medium">₹{stock.price?.toLocaleString()}</p>
-                        <p className={`text-xs ${stock.trend === 'UPTREND' ? 'text-success' : stock.trend === 'DOWNTREND' ? 'text-destructive' : 'text-warning'}`}>
-                          {stock.trend}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
+                  {searchSuggestions.map((stock, index) => {
+                    // Custom trend calculation based on Support/Resistance slopes
+                    let trendLabel = stock.trend;
+                    const history = stock.history || [];
+
+                    if (history.length >= 5) {
+                      const latest = history[history.length - 1];
+                      const prev = history[history.length - 5];
+
+                      // Logic: support increasing (uptrend) or resistance decreasing (downtrend)
+                      const isSupportIncreasing = latest.support > prev.support;
+                      const isResistanceDecreasing = latest.resistance < prev.resistance;
+
+                      if (isSupportIncreasing) {
+                        trendLabel = "UPTREND";
+                      } else if (isResistanceDecreasing) {
+                        trendLabel = "DOWNTREND";
+                      } else {
+                        trendLabel = "NEUTRAL";
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={stock.symbol}
+                        onClick={() => handleSelectSuggestion(stock.symbol)}
+                        className="w-full px-4 py-3 text-left hover:bg-accent/50 transition-colors flex items-center gap-3 border-b border-border/20 last:border-b-0"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <span className="text-xs font-bold text-primary">{stock.symbol.slice(0, 2).toUpperCase()}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{stock.name}</p>
+                          <p className="text-xs text-muted-foreground">{stock.sector}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-mono text-sm font-medium">₹{stock.price?.toLocaleString()}</p>
+                          <p className={`text-[10px] font-bold tracking-wider ${trendLabel === 'UPTREND' ? 'text-success' : trendLabel === 'DOWNTREND' ? 'text-destructive' : 'text-warning'}`}>
+                            {trendLabel}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -299,12 +336,24 @@ const StockAnalysis = () => {
         <div className="glass-card p-4 mb-6 animate-fade-in-up-delay-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row items-center gap-6 lg:gap-10">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg shrink-0 ${currentStock?.resistanceSlopeDownward ? 'bg-destructive/10' : 'bg-success/10'}`}>
-                {currentStock?.resistanceSlopeDownward ? (
+              <div className={`p-2 rounded-lg shrink-0 ${calculatedTrend === 'UPTREND' ? 'bg-success/10' : calculatedTrend === 'DOWNTREND' ? 'bg-destructive/10' : 'bg-warning/10'}`}>
+                {calculatedTrend === 'DOWNTREND' ? (
                   <TrendingDown className="w-5 h-5 text-destructive" />
                 ) : (
                   <TrendingUp className="w-5 h-5 text-success" />
                 )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Market Trend</p>
+                <p className={`text-lg font-black truncate ${calculatedTrend === 'UPTREND' ? 'text-success' : calculatedTrend === 'DOWNTREND' ? 'text-destructive' : 'text-warning'}`}>
+                  {calculatedTrend}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                <Activity className="w-5 h-5 text-primary" />
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Current Price</p>
@@ -420,8 +469,8 @@ const StockAnalysis = () => {
           >
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <div className="flex items-center gap-2">
-                <Youtube className="w-5 h-5 text-red-500" />
-                <h3 className="text-lg font-semibold text-foreground">Explanation Video</h3>
+                <PlayCircle className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold text-foreground">Interactive Explanation</h3>
               </div>
               <button
                 onClick={() => setShowVideoModal(false)}
@@ -431,16 +480,18 @@ const StockAnalysis = () => {
               </button>
             </div>
 
-            <div className="aspect-video w-full bg-black">
-              {/* Replace VIDEO_ID with the actual ID from your boss */}
-              <iframe
-                className="w-full h-full"
-                src="https://www.youtube.com/embed/mT8WUACEckE?autoplay=1"
-                title="Explanation Video"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              ></iframe>
+            <div className="w-full bg-black">
+              <div style={{ position: 'relative', paddingBottom: 'calc(49.21875% + 41px)', height: '0', width: '100%' }}>
+                <iframe
+                  src="https://demo.arcade.software/YxBonSv5aApOBxZpdUSf?embed&embed_mobile=tab&embed_desktop=inline&show_copy_link=true"
+                  title="Analyze a stock using Price Movement and Strength Zone charts"
+                  frameBorder="0"
+                  loading="lazy"
+                  allowFullScreen
+                  allow="clipboard-write"
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', colorScheme: 'light' }}
+                />
+              </div>
             </div>
 
             <div className="p-4 bg-primary/5 border-t border-white/10">

@@ -281,7 +281,6 @@ function rowsToObjects(rows) {
   const headers = rows[0].map(h => (h || '').toString().trim());
   return rows.slice(1).map(row => {
     const obj = {};
-    // Store row length for bounds checking if needed, but not strictly necessary here
     row.forEach((val, i) => {
       obj[i] = val !== undefined ? val : null; // Numeric index access
     });
@@ -290,9 +289,9 @@ function rowsToObjects(rows) {
         obj[header] = row[i] !== undefined ? row[i] : null;
       }
     });
-    // Fallback status/group mapping if headers aren't correct
-    if (obj[58] !== undefined && !obj['STATUS']) obj['STATUS'] = obj[58];
-    if (obj[18] !== undefined && !obj['GROUP']) obj['GROUP'] = obj[18];
+    // Normalize commonly used fields with fallback indexes
+    if (obj[colToIdx('BG')] !== undefined && !obj['STATUS']) obj['STATUS'] = obj[colToIdx('BG')];
+    if (obj[colToIdx('S')] !== undefined && !obj['GROUP']) obj['GROUP'] = obj[colToIdx('S')];
     return obj;
   });
 }
@@ -608,7 +607,7 @@ async function fetchData() {
         algoFG: getNum(row['PROJ_FVG'] || row[nearResistanceIdx.algoFG]),
         algoM: getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]),
         algoW: getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW]),
-        changePercent: getNum(row['CHANGE_PERCENT'] || row[nearResistanceIdx.changePercent])
+        changePercent: getNum(row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')])
       };
     };
 
@@ -731,10 +730,10 @@ async function fetchData() {
         return group === 'LARGECAP' || group === 'MIDCAP';
       })
       .map(row => ({
-        id: row['ID'] || row['STOCK_NAME'],
-        stockName: row['STOCK_NAME'],
-        changePercent: parseFloat((row['CHANGE_PERCENT'] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
-        closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0
+        id: row['ID'] || row[colToIdx('C')] || row['STOCK_NAME'] || row[colToIdx('D')],
+        stockName: row['STOCK_NAME'] || row[colToIdx('D')],
+        changePercent: parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
+        closePrice: parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0
       }))
       .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
 

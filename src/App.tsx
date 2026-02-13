@@ -22,13 +22,20 @@ import Admin from "@/pages/Admin";
 import NotFound from "./pages/NotFound";
 import LandingPage from "@/pages/Landing";
 import { startAutoRefresh } from "@/lib/googleSheetsService";
+import { OnboardingModal } from "@/components/ui/OnboardingModal";
 
 
+
+import { SplashScreen } from "@/components/ui/SplashScreen";
+import { useLiveData } from "@/hooks/useLiveData";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const [showLanding, setShowLanding] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const { isLoading } = useLiveData();
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
     const hasEntered = sessionStorage.getItem("hasEntered");
@@ -38,17 +45,59 @@ const AppContent = () => {
     startAutoRefresh();
   }, []);
 
+  // Handle progress simulation when loading starts
+  useEffect(() => {
+    if (!showLanding && isLoading) {
+      setLoadingProgress(0);
+      const interval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev >= 95) return prev;
+          // Slowly approach 95%
+          const increment = Math.max(0.5, (95 - prev) / 20);
+          return prev + increment;
+        });
+      }, 100);
+      return () => clearInterval(interval);
+    } else if (!isLoading) {
+      setLoadingProgress(100);
+    }
+  }, [showLanding, isLoading]);
+
   const handleEnter = () => {
     setShowLanding(false);
     sessionStorage.setItem("hasEntered", "true");
+
+    // Check if onboarding is needed in this session
+    const hasSeenOnboarding = sessionStorage.getItem("hasSeenOnboarding");
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    sessionStorage.setItem("hasSeenOnboarding", "true");
+    // Notify other components that onboarding is finished
+    window.dispatchEvent(new CustomEvent("onboardingComplete"));
   };
 
   if (showLanding) {
     return <LandingPage onEnter={handleEnter} />;
   }
 
+  // Show splash screen if live data is still loading after entering
+  // We allow a small delay for the 100% state to be visible before transitioning
+  if (isLoading || loadingProgress < 100) {
+    return <SplashScreen progress={loadingProgress} />;
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onOpenChange={setShowOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
       <Navbar />
       <Routes>
         <Route path="/" element={<Dashboard />} />

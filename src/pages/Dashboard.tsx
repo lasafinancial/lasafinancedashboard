@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Landmark, Factory, ShoppingBag, HardHat, TrendingUp, TrendingDown, Minus, Boxes, Sparkles, AlertTriangle, BarChart3 } from "lucide-react";
+import { Landmark, Factory, ShoppingBag, HardHat, TrendingUp, TrendingDown, Minus, Boxes, Sparkles, AlertTriangle, BarChart3, PlayCircle, X } from "lucide-react";
 import { InfoModal, InfoModalTrigger, useInfoModal } from "@/components/ui/InfoModal";
 import MarketStrengthMeter from "@/components/charts/MarketStrengthMeter";
 import MLStrengthMeter from "@/components/charts/MLStrengthMeter";
@@ -45,12 +45,24 @@ const Dashboard = () => {
   const { topMovers } = useTopMovers();
   const { marketStrength: liveMarketStrength, marketMood: liveMarketMood } = useLiveData();
   const { showModal: showMarketMoodModal, openModal: openMarketMoodModal, closeModal: closeMarketMoodModal } = useInfoModal();
+  const [showExpVideo, setShowExpVideo] = useState(false);
 
   useEffect(() => {
-    const disclaimerAccepted = sessionStorage.getItem('disclaimerAccepted');
-    if (!disclaimerAccepted) {
-      setShowDisclaimer(true);
-    }
+    const checkDisclaimer = () => {
+      const disclaimerAccepted = sessionStorage.getItem('disclaimerAccepted');
+      const hasSeenOnboarding = sessionStorage.getItem("hasSeenOnboarding");
+
+      // Only show disclaimer if NOT accepted and HAS seen onboarding
+      if (!disclaimerAccepted && hasSeenOnboarding) {
+        setShowDisclaimer(true);
+      }
+    };
+
+    checkDisclaimer();
+
+    // Listen for the event from App.tsx
+    window.addEventListener("onboardingComplete", checkDisclaimer);
+    return () => window.removeEventListener("onboardingComplete", checkDisclaimer);
   }, []);
 
   const handleAcceptDisclaimer = () => {
@@ -138,9 +150,19 @@ const Dashboard = () => {
               <Sparkles className="w-3 h-3" />
               Decision Support Analytics Platform
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-none">
-              Market <span className="gradient-text italic pr-2">Overview</span>
-            </h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-none">
+                Market <span className="gradient-text italic pr-2">Overview</span>
+              </h1>
+              <button
+                onClick={() => setShowExpVideo(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(var(--primary),0.1)]"
+                title="Watch Explainer Video"
+              >
+                <PlayCircle className="w-5 h-5 text-primary transition-colors group-hover:scale-110" />
+                <span className="text-xs font-bold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Explainer video</span>
+              </button>
+            </div>
             <p className="text-sm text-muted-foreground max-w-2xl font-medium leading-relaxed">
               Precision analytics and real-time indicators for professional market monitoring.
             </p>
@@ -345,6 +367,48 @@ const Dashboard = () => {
           <InteractiveHero />
         </div>
       </div>
+      {/* Dashboard Explainer Video Modal */}
+      {showExpVideo && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
+          onClick={() => setShowExpVideo(false)}
+        >
+          <div
+            className="relative w-full max-w-4xl bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-muted/30">
+              <div className="flex items-center gap-3 font-semibold text-foreground">
+                <PlayCircle className="w-5 h-5 text-primary" />
+                <span>Dashboard Explainer Video</span>
+              </div>
+              <button
+                onClick={() => setShowExpVideo(false)}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="aspect-video w-full bg-black flex items-center justify-center">
+              <iframe
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/OhyQgntUPIU?autoplay=1"
+                title="Dashboard Explainer Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              ></iframe>
+            </div>
+
+            <div className="p-4 bg-muted/20 border-t border-white/10">
+              <p className="text-xs text-muted-foreground text-center font-medium italic">
+                Get a quick overview of our proprietary dashboard analytics, market mood indicators, and precision screeners.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

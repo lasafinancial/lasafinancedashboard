@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   subscribeToData,
   refreshAllData,
+  getCachedData,
   TopMoversData,
   MarketPositionData,
   GoogleSheetsData
@@ -14,16 +15,18 @@ import staticTopMovers from '../data/processed/top_movers.json';
 import staticMarketPosition from '../data/processed/market_position.json';
 
 export function useLiveData() {
-  const [stockData, setStockData] = useState<any[]>(Array.isArray(staticStockData) ? staticStockData : []);
-  const [marketMood, setMarketMood] = useState<any>(staticMarketMood);
-  const [marketStrength, setMarketStrength] = useState<any[]>(staticMarketStrength);
-  const [topMovers, setTopMovers] = useState<TopMoversData>(staticTopMovers as unknown as TopMoversData);
-  const [marketPosition, setMarketPosition] = useState<MarketPositionData | null>(staticMarketPosition as unknown as MarketPositionData);
-  const [indexPerformance, setIndexPerformance] = useState<any[]>([]);
-  const [nearResistance, setNearResistance] = useState<any[]>([]);
-  const [supportReversal, setSupportReversal] = useState<any[]>([]);
-  const [reactionZone, setReactionZone] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cached = getCachedData();
+
+  const [stockData, setStockData] = useState<any[]>(cached ? cached.stockData : (Array.isArray(staticStockData) ? staticStockData : []));
+  const [marketMood, setMarketMood] = useState<any>(cached ? cached.marketMood : staticMarketMood);
+  const [marketStrength, setMarketStrength] = useState<any[]>(cached ? cached.marketStrength : staticMarketStrength);
+  const [topMovers, setTopMovers] = useState<TopMoversData>(cached ? cached.topMovers : (staticTopMovers as unknown as TopMoversData));
+  const [marketPosition, setMarketPosition] = useState<MarketPositionData | null>(cached ? cached.marketPosition : (staticMarketPosition as unknown as MarketPositionData));
+  const [indexPerformance, setIndexPerformance] = useState<any[]>(cached ? cached.indexPerformance || [] : []);
+  const [nearResistance, setNearResistance] = useState<any[]>(cached ? cached.nearResistance || [] : []);
+  const [supportReversal, setSupportReversal] = useState<any[]>(cached ? cached.supportReversal || [] : []);
+  const [reactionZone, setReactionZone] = useState<any[]>(cached ? cached.reactionZone || [] : []);
+  const [isLoading, setIsLoading] = useState(!cached);
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
 
   useEffect(() => {

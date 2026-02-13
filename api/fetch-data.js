@@ -133,14 +133,16 @@ function rowsToObjects(rows) {
     const obj = {};
     row.forEach((val, i) => { obj[i] = val !== undefined ? val : null; });
     headers.forEach((header, i) => { if (header) obj[header] = row[i] !== undefined ? row[i] : null; });
+    // Normalize commonly used fields with fallback indexes
     if (obj[colToIdx('BG')] !== undefined && !obj['STATUS']) obj['STATUS'] = obj[colToIdx('BG')];
     if (obj[colToIdx('S')] !== undefined && !obj['GROUP']) obj['GROUP'] = obj[colToIdx('S')];
     return obj;
   });
 }
 
+const getNum = (v) => (v === undefined || v === null || v === '' || (typeof v === 'string' && v.includes('#'))) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
+
 async function fetchData() {
-  const getNum = (v) => (v === undefined || v === null || v === '' || (typeof v === 'string' && v.includes('#'))) ? 0 : parseFloat(v.toString().replace(/,/g, '')) || 0;
   const credentials = getCredentials();
   const auth = new google.auth.GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
   const sheets = google.sheets({ version: 'v4', auth });
@@ -239,10 +241,18 @@ async function fetchData() {
     if (!fullNameMap[symbol]) fullNameMap[symbol] = row['STOCK_NAME'] || symbol;
     if (dateStr === latestDate) resistanceSlopeMap[symbol] = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase() === 'true';
     if (!history[symbol]) history[symbol] = [];
-    if (dateStr === latestDate) resistanceSlopeMap[symbol] = (row['RESISTANCE_SLOPE_DOWNWARD'] || '').toString().toLowerCase() === 'true';
-    if (!history[symbol]) history[symbol] = [];
     history[symbol].push({
-      dateObj: rowDate, dateDisplay: formatDate(rowDate), price: getNum(row['CLOSE_PRICE'] || row[colToIdx('E')]), rsi: getNum(row['RSI'] || row[colToIdx('Q')]), trend: row['DAILY_TREND'] || row[colToIdx('L')] || '', support: getNum(row['SUPPORT'] || row[colToIdx('DH')]), resistance: getNum(row['RESISTANCE'] || row[colToIdx('DI')]), mlFutPrice20d: getNum(row['ML_FUT_PRICE_20D'] || row[colToIdx('EQ')]), wolfeD: getNum(row['WOLFE_D'] || row[colToIdx('EF')]), projFvg: getNum(row['PROJ_FVG'] || row[colToIdx('EH')]), sector: row['SECTOR'] || row[colToIdx('B')] || ''
+      dateObj: rowDate,
+      dateDisplay: formatDate(rowDate),
+      price: getNum(row['CLOSE_PRICE'] || row[colToIdx('E')]),
+      rsi: getNum(row['RSI'] || row[colToIdx('Q')]),
+      trend: row['DAILY_TREND'] || row[colToIdx('L')] || '',
+      support: getNum(row['SUPPORT'] || row[colToIdx('DH')]),
+      resistance: getNum(row['RESISTANCE'] || row[colToIdx('DI')]),
+      mlFutPrice20d: getNum(row['ML_FUT_PRICE_20D'] || row[colToIdx('EQ')]),
+      wolfeD: getNum(row['WOLFE_D'] || row[colToIdx('EF')]),
+      projFvg: getNum(row['PROJ_FVG'] || row[colToIdx('EH')]),
+      sector: row['SECTOR'] || row[colToIdx('B')] || ''
     });
   });
 
@@ -311,7 +321,7 @@ async function fetchData() {
           algoFG: getNum(row['PROJ_FVG'] || row[nrIdx.dj]),
           algoM: getNum(row['ML_FUT_PRICE_20D'] || row[nrIdx.ao]),
           algoW: getNum(row['WOLFE_D'] || row[nrIdx.ar]),
-          changePercent: getNum(row['CHANGE_PERCENT'] || row[nrIdx.cpIdx])
+          changePercent: getNum(row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')])
         };
       };
 
@@ -426,8 +436,14 @@ async function fetchData() {
         };
       }).filter(idx => idx.stocksCount > 0).sort((a, b) => b.strengthScore - a.strengthScore);
 
-      const ms = currentData.filter(row => { const g = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase(); return (g === 'LARGECAP' || g === 'MIDCAP') && (row['STOCK_NAME'] || row[colToIdx('D')]) && row['CHANGE_PERCENT'] !== undefined; }).map(row => ({
-        id: row['ID'] || row[colToIdx('C')] || row['STOCK_NAME'] || row[colToIdx('D')], stockName: row['STOCK_NAME'] || row[colToIdx('D')], changePercent: parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0, closePrice: parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0
+      const ms = currentData.filter(row => {
+        const g = (row['GROUP'] || row[colToIdx('S')] || '').toString().toUpperCase();
+        return (g === 'LARGECAP' || g === 'MIDCAP') && (row['STOCK_NAME'] || row[colToIdx('D')]) && row['CHANGE_PERCENT'] !== undefined;
+      }).map(row => ({
+        id: row['ID'] || row[colToIdx('C')] || row['STOCK_NAME'] || row[colToIdx('D')],
+        stockName: row['STOCK_NAME'] || row[colToIdx('D')],
+        changePercent: parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
+        closePrice: parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0
       }));
       const sorted = [...ms].sort((a, b) => b.changePercent - a.changePercent);
       topMovers = { topGainers: sorted.filter(s => s.changePercent > 0).slice(0, 10), topLosers: sorted.filter(s => s.changePercent < 0).slice(-10).reverse() };
