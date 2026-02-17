@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, ArrowUpRight, Target, Loader2, Sparkles, AlertCircle, TrendingUp, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { Search, ArrowUpRight, Target, Loader2, Sparkles, AlertCircle, TrendingUp, ChevronDown, ChevronUp, Info, PlayCircle, X } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import {
     Dialog,
@@ -23,6 +23,7 @@ export function NearResistance() {
     const [searchTerm, setSearchTerm] = useState("");
     const [sortField, setSortField] = useState<SortField>("dEma200Status");
     const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+    const [showVideoModal, setShowVideoModal] = useState(false);
 
     const formatNumber = (num: number) => {
         if (num === null || num === undefined) return "N/A";
@@ -180,6 +181,14 @@ export function NearResistance() {
                                         </div>
                                     </DialogContent>
                                 </Dialog>
+                                <button
+                                    onClick={() => setShowVideoModal(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all duration-200 group"
+                                    title="Watch Explanation Video"
+                                >
+                                    <PlayCircle className="w-4 h-4 text-primary transition-colors" />
+                                    <span className="text-xs font-semibold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Explanation Video</span>
+                                </button>
                             </div>
                             <p className="text-muted-foreground text-sm flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -200,105 +209,152 @@ export function NearResistance() {
                     </div>
                 </motion.div>
 
-                {isLoading ? (
-                    <div className="flex flex-col items-center justify-center min-h-[400px]">
-                        <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                        <p className="mt-4 text-sm text-muted-foreground">Analyzing market levels...</p>
-                    </div>
-                ) : processedStocks.length === 0 ? (
-                    <div className="text-center py-20 bg-white/[0.02] border border-dashed border-white/10 rounded-2xl">
-                        <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold mb-1">No stocks found</h3>
-                        <p className="text-sm text-muted-foreground">Try adjusting your search or check back later.</p>
-                    </div>
-                ) : (
-                    <div className="flex flex-col h-[calc(100vh-280px)] bg-white/[0.01] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-                        <div className="overflow-auto scroll-smooth h-full custom-scrollbar">
-                            <div className="min-w-[1200px] flex flex-col gap-2 relative">
-                                {/* Header */}
-                                <div className="sticky top-0 z-50 bg-[#020617] border-b border-white/10 px-3 py-3 md:px-4 md:py-4 flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider shadow-md">
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dEma200Status")}>
-                                        EMA200 {sortField === "dEma200Status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                {
+                    isLoading ? (
+                        <div className="flex flex-col items-center justify-center min-h-[400px]">
+                            <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                            <p className="mt-4 text-sm text-muted-foreground">Analyzing market levels...</p>
+                        </div>
+                    ) : processedStocks.length === 0 ? (
+                        <div className="text-center py-20 bg-white/[0.02] border border-dashed border-white/10 rounded-2xl">
+                            <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold mb-1">No stocks found</h3>
+                            <p className="text-sm text-muted-foreground">Try adjusting your search or check back later.</p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col h-[calc(100vh-280px)] bg-white/[0.01] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+                            <div className="overflow-auto scroll-smooth h-full custom-scrollbar">
+                                <div className="min-w-[1200px] flex flex-col gap-2 relative">
+                                    {/* Header */}
+                                    <div className="sticky top-0 z-50 bg-[#020617] border-b border-white/10 px-3 py-3 md:px-4 md:py-4 flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider shadow-md">
+                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dEma200Status")}>
+                                            EMA200 {sortField === "dEma200Status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        </div>
+                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("mlTargetPercent")}>
+                                            Model % {sortField === "mlTargetPercent" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        </div>
+                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("id")}>
+                                            Stocks {sortField === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        </div>
+                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("closePrice")}>
+                                            Price {sortField === "closePrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        </div>
+                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("resistance")}>
+                                            Resistance {sortField === "resistance" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        </div>
+                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("support")}>
+                                            Support {sortField === "support" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        </div>
+                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dBreakoutPrice")}>
+                                            Breakout {sortField === "dBreakoutPrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        </div>
+                                        <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoFG")}>
+                                            Balance {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        </div>
+                                        <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoM")}>
+                                            Model {sortField === "algoM" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        </div>
+                                        <div className="flex-1 text-right pr-4 cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoW")}>
+                                            Pattern {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        </div>
+                                        <div className="flex-[0.5]"></div>
                                     </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("mlTargetPercent")}>
-                                        Model % {sortField === "mlTargetPercent" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("id")}>
-                                        Stocks {sortField === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("closePrice")}>
-                                        Price {sortField === "closePrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("resistance")}>
-                                        Resistance {sortField === "resistance" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("support")}>
-                                        Support {sortField === "support" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dBreakoutPrice")}>
-                                        Breakout {sortField === "dBreakoutPrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoFG")}>
-                                        Balance {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoM")}>
-                                        Model {sortField === "algoM" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 text-right pr-4 cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoW")}>
-                                        Pattern {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-[0.5]"></div>
-                                </div>
 
-                                {/* Rows */}
-                                <div className="flex flex-col gap-2 p-2">
-                                    {processedStocks.map((stock) => (
-                                        <motion.div
-                                            layout
-                                            initial={{ opacity: 0, scale: 0.98 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            key={stock.id}
-                                            className="group"
-                                        >
-                                            <GlassCard className="p-0 border-white/5 hover:border-primary/30 transition-all duration-300 group-hover:bg-white/[0.03]">
-                                                <div className="flex items-center w-full px-3 py-3 md:px-4 md:py-4">
-                                                    <div className="flex-1">
-                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stock.dEma200Status === 'ABOVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
-                                                            {stock.dEma200Status}
-                                                        </span>
+                                    {/* Rows */}
+                                    <div className="flex flex-col gap-2 p-2">
+                                        {processedStocks.map((stock) => (
+                                            <motion.div
+                                                layout
+                                                initial={{ opacity: 0, scale: 0.98 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                key={stock.id}
+                                                className="group"
+                                            >
+                                                <GlassCard className="p-0 border-white/5 hover:border-primary/30 transition-all duration-300 group-hover:bg-white/[0.03]">
+                                                    <div className="flex items-center w-full px-3 py-3 md:px-4 md:py-4">
+                                                        <div className="flex-1">
+                                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stock.dEma200Status === 'ABOVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                                                {stock.dEma200Status}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex-1 font-bold text-primary tabular-nums">{formatPercent(stock.mlTargetPercent)}</div>
+                                                        <div className="flex-1 flex items-center gap-2">
+                                                            <span className="font-bold tracking-tight text-sm md:text-base">
+                                                                {stock.id.replace(/\D/g, '') || stock.id.replace(/[\[\]\(\):-]/g, '')}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex-1 font-semibold tabular-nums text-sm md:text-base">₹{formatNumber(stock.closePrice)}</div>
+                                                        <div className="flex-1 text-red-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.resistance)}</div>
+                                                        <div className="flex-1 text-emerald-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.support)}</div>
+                                                        <div className="flex-1 font-medium tabular-nums text-muted-foreground text-sm md:text-base">₹{formatNumber(stock.dBreakoutPrice)}</div>
+                                                        <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">{formatNumber(stock.algoFG)}</div>
+                                                        <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.algoM)}</div>
+                                                        <div className="flex-1 text-right font-medium tabular-nums text-muted-foreground text-sm md:text-base pr-4">₹{formatNumber(stock.algoW)}</div>
+                                                        <div className="flex-[0.5] flex justify-end">
+                                                            <button
+                                                                onClick={() => handleStockClick(stock.id)}
+                                                                className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all group-hover:scale-110"
+                                                            >
+                                                                <ArrowUpRight className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-1 font-bold text-primary tabular-nums">{formatPercent(stock.mlTargetPercent)}</div>
-                                                    <div className="flex-1 flex items-center gap-2">
-                                                        <span className="font-bold tracking-tight text-sm md:text-base">
-                                                            {stock.id.replace(/\D/g, '') || stock.id.replace(/[\[\]\(\):-]/g, '')}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex-1 font-semibold tabular-nums text-sm md:text-base">₹{formatNumber(stock.closePrice)}</div>
-                                                    <div className="flex-1 text-red-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.resistance)}</div>
-                                                    <div className="flex-1 text-emerald-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.support)}</div>
-                                                    <div className="flex-1 font-medium tabular-nums text-muted-foreground text-sm md:text-base">₹{formatNumber(stock.dBreakoutPrice)}</div>
-                                                    <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">{formatNumber(stock.algoFG)}</div>
-                                                    <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.algoM)}</div>
-                                                    <div className="flex-1 text-right font-medium tabular-nums text-muted-foreground text-sm md:text-base pr-4">₹{formatNumber(stock.algoW)}</div>
-                                                    <div className="flex-[0.5] flex justify-end">
-                                                        <button
-                                                            onClick={() => handleStockClick(stock.id)}
-                                                            className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all group-hover:scale-110"
-                                                        >
-                                                            <ArrowUpRight className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </GlassCard>
-                                        </motion.div>
-                                    ))}
+                                                </GlassCard>
+                                            </motion.div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    )
+                }
+            </div >
+
+            {/* Video Modal */}
+            {
+                showVideoModal && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+                        onClick={() => setShowVideoModal(false)}
+                    >
+                        <div
+                            className="relative w-full max-w-4xl bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between p-4 border-b border-white/10">
+                                <div className="flex items-center gap-2">
+                                    <PlayCircle className="w-5 h-5 text-primary" />
+                                    <h3 className="text-lg font-semibold text-foreground">Breakout Screener Explanation</h3>
+                                </div>
+                                <button
+                                    onClick={() => setShowVideoModal(false)}
+                                    className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-muted-foreground" />
+                                </button>
+                            </div>
+
+                            <div className="w-full aspect-video bg-black">
+                                <iframe
+                                    src="https://www.youtube.com/embed/c4tnign5f_Y?autoplay=1"
+                                    title="Breakout Screener Explanation Video"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                    className="w-full h-full"
+                                />
+                            </div>
+
+                            <div className="p-4 bg-primary/5 border-t border-white/10">
+                                <p className="text-sm text-muted-foreground text-center italic">
+                                    Learn how to identify and trade high-probability breakout setups.
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                )}
-            </div>
-        </div>
+                )
+            }
+        </div >
     );
 }
 
