@@ -15,7 +15,7 @@ const Sectors = () => {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchRef = useRef<HTMLDivElement>(null);
-  
+
   const availableSectors = Object.keys(sectorData);
 
   const handleStockClick = (symbol: string) => {
@@ -25,18 +25,18 @@ const Sectors = () => {
   // Generate prediction list once
   const allSearchableTerms = useMemo(() => {
     const terms: Suggestion[] = [];
-    
+
     // Sectors
     Object.keys(sectorData).forEach(sector => {
       terms.push({ text: sector, type: 'sector' });
     });
-    
+
     // Stocks and Symbols
     stocks.forEach(stock => {
       terms.push({ text: stock.name, type: 'stock' });
       terms.push({ text: stock.symbol, type: 'symbol' });
     });
-    
+
     // Remove duplicates (e.g. if name is same as symbol)
     return terms.filter((v, i, a) => a.findIndex(t => t.text === v.text) === i);
   }, []);
@@ -68,7 +68,8 @@ const Sectors = () => {
   // Click outside to close suggestions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (document.body.contains(target) && searchRef.current && !searchRef.current.contains(target)) {
         setShowSuggestions(false);
       }
     };
@@ -125,9 +126,9 @@ const Sectors = () => {
   const filteredSectorConfig = availableSectors.map((name, index) => {
     const stocksInSector = sectorData[name as keyof typeof sectorData];
     const matchesSector = name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const filteredStocks = stocksInSector.filter(stock => 
-      stock.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+
+    const filteredStocks = stocksInSector.filter(stock =>
+      stock.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -205,19 +206,17 @@ const Sectors = () => {
                   {suggestions.map((item, index) => (
                     <button
                       key={index}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                        index === selectedIndex ? "bg-primary/10 text-primary" : "hover:bg-primary/5 text-foreground"
-                      }`}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${index === selectedIndex ? "bg-primary/10 text-primary" : "hover:bg-primary/5 text-foreground"
+                        }`}
                       onClick={() => {
                         setSearchQuery(item.text);
                         setShowSuggestions(false);
                       }}
                     >
                       <div className="flex items-center gap-3">
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          item.type === 'sector' ? 'bg-cyan-500' : 
-                          item.type === 'symbol' ? 'bg-purple-500' : 'bg-emerald-500'
-                        }`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${item.type === 'sector' ? 'bg-cyan-500' :
+                            item.type === 'symbol' ? 'bg-purple-500' : 'bg-emerald-500'
+                          }`} />
                         <span className="font-medium">{item.text}</span>
                         <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded uppercase text-muted-foreground">
                           {item.type}
@@ -236,21 +235,21 @@ const Sectors = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredSectorConfig.length > 0 ? (
             filteredSectorConfig.map((sector, sectorIndex) => (
-              <div 
-                key={sector.name} 
+              <div
+                key={sector.name}
                 className={`glass-card overflow-hidden animate-fade-in-up flex flex-col`}
                 style={{ animationDelay: `${sectorIndex * 100}ms` }}
               >
                 {/* Sector Header */}
-                <div 
+                <div
                   className={`p-3 md:p-4 border-b border-border/50 bg-gradient-to-r ${sector.gradient}`}
                 >
                   <div className="flex items-center gap-4">
-                    <div 
+                    <div
                       className="p-2.5 rounded-xl shrink-0"
-                      style={{ 
+                      style={{
                         backgroundColor: `${sector.color}20`,
-                        color: sector.color 
+                        color: sector.color
                       }}
                     >
                       {sector.icon}
@@ -282,11 +281,11 @@ const Sectors = () => {
                 {/* Stock Rows */}
                 <div className="divide-y divide-border/30 overflow-hidden">
                   {sector.stocks.map((stock, index) => (
-                      <div 
-                        key={stock.symbol}
-                        className="grid grid-cols-3 gap-2 px-4 md:px-6 py-2 hover:bg-muted/20 transition-colors cursor-pointer group"
-                        onClick={() => handleStockClick(stock.symbol)}
-                      >
+                    <div
+                      key={stock.symbol}
+                      className="grid grid-cols-3 gap-2 px-4 md:px-6 py-2 hover:bg-muted/20 transition-colors cursor-pointer group"
+                      onClick={() => handleStockClick(stock.symbol)}
+                    >
                       <div className="min-w-0">
                         <p className="font-medium text-xs md:text-sm group-hover:text-primary transition-colors truncate">
                           {stock.name}
@@ -313,7 +312,7 @@ const Sectors = () => {
           ) : (
             <div className="col-span-full py-20 text-center glass-card">
               <p className="text-muted-foreground text-lg">No sectors or stocks found matching "{searchQuery}"</p>
-              <button 
+              <button
                 onClick={() => setSearchQuery("")}
                 className="mt-4 text-primary font-bold hover:underline"
               >

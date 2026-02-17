@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 import LandingPage from "@/pages/Landing";
 import { startAutoRefresh } from "@/lib/googleSheetsService";
 import { OnboardingModal } from "@/components/ui/OnboardingModal";
+import { CountrySelectionModal, type CountryId } from "@/components/ui/CountrySelectionModal";
 
 
 
@@ -34,6 +35,8 @@ const queryClient = new QueryClient();
 const AppContent = () => {
   const [showLanding, setShowLanding] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showCountrySelection, setShowCountrySelection] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<CountryId | null>(null);
   const { isLoading } = useLiveData();
   const [loadingProgress, setLoadingProgress] = useState(0);
 
@@ -42,6 +45,13 @@ const AppContent = () => {
     if (hasEntered) {
       setShowLanding(false);
     }
+
+    // Load saved country selection
+    const savedCountry = localStorage.getItem("selectedCountry") as CountryId | null;
+    if (savedCountry) {
+      setSelectedCountry(savedCountry);
+    }
+
     startAutoRefresh();
   }, []);
 
@@ -77,8 +87,28 @@ const AppContent = () => {
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
     sessionStorage.setItem("hasSeenOnboarding", "true");
+
+    // Check if country is already selected
+    if (!selectedCountry) {
+      setShowCountrySelection(true);
+    } else {
+      // Notify other components that onboarding is finished
+      window.dispatchEvent(new CustomEvent("onboardingComplete"));
+    }
+  };
+
+  const handleCountrySelect = (countryId: CountryId) => {
+    setSelectedCountry(countryId);
+    localStorage.setItem("selectedCountry", countryId);
+    setShowCountrySelection(false);
     // Notify other components that onboarding is finished
     window.dispatchEvent(new CustomEvent("onboardingComplete"));
+  };
+
+  const handleCountryChange = (countryId: CountryId) => {
+    setSelectedCountry(countryId);
+    localStorage.setItem("selectedCountry", countryId);
+    // You could add a toast notification here
   };
 
   if (showLanding) {
@@ -98,7 +128,11 @@ const AppContent = () => {
         onOpenChange={setShowOnboarding}
         onComplete={handleOnboardingComplete}
       />
-      <Navbar />
+      <CountrySelectionModal
+        isOpen={showCountrySelection}
+        onSelect={handleCountrySelect}
+      />
+      <Navbar selectedCountry={selectedCountry} onCountryChange={handleCountryChange} />
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/stocks" element={<StockAnalysis />} />

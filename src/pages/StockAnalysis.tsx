@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Search, TrendingUp, Activity, TrendingDown, Loader2, Info, X, PlayCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useIsMobile } from "@/hooks/use-mobile";
 import StockPriceChart from "@/components/charts/StockPriceChart";
 import StockStrengthZone from "@/components/charts/StockStrengthZone";
 import { useLiveData } from "@/hooks/useLiveData";
@@ -17,6 +18,7 @@ interface HoveredData {
 }
 
 const StockAnalysis = () => {
+  const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
   const symbolFromUrl = searchParams.get("symbol");
   const { stockData: stocksData, isLoading, lastUpdate } = useLiveData();
@@ -40,7 +42,7 @@ const StockAnalysis = () => {
     if (normTarget === normQuery) return 100;
 
     // Query is contained in target
-    if (normTarget.includes(normQuery)) return 80;
+    if (normTarget.includes(normQuery) || (normQuery.length > 2 && normTarget.includes(normQuery))) return 80;
 
     // Target is contained in query
     if (normQuery.includes(normTarget)) return 60;
@@ -159,7 +161,9 @@ const StockAnalysis = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Ensure the target is still in the document to avoid "Node missing" errors
+      if (document.body.contains(target) && searchRef.current && !searchRef.current.contains(target)) {
         setShowSuggestions(false);
       }
     };
@@ -175,7 +179,15 @@ const StockAnalysis = () => {
   const currentStock = stocksData.find((s) =>
     s.symbol.trim().toUpperCase() === selectedStock.trim().toUpperCase()
   );
-  const chartData = currentStock?.history || [];
+
+  // Mobile optimization: Only show the last 1 month (approx 22 trading days) of data on mobile devices
+  const chartData = useMemo(() => {
+    const fullHistory = currentStock?.history || [];
+    if (isMobile && fullHistory.length > 22) {
+      return fullHistory.slice(-22);
+    }
+    return fullHistory;
+  }, [currentStock, isMobile]);
 
   const calculatedTrend = useMemo(() => {
     const history = currentStock?.history || [];
@@ -229,10 +241,10 @@ const StockAnalysis = () => {
               <button
                 onClick={() => setShowVideoModal(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(var(--primary),0.1)]"
-                title="Watch Interactive Demo"
+                title="Watch Explanation Video"
               >
                 <PlayCircle className="w-4 h-4 text-primary transition-colors" />
-                <span className="text-xs font-semibold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Interactive Demo</span>
+                <span className="text-xs font-semibold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Explanation Video</span>
               </button>
             </div>
             <p className="text-muted-foreground">Historical charts and data from lasa-master</p>
@@ -470,7 +482,7 @@ const StockAnalysis = () => {
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <PlayCircle className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-semibold text-foreground">Interactive Explanation</h3>
+                <h3 className="text-lg font-semibold text-foreground">Analysis Explanation</h3>
               </div>
               <button
                 onClick={() => setShowVideoModal(false)}
@@ -480,18 +492,15 @@ const StockAnalysis = () => {
               </button>
             </div>
 
-            <div className="w-full bg-black">
-              <div style={{ position: 'relative', paddingBottom: 'calc(49.21875% + 41px)', height: '0', width: '100%' }}>
-                <iframe
-                  src="https://demo.arcade.software/YxBonSv5aApOBxZpdUSf?embed&embed_mobile=tab&embed_desktop=inline&show_copy_link=true"
-                  title="Analyze a stock using Price Movement and Strength Zone charts"
-                  frameBorder="0"
-                  loading="lazy"
-                  allowFullScreen
-                  allow="clipboard-write"
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', colorScheme: 'light' }}
-                />
-              </div>
+            <div className="w-full aspect-video bg-black">
+              <iframe
+                src="https://www.youtube.com/embed/T5jFDlEbL_M?autoplay=1"
+                title="Analysis Explanation Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full"
+              />
             </div>
 
             <div className="p-4 bg-primary/5 border-t border-white/10">

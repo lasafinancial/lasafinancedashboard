@@ -195,7 +195,7 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
                     <div className="space-y-4 sm:space-y-6 px-4 pb-4 pt-2 sm:px-6 sm:pb-6 sm:pt-3">
                         <DialogHeader>
                             <DialogTitle className="text-lg sm:text-xl font-bold">{stepContent[step - 1].title}</DialogTitle>
-                            <DialogDescription className="leading-relaxed text-xs sm:text-sm">{stepContent[step - 1].description}</DialogDescription>
+                            <DialogDescription className="leading-relaxed text-xs sm:text-sm" asChild>{stepContent[step - 1].description}</DialogDescription>
                         </DialogHeader>
                         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                             <div className="flex justify-center space-x-1.5 order-2 sm:order-1">

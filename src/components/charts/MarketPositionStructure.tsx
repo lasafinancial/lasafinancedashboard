@@ -1,6 +1,12 @@
 import { useMarketPosition } from "@/hooks/useLiveData";
 import { TrendingUp, TrendingDown, Activity, Target, RotateCcw, Loader2, Info, X, Play } from "lucide-react";
 import { useState } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MarketPositionStructureProps {
   eodDate?: string | null;
@@ -14,50 +20,64 @@ interface IndicatorBarProps {
   rightValue: number;
   icon: React.ReactNode;
   showRawNumbers?: boolean;
+  tooltip: string;
 }
 
-function IndicatorBar({ label, leftLabel, rightLabel, leftValue, rightValue, icon, showRawNumbers = false }: IndicatorBarProps) {
+function IndicatorBar({ label, leftLabel, rightLabel, leftValue, rightValue, icon, showRawNumbers = false, tooltip }: IndicatorBarProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const total = leftValue + rightValue || 1;
   const leftPercent = (leftValue / total) * 100;
   const rightPercent = (rightValue / total) * 100;
   const isLeftDominant = leftValue > rightValue;
 
   return (
-    <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-white/5 border border-white/10">
-            {icon}
-          </div>
-          <span className="text-sm font-semibold text-foreground uppercase tracking-wide">{label}</span>
-        </div>
-      
-    <div className="relative h-8 rounded-xl overflow-hidden bg-white/5 border border-white/10">
-          <div 
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-success/80 to-success/40 transition-all duration-1000 ease-out flex items-center justify-center"
-            style={{ width: `${leftPercent}%` }}
+    <TooltipProvider delayDuration={200}>
+      <Tooltip open={isOpen} onOpenChange={setIsOpen}>
+        <TooltipTrigger asChild>
+          <div
+            className="space-y-2 cursor-help"
+            onClick={() => setIsOpen(!isOpen)}
           >
-            <span className="text-sm font-bold text-white drop-shadow-lg">
-              {showRawNumbers ? leftValue : `${leftValue}%`}
-            </span>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-white/5 border border-white/10">
+                {icon}
+              </div>
+              <span className="text-sm font-semibold text-foreground uppercase tracking-wide">{label}</span>
+            </div>
+
+            <div className="relative h-8 rounded-xl overflow-hidden bg-white/5 border border-white/10">
+              <div
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-success/80 to-success/40 transition-all duration-1000 ease-out flex items-center justify-center"
+                style={{ width: `${leftPercent}%` }}
+              >
+                <span className="text-sm font-bold text-white drop-shadow-lg">
+                  {showRawNumbers ? leftValue : `${leftValue}%`}
+                </span>
+              </div>
+
+              <div
+                className="absolute inset-y-0 right-0 bg-gradient-to-l from-destructive/80 to-destructive/40 transition-all duration-1000 ease-out flex items-center justify-center"
+                style={{ width: `${rightPercent}%` }}
+              >
+                <span className="text-sm font-bold text-white drop-shadow-lg">
+                  {showRawNumbers ? rightValue : `${rightValue}%`}
+                </span>
+              </div>
+
+              <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/30 -translate-x-1/2 z-10" />
+            </div>
+
+            <div className="flex justify-between text-xs font-semibold">
+              <span className="text-success drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]">{leftLabel}</span>
+              <span className="text-destructive drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">{rightLabel}</span>
+            </div>
           </div>
-          
-          <div 
-            className="absolute inset-y-0 right-0 bg-gradient-to-l from-destructive/80 to-destructive/40 transition-all duration-1000 ease-out flex items-center justify-center"
-            style={{ width: `${rightPercent}%` }}
-          >
-            <span className="text-sm font-bold text-white drop-shadow-lg">
-              {showRawNumbers ? rightValue : `${rightValue}%`}
-            </span>
-          </div>
-          
-          <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/30 -translate-x-1/2 z-10" />
-        </div>
-        
-        <div className="flex justify-between text-xs font-semibold">
-          <span className="text-success drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]">{leftLabel}</span>
-          <span className="text-destructive drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">{rightLabel}</span>
-        </div>
-      </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs bg-background/95 backdrop-blur-xl border-white/20">
+          <p className="text-sm font-medium">{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -80,18 +100,18 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
     );
   }
 
-  const overallBullish = 
-    data.model.bullish + 
-    data.balance.above + 
-    data.momentum.bullish + 
-    data.sr.atSupport + 
+  const overallBullish =
+    data.model.bullish +
+    data.balance.above +
+    data.momentum.bullish +
+    data.sr.atSupport +
     data.reversal.up;
-  
-  const overallBearish = 
-    data.model.bearish + 
-    data.balance.below + 
-    data.momentum.bearish + 
-    data.sr.atResistance + 
+
+  const overallBearish =
+    data.model.bearish +
+    data.balance.below +
+    data.momentum.bearish +
+    data.sr.atResistance +
     data.reversal.down;
 
   const verdict = overallBullish > overallBearish ? "BULLISH" : overallBearish > overallBullish ? "BEARISH" : "NEUTRAL";
@@ -99,17 +119,17 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
 
   return (
     <div className="h-full flex flex-col">
-<div className="flex justify-between items-center mb-6">
-          <div className="space-y-1">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Current Overall Market Position Structure {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
-            </h3>
-            <p className="text-xs text-muted-foreground/60 font-medium italic">Multi-modal analytical engine</p>
-          </div>
-          <div className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${verdictColor} shadow-[0_0_20px_rgba(255,255,255,0.05)]`}>
-            {verdict}
-          </div>
+      <div className="flex justify-between items-center mb-6">
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Current Overall Market Position Structure {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
+          </h3>
+          <p className="text-xs text-muted-foreground/60 font-medium italic">Multi-modal analytical engine</p>
         </div>
+        <div className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${verdictColor} shadow-[0_0_20px_rgba(255,255,255,0.05)]`}>
+          {verdict}
+        </div>
+      </div>
 
       <div className="flex-1 space-y-5">
         <IndicatorBar
@@ -119,17 +139,19 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
           leftValue={data.model.bullish}
           rightValue={data.model.bearish}
           icon={<Activity className="w-4 h-4 text-chart-primary" />}
+          tooltip="The model uses machine learning to analyze market data and identify the percentage of stocks showing higher price potential."
         />
 
-          <IndicatorBar
-            label="Balance"
-            leftLabel="Avg-Above"
-            rightLabel="Avg-Below"
-            leftValue={data.balance.above}
-            rightValue={data.balance.below}
-            icon={<TrendingUp className="w-4 h-4 text-success" />}
-            showRawNumbers={true}
-          />
+        <IndicatorBar
+          label="Balance"
+          leftLabel="Avg-Above"
+          rightLabel="Avg-Below"
+          leftValue={data.balance.above}
+          rightValue={data.balance.below}
+          icon={<TrendingUp className="w-4 h-4 text-success" />}
+          showRawNumbers={true}
+          tooltip="The balance algorithm analyzes price behavior to identify upside and downside imbalances."
+        />
 
         <IndicatorBar
           label="Momentum"
@@ -138,17 +160,19 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
           leftValue={data.momentum.bullish}
           rightValue={data.momentum.bearish}
           icon={<TrendingDown className="w-4 h-4 text-warning" />}
+          tooltip="Analyzes overbought and oversold conditions based on RSI"
         />
 
-          <IndicatorBar
-            label="S/R"
-            leftLabel="Support"
-            rightLabel="Resistance"
-            leftValue={data.sr.atSupport}
-            rightValue={data.sr.atResistance}
-            icon={<Target className="w-4 h-4 text-destructive" />}
-            showRawNumbers={true}
-          />
+        <IndicatorBar
+          label="S/R"
+          leftLabel="Support"
+          rightLabel="Resistance"
+          leftValue={data.sr.atSupport}
+          rightValue={data.sr.atResistance}
+          icon={<Target className="w-4 h-4 text-destructive" />}
+          showRawNumbers={true}
+          tooltip="Based on price action, Identifies number of stocks developing support or resistance pattern, early indicator for reversals"
+        />
 
         <IndicatorBar
           label="Reversal"
@@ -157,20 +181,21 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
           leftValue={data.reversal.up}
           rightValue={data.reversal.down}
           icon={<RotateCcw className="w-4 h-4 text-accent" />}
+          tooltip="Identifies stocks showing early reversal signals for potential upward vs downward trend changes"
         />
       </div>
 
       <div className="mt-6 pt-4 border-t border-white/5">
-            <div className="flex items-center justify-between text-xs text-muted-foreground/60">
-                <span className="uppercase tracking-wider font-semibold">S/R & Reversal = Trade Triggers</span>
-                <span className="uppercase tracking-wider font-semibold">Model, Balance, Momentum = Current State</span>
-              </div>
-          </div>
-
-          <SummaryWithInfo />
+        <div className="flex items-center justify-between text-xs text-muted-foreground/60">
+          <span className="uppercase tracking-wider font-semibold">S/R & Reversal = Trade Triggers</span>
+          <span className="uppercase tracking-wider font-semibold">Model, Balance, Momentum = Current State</span>
+        </div>
       </div>
-    );
-  }
+
+      <SummaryWithInfo />
+    </div>
+  );
+}
 
 function SummaryWithInfo() {
   const [showModal, setShowModal] = useState(false);
@@ -196,11 +221,11 @@ function SummaryWithInfo() {
       </div>
 
       {showModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={() => setShowModal(false)}
         >
-          <div 
+          <div
             className="relative w-full max-w-2xl max-h-[80vh] overflow-y-auto bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -236,7 +261,7 @@ function SummaryWithInfo() {
                 </h4>
                 <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                   <p className="text-xs text-muted-foreground mb-3">Watch our detailed explanation video:</p>
-                  <a 
+                  <a
                     href="#"
                     target="_blank"
                     rel="noopener noreferrer"

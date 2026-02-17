@@ -284,7 +284,7 @@ const Dashboard = () => {
                 </div>
               )}
 
-              <MarketDescription text={getMarketMoodDescription(moodData)} />
+              <MarketDescription text={getMarketMoodDescription(moodData, topMovers)} />
 
               <InfoModal
                 isOpen={showMarketMoodModal}

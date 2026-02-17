@@ -1,11 +1,20 @@
 import { Link, useLocation } from "react-router-dom";
-import { TrendingUp, Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader2, Send, Filter, ChevronDown } from "lucide-react";
+import { Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader2, Send, Filter, ChevronDown, Menu } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { CountrySelector } from "@/components/ui/CountrySelector";
+import type { CountryId } from "@/components/ui/CountrySelectionModal";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
-const Navbar = () => {
+interface NavbarProps {
+  selectedCountry: CountryId | null;
+  onCountryChange: (countryId: CountryId) => void;
+}
+
+const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
   const location = useLocation();
   const { isEnabled, isLoading, isSupported, toggleNotifications } = useNotifications();
   const [isSending, setIsSending] = useState(false);
@@ -53,13 +62,13 @@ const Navbar = () => {
           <Link to="/" className="flex items-center gap-2 group">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full group-hover:bg-primary/30 transition-colors" />
-              <TrendingUp className="relative h-8 w-8 text-primary" />
+              <img src="/complogo.png" alt="LASA Logo" className="relative h-8 w-8 object-contain" />
             </div>
             <span className="text-xl font-bold gradient-text">LASA FINANCE</span>
           </Link>
 
-          {/* Navigation Links */}
-          <div className="flex items-center gap-1">
+          {/* Navigation Links - Desktop */}
+          <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path ||
@@ -131,15 +140,23 @@ const Navbar = () => {
             })}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-4">
             {/* Live Indicator */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
               </span>
               <span className="text-xs font-medium text-success uppercase tracking-wider">Live</span>
             </div>
+
+            {/* Country Selector */}
+            {selectedCountry && (
+              <CountrySelector
+                selectedCountry={selectedCountry}
+                onCountryChange={onCountryChange}
+              />
+            )}
 
             {/* Notification Toggle */}
             {isSupported && (
@@ -183,6 +200,140 @@ const Navbar = () => {
             </button>
 
             <ThemeToggle />
+          </div>
+
+          {/* Mobile Menu */}
+          <div className="md:hidden flex items-center gap-2">
+            {/* Mobile Quick Links */}
+            <div className="flex items-center gap-1 mr-1">
+              <Link to="/" className={`p-2 rounded-xl transition-colors ${location.pathname === "/" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                <BarChart3 className="h-5 w-5" />
+              </Link>
+              <Link to="/stocks" className={`p-2 rounded-xl transition-colors ${location.pathname === "/stocks" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                <Search className="h-5 w-5" />
+              </Link>
+              <Link to="/screeners" className={`p-2 rounded-xl transition-colors ${location.pathname.startsWith("/screeners") ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                <Filter className="h-5 w-5" />
+              </Link>
+            </div>
+
+            {/* Live Indicator Mobile */}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-success/10 border border-success/20">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
+              </span>
+              <span className="text-[10px] font-medium text-success uppercase tracking-wider">Live</span>
+            </div>
+
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="hover:bg-white/5">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-background/95 backdrop-blur-xl">
+                <div className="flex flex-col h-full gap-6">
+                  {/* Mobile Nav Links */}
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Menu</h3>
+                    {navItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = location.pathname === item.path ||
+                        (item.path === "/screeners" && location.pathname.startsWith("/screeners"));
+
+                      if (item.path === "/screeners") {
+                        return (
+                          <div key={item.path} className="space-y-1">
+                            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"}`}>
+                              <Icon className="h-5 w-5" />
+                              <span className="font-medium">Screeners</span>
+                            </div>
+                            <div className="pl-12 space-y-1 border-l border-white/5 ml-6">
+                              <Link to="/screeners/near-resistance" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout's</Link>
+                              <Link to="/screeners/support-reversal" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reversal's</Link>
+                              <Link to="/screeners/reaction-zone" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reaction Zone</Link>
+                              <Link to="/multibagger" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Multibagger</Link>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"}`}
+                        >
+                          <Icon className="h-5 w-5" />
+                          <span className="font-medium">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+
+                  <div className="h-px bg-white/10 my-2" />
+
+                  {/* Mobile Actions */}
+                  <div className="flex flex-col gap-4">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Settings & Actions</h3>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Theme</span>
+                      <ThemeToggle />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Reigon</span>
+                      {selectedCountry && (
+                        <CountrySelector
+                          selectedCountry={selectedCountry}
+                          onCountryChange={onCountryChange}
+                          showNameOnMobile={true}
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Notifications</span>
+                      {isSupported && (
+                        <button
+                          onClick={toggleNotifications}
+                          disabled={isLoading}
+                          className={`relative p-2 rounded-lg transition-all duration-200 ${isEnabled
+                            ? 'bg-primary/10 border border-primary/20 text-primary'
+                            : 'bg-white/5 border border-white/10 text-muted-foreground'
+                            }`}
+                        >
+                          {isLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : isEnabled ? (
+                            <Bell className="h-4 w-4" />
+                          ) : (
+                            <BellOff className="h-4 w-4" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">Admin Alert</span>
+                      <button
+                        onClick={sendMarketMoodNotification}
+                        disabled={isSending}
+                        className="p-2 rounded-lg bg-white/5 border border-white/10 text-muted-foreground hover:bg-success/10 hover:border-success/20 hover:text-success transition-all duration-200"
+                      >
+                        {isSending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>
