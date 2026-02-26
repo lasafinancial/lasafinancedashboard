@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Search, TrendingUp, Activity, TrendingDown, Loader2, Info, X, PlayCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import StockPriceChart from "@/components/charts/StockPriceChart";
 import StockStrengthZone from "@/components/charts/StockStrengthZone";
@@ -356,7 +357,19 @@ const StockAnalysis = () => {
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Market Trend</p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 cursor-help">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Trend</p>
+                      <Info className="w-2.5 h-2.5 text-muted-foreground/50" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="w-64 p-3 bg-background border border-white/10 rounded-lg shadow-2xl z-[100] normal-case tracking-normal">
+                    <p className="text-[10px] text-muted-foreground/90 leading-relaxed font-medium">
+                      Trend reflects the observable direction of historical price movement over a defined period. It highlights current structural positioning and does not provide forecasts or directional signals for future price action.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
                 <p className={`text-lg font-black truncate ${calculatedTrend === 'UPTREND' ? 'text-success' : calculatedTrend === 'DOWNTREND' ? 'text-destructive' : 'text-warning'}`}>
                   {calculatedTrend}
                 </p>

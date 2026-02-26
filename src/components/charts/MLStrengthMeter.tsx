@@ -224,15 +224,11 @@ export default function MLStrengthMeter({ data, eodDate }: MLStrengthMeterProps)
           The <span className="font-semibold text-foreground">ML Meter</span> reflects the overall market's readiness for upside moves by analysing stock positioning after pullbacks and extensions.
         </p>
         <ul className="text-xs text-muted-foreground space-y-2 mb-3">
-          <li className={`p-2 rounded transition-all duration-300 ${isAbove60 ? 'bg-success/10 border-l-2 border-success shadow-[inset_0_0_10px_rgba(34,197,94,0.05)]' : ''}`}>
-            <span className={`font-semibold ${isAbove60 ? 'text-success' : 'text-foreground'}`}>• Above 60:</span> Majority of stocks have cooled off after pullbacks and are better positioned for an upside swing. Long setups generally offer better risk-reward.
-          </li>
+          <span className={`font-semibold ${isAbove60 ? 'text-success' : 'text-foreground'}`}>• Above 60:</span> Majority of stocks have cooled off after pullbacks. Historically, such conditions have coincided with stronger upward price behaviour.
           <li className={`p-2 rounded transition-all duration-300 ${isMixed ? 'bg-warning/10 border-l-2 border-warning shadow-[inset_0_0_10px_rgba(251,191,36,0.05)]' : ''}`}>
             <span className={`font-semibold ${isMixed ? 'text-warning' : 'text-foreground'}`}>• 50–60:</span> Mixed conditions. Selective trading is advised with strict risk control.
           </li>
-          <li className={`p-2 rounded transition-all duration-300 ${isBelow50 ? 'bg-destructive/10 border-l-2 border-destructive shadow-[inset_0_0_10px_rgba(239,68,68,0.05)]' : ''}`}>
-            <span className={`font-semibold ${isBelow50 ? 'text-destructive' : 'text-foreground'}`}>• Below 50:</span> Most stocks are extended. Upside may be limited and traders should be cautious with long positions.
-          </li>
+          <span className={`font-semibold ${isBelow50 ? 'text-destructive' : 'text-foreground'}`}>• Below 50:</span> Most stocks are extended. This condition reflects increasing downside sensitivity in the market.
         </ul>
         <p className="text-[10px] text-muted-foreground italic">
           The ML Meter is a probability-based market indicator and not a buy/sell signal.
@@ -250,7 +246,7 @@ export default function MLStrengthMeter({ data, eodDate }: MLStrengthMeterProps)
           },
           {
             heading: "Above 60 – Bullish Zone",
-            content: "Majority of stocks have cooled off after pullbacks and are better positioned for an upside swing. Long setups generally offer better risk-reward in this zone."
+            content: "Majority of stocks have cooled off after pullbacks. Historically, such conditions have coincided with stronger upward price behaviour."
           },
           {
             heading: "50–60 – Mixed Zone",
@@ -258,7 +254,7 @@ export default function MLStrengthMeter({ data, eodDate }: MLStrengthMeterProps)
           },
           {
             heading: "Below 50 – Caution Zone",
-            content: "Most stocks are extended. Upside may be limited and traders should be cautious with long positions. Consider reducing exposure or waiting for pullbacks."
+            content: "Most stocks are extended. This condition reflects increasing downside sensitivity in the market."
           }
         ]}
         videoLink="#"

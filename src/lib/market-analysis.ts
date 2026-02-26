@@ -34,14 +34,14 @@ export const getMarketMoodDescription = (data: MarketMoodData, topMovers?: TopMo
   // If no top movers data, fall back to basic analysis
   if (!topMovers || !topMovers.topGainers || !topMovers.topLosers) {
     if (diff < 5) {
-      return "The market is in a **balanced state**. Buyers and sellers are currently in a 'tug-of-war,' with almost equal numbers of stocks sitting at their ceilings (Resistance) and floors (Support). Expect a period of consolidation.";
+      return "The market is in a **balanced state**. Buyers and sellers are currently in a 'tug-of-war,' with almost equal numbers of stocks sitting at their ceilings (Resistance) and floors (Support). Expect a period of consolidation. **Refer the market overall Market Position Structure for the upcoming weeks.**";
     }
 
     if (bullish > bearish) {
-      return `The market is showing **positive accumulation**. More stocks are testing their **Resistance (ceilings)** than their floors, suggesting that buyers are currently more aggressive and pushing for a potential breakout.`;
+      return `The market is showing **positive accumulation**. More stocks are testing their **Resistance (ceilings)** than their floors, suggesting that buyers are currently more aggressive and pushing for a potential breakout. **Refer the market overall Market Position Structure for the upcoming weeks.**`;
     }
 
-    return `The market is under **selling pressure**. A majority of stocks are hovering near their **Support (safety floors)**, indicating that sellers are in control and investors are playing defense to avoid further drops.`;
+    return `The market is under **selling pressure**. A majority of stocks are hovering near their **Support (safety floors)**, indicating that sellers are in control and investors are playing defense to avoid further drops. **Refer the market overall Market Position Structure for the upcoming weeks.**`;
   }
 
 
@@ -58,30 +58,30 @@ export const getMarketMoodDescription = (data: MarketMoodData, topMovers?: TopMo
   // Balanced market
   if (diff < 5) {
     if (avgGain > 2 && avgLoss > 2) {
-      return `The market is in a **balanced tug-of-war**. Top gainers are averaging **+${avgGain.toFixed(1)}%** while losers are down **-${avgLoss.toFixed(1)}%**, showing strong two-way action. **${strongGainers}** stocks are up 3%+ vs **${strongLosers}** down 3%+. This volatility within consolidation suggests a breakout is building—watch for directional confirmation.`;
+      return `The market is in a **balanced tug-of-war**. Top gainers are averaging **+${avgGain.toFixed(1)}%** while losers are down **-${avgLoss.toFixed(1)}%**, showing strong two-way action. **${strongGainers}** stocks are up 3%+ vs **${strongLosers}** down 3%+. This volatility within consolidation suggests a breakout is building—watch for directional confirmation. **Refer the market overall Market Position Structure for the upcoming weeks.**`;
     }
-    return `The market is **range-bound** with muted momentum. Top gainers averaging **+${avgGain.toFixed(1)}%** and losers at **-${avgLoss.toFixed(1)}%** indicate limited conviction from either side. Expect choppy, sideways action until a catalyst emerges.`;
+    return `The market is **range-bound** with muted momentum. Top gainers averaging **+${avgGain.toFixed(1)}%** and losers at **-${avgLoss.toFixed(1)}%** indicate limited conviction from either side. Expect choppy, sideways action until a catalyst emerges. **Refer the market overall Market Position Structure for the upcoming weeks.**`;
   }
 
   // Bullish market
   if (bullish > bearish) {
     if (strongGainers >= 7) {
-      return `The market shows **strong bullish momentum**. **${strongGainers} out of 10** top gainers are up 3%+, averaging **+${avgGain.toFixed(1)}%**, while losers are only down **-${avgLoss.toFixed(1)}%** on average. This **asymmetric strength** (strong gains, shallow losses) signals aggressive buying and favorable risk-reward for long positions.`;
+      return `The market shows **strong bullish momentum**. **${strongGainers} out of 10** top gainers are up 3%+, averaging **+${avgGain.toFixed(1)}%**, while losers are only down **-${avgLoss.toFixed(1)}%** on average. This **asymmetric strength** (strong gains, shallow losses) signals aggressive buying and favorable risk-reward for long positions. **Refer the market overall Market Position Structure for the upcoming weeks.**`;
     }
     if (avgGain > avgLoss * 1.5) {
-      return `The market is in **positive accumulation** with **gains outpacing losses**. Top gainers averaging **+${avgGain.toFixed(1)}%** vs losers at **-${avgLoss.toFixed(1)}%** shows buyers are more aggressive. More stocks are testing **Resistance levels**, suggesting potential for upside continuation.`;
+      return `The market is in **positive accumulation** with **gains outpacing losses**. Top gainers averaging **+${avgGain.toFixed(1)}%** vs losers at **-${avgLoss.toFixed(1)}%** shows buyers are more aggressive. More stocks are testing **Resistance levels**, suggesting potential for upside continuation. **Refer the market overall Market Position Structure for the upcoming weeks.**`;
     }
-    return `The market has a **mild bullish bias**, but momentum is not yet decisive. Gainers averaging **+${avgGain.toFixed(1)}%** vs **-${avgLoss.toFixed(1)}%** for losers. Watch for stronger follow-through before committing heavily to long positions.`;
+    return `The market has a **mild bullish bias**, but momentum is not yet decisive. Gainers averaging **+${avgGain.toFixed(1)}%** vs **-${avgLoss.toFixed(1)}%** for losers. Watch for stronger follow-through before committing heavily to long positions. **Refer the market overall Market Position Structure for the upcoming weeks.**`;
   }
 
   // Bearish market
   if (strongLosers >= 7) {
-    return `The market is under **heavy selling pressure**. **${strongLosers} out of 10** losers are down 3%+, averaging **-${avgLoss.toFixed(1)}%**, while gainers are only up **+${avgGain.toFixed(1)}%**. This **asymmetric weakness** signals defensive positioning—most stocks are testing **Support floors**. Caution advised for new longs.`;
+    return `The market is under **heavy selling pressure**. **${strongLosers} out of 10** losers are down 3%+, averaging **-${avgLoss.toFixed(1)}%**, while gainers are only up **+${avgGain.toFixed(1)}%**. This **asymmetric weakness** signals defensive positioning—most stocks are testing **Support floors**. Caution advised for new longs. **Refer the market overall Market Position Structure for the upcoming weeks.**`;
   }
   if (avgLoss > avgGain * 1.5) {
-    return `The market is experiencing **distribution** with **losses outweighing gains**. Losers averaging **-${avgLoss.toFixed(1)}%** vs gainers at **+${avgGain.toFixed(1)}%** shows sellers are in control. Majority of stocks hovering near **Support levels**—risk management is critical.`;
+    return `The market is experiencing **distribution** with **losses outweighing gains**. Losers averaging **-${avgLoss.toFixed(1)}%** vs gainers at **+${avgGain.toFixed(1)}%** shows sellers are in control. Majority of stocks hovering near **Support levels**—risk management is critical. **Refer the market overall Market Position Structure for the upcoming weeks.**`;
   }
-  return `The market has a **mild bearish bias**. Losers averaging **-${avgLoss.toFixed(1)}%** vs **+${avgGain.toFixed(1)}%** for gainers, but the move lacks conviction. Monitor for stabilization signals before considering long entries.`;
+  return `The market has a **mild bearish bias**. Losers averaging **-${avgLoss.toFixed(1)}%** vs **+${avgGain.toFixed(1)}%** for gainers, but the move lacks conviction. Monitor for stabilization signals before considering long entries. **Refer the market overall Market Position Structure for the upcoming weeks.**`;
 };
 
 export const getMarketStrengthDescription = (data: MarketStrengthData[]) => {

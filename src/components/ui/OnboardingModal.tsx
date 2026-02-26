@@ -166,6 +166,7 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
                     if (!open) {
                         onComplete();
                     } else {
+                        console.log("[OnboardingModal] Opening, resetting to step 1.");
                         setStep(1);
                     }
                     onOpenChange(open);

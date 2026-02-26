@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Landmark, Factory, ShoppingBag, HardHat, TrendingUp, TrendingDown, Minus, Boxes, Sparkles, AlertTriangle, BarChart3, PlayCircle, X } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { InfoModal, InfoModalTrigger, useInfoModal } from "@/components/ui/InfoModal";
 import MarketStrengthMeter from "@/components/charts/MarketStrengthMeter";
 import MLStrengthMeter from "@/components/charts/MLStrengthMeter";
@@ -12,7 +13,6 @@ import SectorCard from "@/components/cards/SectorCard";
 import IndicesPerformance from "@/components/cards/IndicesPerformance";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { indexSectorData } from "@/data/stockData";
-import { InteractiveHero } from "@/components/ui/interactive-hero";
 import { Spotlight } from "@/components/ui/spotlight";
 import marketMoodData from "@/data/processed/market_mood.json";
 import marketStrengthData from "@/data/processed/market_strength.json";
@@ -41,6 +41,7 @@ const MarketDescription = ({ text }: { text: string }) => (
 );
 
 const Dashboard = () => {
+  const isMobile = useIsMobile();
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { topMovers } = useTopMovers();
   const { marketStrength: liveMarketStrength, marketMood: liveMarketMood } = useLiveData();
@@ -101,13 +102,32 @@ const Dashboard = () => {
 
   const latestUpdateDate = getCurrentDate();
 
+  // Mobile optimization for charts
+  const chartDataLimit = isMobile ? 22 : undefined; // Show last 22 data points on mobile (approx 1 month)
+
+  const displayStrengthData = useMemo(() => {
+    const data = liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData;
+    if (chartDataLimit && data.length > chartDataLimit) {
+      return data.slice(-chartDataLimit);
+    }
+    return data;
+  }, [liveMarketStrength, marketStrengthData, chartDataLimit]);
+
+  const displayMoodTrend = useMemo(() => {
+    const data = moodData.trend || [];
+    if (chartDataLimit && data.length > chartDataLimit) {
+      return data.slice(-chartDataLimit);
+    }
+    return data;
+  }, [moodData.trend, chartDataLimit]);
+
   // EOD date from Swing Sheet (for EOD components)
   const eodDate = liveMarketStrength.length > 0
     ? liveMarketStrength[liveMarketStrength.length - 1].date
     : null;
 
   return (
-    <div className="min-h-screen bg-background selection:bg-primary/30 overflow-x-hidden">
+    <div className="bg-background selection:bg-primary/30 overflow-x-hidden w-full h-full flex-grow">
       {/* SEBI Disclaimer Modal */}
       <Dialog open={showDisclaimer} onOpenChange={setShowDisclaimer}>
         <DialogContent className="sm:max-w-[500px]">
@@ -185,7 +205,9 @@ const Dashboard = () => {
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Market Mood Today <span className="text-primary/80">(LIVE DATA)</span>
                   </h3>
-                  <p className="text-xs text-muted-foreground/60 font-medium italic">Current internal dynamics</p>
+                  <p className="text-xs text-muted-foreground/60 font-medium italic">
+                    Current internal dynamics - refer the market overall Market Position Structure for the upcoming weeks
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <InfoModalTrigger onClick={openMarketMoodModal} />
@@ -197,12 +219,12 @@ const Dashboard = () => {
                   <div className="group/item relative p-6 rounded-2xl bg-success/5 border border-success/10 transition-all duration-500 hover:bg-success/10 hover:border-success/20">
                     <TrendingUp className="w-5 h-5 text-success mb-4 opacity-70 group-hover/item:opacity-100 transition-opacity" />
                     <span className="text-2xl md:text-3xl font-bold text-success tracking-tight">{Math.round(moodData.bullish)}%</span>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Bullish</p>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Positive Bias</p>
                   </div>
                   <div className="group/item relative p-6 rounded-2xl bg-destructive/5 border border-destructive/10 transition-all duration-500 hover:bg-destructive/10 hover:border-destructive/20">
                     <TrendingDown className="w-5 h-5 text-destructive mb-4 opacity-70 group-hover/item:opacity-100 transition-opacity" />
                     <span className="text-2xl md:text-3xl font-bold text-destructive tracking-tight">{Math.round(moodData.bearish)}%</span>
-                    <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Bearish</p>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Negative Bias</p>
                   </div>
                   <div className="group/item relative p-6 rounded-2xl bg-warning/5 border border-warning/10 transition-all duration-500 hover:bg-warning/10 hover:border-warning/20">
                     <Minus className="w-5 h-5 text-warning mb-4 opacity-70 group-hover/item:opacity-100 transition-opacity" />
@@ -210,11 +232,12 @@ const Dashboard = () => {
                     <p className="text-xs text-muted-foreground uppercase font-semibold tracking-wide mt-2">Neutral</p>
                   </div>
 
-                </div>
-                <SentimentTrendChart data={moodData.trend} />
 
-                <p className="text-xs text-muted-foreground/40 text-center mt-4 uppercase tracking-wider font-semibold">
-                  Internal Relative Strength Analysis
+                </div>
+                <SentimentTrendChart data={displayMoodTrend} />
+
+                <p className="text-[10px] text-muted-foreground/60 text-center mt-4 leading-relaxed font-medium italic max-w-[80%] mx-auto">
+                  Please note Percentages represent distribution of observed conditions, not probability or forecast.
                 </p>
               </div>
 
@@ -327,28 +350,28 @@ const Dashboard = () => {
           {/* ML Strength Meter */}
           <GlassCard delay={0.3} className="flex flex-col h-full">
             <div className="h-full flex flex-col">
-              <MLStrengthMeter data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} eodDate={eodDate} />
+              <MLStrengthMeter data={displayStrengthData} eodDate={eodDate} />
             </div>
           </GlassCard>
 
           {/* Market Strength Meter (Momentum Oscillator) */}
           <GlassCard delay={0.4} className="flex flex-col h-full">
             <div className="h-full flex flex-col">
-              <MarketStrengthMeter data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} eodDate={eodDate} />
-              <MarketDescription text={getMarketStrengthDescription(liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData)} />
+              <MarketStrengthMeter data={displayStrengthData} eodDate={eodDate} />
+              <MarketDescription text={getMarketStrengthDescription(displayStrengthData)} />
             </div>
           </GlassCard>
 
           {/* Market Balance Indicator - Full Width */}
           <GlassCard delay={0.5} className="flex flex-col h-full md:col-span-2">
             <div className="h-full flex flex-col">
-              <MarketBalanceIndicator data={liveMarketStrength.length > 0 ? liveMarketStrength : marketStrengthData} eodDate={eodDate} />
+              <MarketBalanceIndicator data={displayStrengthData} eodDate={eodDate} />
             </div>
           </GlassCard>
         </div>
 
         {/* Index Section */}
-        <div className="mb-12">
+        <div className="mb-0">
           <div className="animate-fade-in-up space-y-3 mb-6">
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
               Index <span className="gradient-text italic pr-2">Performance</span>
@@ -362,10 +385,6 @@ const Dashboard = () => {
           </GlassCard>
         </div>
 
-        {/* Interactive Hero Section */}
-        <div className="mt-12 animate-fade-in-up">
-          <InteractiveHero />
-        </div>
       </div>
       {/* Dashboard Explainer Video Modal */}
       {showExpVideo && (

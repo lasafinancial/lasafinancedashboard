@@ -13,7 +13,7 @@ const screenerOptions = [
     {
         path: "/screeners/near-resistance",
         label: "Near Resistance",
-        description: "Bullish stocks poised to break key resistance levels",
+        description: "An algorithmic filter that highlights stocks approaching predefined algorithmic resistance levels in real time.",
         icon: TrendingUp,
         color: "text-emerald-400",
         bgColor: "bg-emerald-400/10",
@@ -23,7 +23,7 @@ const screenerOptions = [
     {
         path: "/screeners/support-reversal",
         label: "Support Reversal",
-        description: "Identify potential trend reversals at support zones",
+        description: "An algorithmic filter that highlights stocks approaching predefined algorithmic support levels in real time.",
         icon: Zap,
         color: "text-blue-400",
         bgColor: "bg-blue-400/10",
@@ -33,14 +33,15 @@ const screenerOptions = [
     {
         path: "/screeners/reaction-zone",
         label: "Reaction Zone",
-        description: "Stocks approaching high-probability algorithmic reaction levels",
+        description: "An algorithmic filter that highlights stocks approaching any (Model, Pattern or Balance) of the predefined algorithmic levels in real time.",
         icon: Crosshair,
         color: "text-purple-400",
         bgColor: "bg-purple-400/10",
         borderColor: "group-hover:border-purple-400/50",
         gradient: "from-purple-400/20 to-transparent"
-    },
-    {
+    }
+    // Multibagger Hidden per boss request
+    /* {
         path: "/multibagger",
         label: "Multibagger",
         description: "High growth potential stocks for long-term investing",
@@ -49,7 +50,7 @@ const screenerOptions = [
         bgColor: "bg-orange-400/10",
         borderColor: "group-hover:border-orange-400/50",
         gradient: "from-orange-400/20 to-transparent"
-    }
+    } */
 ];
 
 export function Screeners() {
@@ -64,6 +65,12 @@ export function Screeners() {
             </div>
 
             <div className="relative container mx-auto px-4 py-8 pb-20">
+                {/* Screener Top Disclaimer */}
+                <div className="mb-6 p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                    <p className="text-[11px] md:text-xs text-muted-foreground/80 leading-relaxed font-medium capitalize">
+                        Stocks shown are filtered based on the selected analytical criteria and do not constitute buy or sell recommendations. No ranking or prioritization is implied.
+                    </p>
+                </div>
                 {/* Header */}
                 <div className="mb-12 space-y-6 text-center md:text-left">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black uppercase tracking-[0.2em]">

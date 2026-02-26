@@ -36,7 +36,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const niftyClose = payload.find((p: any) => p.payload?.nifty50_close)?.payload?.nifty50_close || 0;
     const niftyPc = payload.find((p: any) => p.dataKey === 'nifty_pc')?.value || 0;
     const fgNet = fgAbove - fgBelow;
-    
+
     return (
       <div className="bg-background/95 border border-border/50 rounded-lg p-2.5 shadow-lg backdrop-blur-sm">
         <p className="text-[10px] text-muted-foreground mb-1.5 font-medium">{label}</p>
@@ -54,289 +54,285 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-  export default function MarketBalanceIndicator({ data, eodDate }: MarketBalanceIndicatorProps) {
-    const [hoveredData, setHoveredData] = useState<{ fg_above: number; fg_below: number } | null>(null);
-    const { showModal, openModal, closeModal } = useInfoModal();
-    
-    const chartData = useMemo(() => {
-      const filtered = data.filter(item => item.date);
-      if (filtered.length === 0) return [];
-      
-      const firstNifty = filtered[0].nifty50_close;
-      
-      return filtered.map(item => ({
-        ...item,
-        fg_above: item.fg_above,
-        fg_below: item.fg_below,
-        nifty_pc: firstNifty ? Number(((item.nifty50_close - firstNifty) / firstNifty * 100).toFixed(2)) : 0
-      }));
-    }, [data]);
+export default function MarketBalanceIndicator({ data, eodDate }: MarketBalanceIndicatorProps) {
+  const [hoveredData, setHoveredData] = useState<{ fg_above: number; fg_below: number } | null>(null);
+  const { showModal, openModal, closeModal } = useInfoModal();
 
-    const latest = chartData[chartData.length - 1];
-    const fgAbove = latest?.fg_above || 0;
-    const fgBelow = latest?.fg_below || 0;
-    const fgNet = fgAbove - fgBelow;
-    
-    const isBullish = fgAbove > 15;
-    const isBearish = fgBelow > fgAbove;
-    
-    const displayAbove = hoveredData?.fg_above ?? fgAbove;
-    const displayBelow = hoveredData?.fg_below ?? fgBelow;
-    const isDisplayBullish = displayAbove > 15;
-    const isDisplayBearish = displayBelow > displayAbove;
-    const verdict = isBullish ? "BULLISH" : isBearish ? "BEARISH" : "NEUTRAL";
+  const chartData = useMemo(() => {
+    const filtered = data.filter(item => item.date);
+    if (filtered.length === 0) return [];
+
+    const firstNifty = filtered[0].nifty50_close;
+
+    return filtered.map(item => ({
+      ...item,
+      fg_above: item.fg_above,
+      fg_below: item.fg_below,
+      nifty_pc: firstNifty ? Number(((item.nifty50_close - firstNifty) / firstNifty * 100).toFixed(2)) : 0
+    }));
+  }, [data]);
+
+  const latest = chartData[chartData.length - 1];
+  const fgAbove = latest?.fg_above || 0;
+  const fgBelow = latest?.fg_below || 0;
+  const fgNet = fgAbove - fgBelow;
+
+  const isBullish = fgAbove > 15;
+  const isBearish = fgBelow > fgAbove;
+
+  const displayAbove = hoveredData?.fg_above ?? fgAbove;
+  const displayBelow = hoveredData?.fg_below ?? fgBelow;
+  const isDisplayBullish = displayAbove > 15;
+  const isDisplayBearish = displayBelow > displayAbove;
+  const verdict = isBullish ? "BULLISH" : isBearish ? "BEARISH" : "NEUTRAL";
   const verdictColor = verdict === "BULLISH" ? "text-success" : verdict === "BEARISH" ? "text-destructive" : "text-warning";
   const VerdictIcon = verdict === "BULLISH" ? TrendingUp : verdict === "BEARISH" ? TrendingDown : Minus;
 
   return (
-      <div className="flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-cyan-500/10">
-                <Scale className="w-5 h-5 text-cyan-400" />
-              </div>
-<div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Market Balance {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
-                  </h3>
-                  <p className="text-xs text-muted-foreground/60 font-medium italic">Price Acceptance</p>
-                </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${verdictColor}`}>
-                <VerdictIcon className="w-3 h-3" />
-                {verdict}
-              </div>
-              <InfoModalTrigger onClick={openModal} />
-            </div>
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-lg bg-cyan-500/10">
+            <Scale className="w-5 h-5 text-cyan-400" />
+          </div>
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Market Balance {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
+            </h3>
+            <p className="text-xs text-muted-foreground/60 font-medium italic">Price Acceptance</p>
+          </div>
         </div>
+        <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${verdictColor}`}>
+            <VerdictIcon className="w-3 h-3" />
+            {verdict}
+          </div>
+          <InfoModalTrigger onClick={openModal} />
+        </div>
+      </div>
 
-          <div className="flex flex-col gap-4">
-            <div className="w-full">
-              <div className="h-[160px] max-sm:h-[140px] lg:h-[220px] w-full">
-                <ChartContainer config={chartConfig} className="h-full w-full">
-                  <ComposedChart
-                    data={chartData}
-                    margin={{ left: -25, right: 5, top: 5, bottom: 0 }}
-                    onMouseMove={(state: any) => {
-                      if (state?.activePayload?.length) {
-                        const payload = state.activePayload[0]?.payload;
-                        if (payload) {
-                          setHoveredData({ fg_above: payload.fg_above, fg_below: payload.fg_below });
-                        }
-                      }
-                    }}
-                    onMouseLeave={() => setHoveredData(null)}
-                  >
-                    <defs>
-                      <linearGradient id="greenAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#22c55e" stopOpacity={0.05} />
-                      </linearGradient>
-                      <linearGradient id="redAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid 
-                      vertical={false} 
-                      strokeDasharray="3 3" 
-                      className="stroke-muted/10" 
-                    />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={4}
-                      minTickGap={60}
-                      tick={{ fontSize: 8 }}
-                      className="fill-muted-foreground/70"
-                    />
-                    <YAxis 
-                        tick={{ fontSize: 8 }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={25}
-                        className="fill-muted-foreground/70"
-                        yAxisId="left"
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 8 }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={40}
-                        orientation="right"
-                        className="fill-orange-500/70"
-                        yAxisId="right"
-                        domain={[-5, 5]}
-                        tickFormatter={(value) => `${value > 0 ? '+' : ''}${value}%`}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" strokeOpacity={0.2} yAxisId="left" />
-                      <ReferenceLine y={0} stroke="#f97316" strokeDasharray="3 3" strokeOpacity={0.3} yAxisId="right" />
-                      <ReferenceLine y={15} stroke="#fbbf24" strokeDasharray="5 5" strokeOpacity={0.6} label={{ value: 'Threshold: 15', position: 'insideTopRight', fontSize: 9, fill: '#fbbf24' }} yAxisId="left" />
-                      
-                      <Area
-                        type="monotone"
-                        dataKey="fg_above"
-                        stroke="transparent"
-                        fill="url(#greenAreaGradient)"
-                        yAxisId="left"
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="fg_below"
-                        stroke="transparent"
-                        fill="url(#redAreaGradient)"
-                        yAxisId="left"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="fg_above"
-                        stroke="#22c55e"
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 4, fill: "#22c55e", stroke: "#fff", strokeWidth: 2 }}
-                        yAxisId="left"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="fg_below"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 4, fill: "#ef4444", stroke: "#fff", strokeWidth: 2 }}
-                        yAxisId="left"
-                      />
-                        <Line
-                          type="monotone"
-                          dataKey="nifty_pc"
-                          stroke="#f97316"
-                          strokeWidth={2}
-                          dot={false}
-                          activeDot={{ r: 4, fill: "#f97316", stroke: "#fff", strokeWidth: 2 }}
-                          yAxisId="right"
-                        />
-                    </ComposedChart>
-                </ChartContainer>
-              </div>
-              
-              <div className="flex items-center justify-center gap-4 mt-2 text-[9px]">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-sm bg-success/80"></div>
-                    <span className="text-muted-foreground/80">Above</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-sm bg-destructive/80"></div>
-                    <span className="text-muted-foreground/80">Below</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-sm bg-orange-500/80"></div>
-                    <span className="text-muted-foreground/80">Nifty 50</span>
-                  </div>
-                </div>
-                
-<div className="mt-3 p-2.5 rounded-lg bg-muted/5 border border-muted/10">
-                    <p className="text-[11px] max-sm:text-[10px] text-muted-foreground/70 leading-relaxed mb-2">
-                      <span className="font-semibold text-muted-foreground/90">Market Balance</span> shows where the market is accepting prices by tracking how many stocks are finding balance at <span className="font-semibold text-white/90">higher levels</span> versus <span className="font-semibold text-white/90">lower levels</span>.
-                    </p>
-                    <ul className="text-[11px] max-sm:text-[10px] text-muted-foreground/70 leading-relaxed space-y-2">
-                      <li className={`p-2 rounded transition-all duration-300 ${isDisplayBullish ? 'bg-success/10 border-l-2 border-success' : ''}`}>
-                        <span className="font-semibold text-success">Balance Above &gt; 15:</span> Historically, when a higher number of stocks find balance at <span className="font-semibold text-white/80">higher prices</span>, it signals strong acceptance by the market. The probability of <span className="text-success">upside continuation is higher than downside</span>, making long positions a favourable approach.
-                      </li>
-                      <li className={`p-2 rounded transition-all duration-300 ${isDisplayBearish ? 'bg-destructive/10 border-l-2 border-destructive' : ''}`}>
-                        <span className="font-semibold text-destructive">Balance Below &gt; Balance Above:</span> When more stocks find balance at <span className="font-semibold text-white/80">lower prices</span>, it indicates weakening acceptance at higher levels. Traders are advised to stay cautious, as the market may <span className="font-semibold text-white/80">correct or experience a pullback</span>.
-                      </li>
-                    </ul>
-                    <p className="text-[10px] max-sm:text-[9px] text-muted-foreground/50 leading-relaxed mt-2 italic border-l-2 border-muted/30 pl-2">
-                      Market Balance reflects price acceptance behaviour and should be used alongside trend and risk indicators.
-                    </p>
-                  </div>
-              </div>
+      <div className="flex flex-col gap-4">
+        <div className="w-full">
+          <div className="h-[160px] max-sm:h-[140px] lg:h-[220px] w-full">
+            <ChartContainer config={chartConfig} className="h-full w-full">
+              <ComposedChart
+                data={chartData}
+                margin={{ left: -25, right: 5, top: 5, bottom: 0 }}
+                onMouseMove={(state: any) => {
+                  if (state?.activePayload?.length) {
+                    const payload = state.activePayload[0]?.payload;
+                    if (payload) {
+                      setHoveredData({ fg_above: payload.fg_above, fg_below: payload.fg_below });
+                    }
+                  }
+                }}
+                onMouseLeave={() => setHoveredData(null)}
+              >
+                <defs>
+                  <linearGradient id="greenAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#22c55e" stopOpacity={0.05} />
+                  </linearGradient>
+                  <linearGradient id="redAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  vertical={false}
+                  strokeDasharray="3 3"
+                  className="stroke-muted/10"
+                />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={4}
+                  minTickGap={60}
+                  tick={{ fontSize: 8 }}
+                  className="fill-muted-foreground/70"
+                />
+                <YAxis
+                  tick={{ fontSize: 8 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={25}
+                  className="fill-muted-foreground/70"
+                  yAxisId="left"
+                />
+                <YAxis
+                  tick={{ fontSize: 8 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={40}
+                  orientation="right"
+                  className="fill-orange-500/70"
+                  yAxisId="right"
+                  domain={[-5, 5]}
+                  tickFormatter={(value) => `${value > 0 ? '+' : ''}${value}%`}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" strokeOpacity={0.2} yAxisId="left" />
+                <ReferenceLine y={0} stroke="#f97316" strokeDasharray="3 3" strokeOpacity={0.3} yAxisId="right" />
+                <ReferenceLine y={15} stroke="#fbbf24" strokeDasharray="5 5" strokeOpacity={0.6} label={{ value: 'Threshold: 15', position: 'insideTopRight', fontSize: 9, fill: '#fbbf24' }} yAxisId="left" />
 
-            <div className="w-full flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-3 max-sm:gap-2">
-                  <div className={`p-3 max-sm:p-2 rounded-lg text-center transition-all duration-300 ${
-                    isBullish 
-                      ? 'bg-success/20 border-2 border-success shadow-[0_0_15px_rgba(34,197,94,0.4)] ring-2 ring-success/30' 
-                      : 'bg-success/5 border border-success/20'
-                  }`}>
-                    <div className="text-[10px] max-sm:text-[9px] font-bold text-success/70 uppercase mb-1">Above</div>
-                    <div className={`text-2xl max-sm:text-xl font-black text-success ${isBullish ? 'animate-pulse' : ''}`}>{fgAbove}</div>
-                    {isBullish && <div className="text-[9px] text-success font-semibold mt-1">&gt; 15 Bullish</div>}
-                  </div>
-                  <div className={`p-3 max-sm:p-2 rounded-lg text-center transition-all duration-300 ${
-                    isBearish 
-                      ? 'bg-destructive/20 border-2 border-destructive shadow-[0_0_15px_rgba(239,68,68,0.4)] ring-2 ring-destructive/30' 
-                      : 'bg-destructive/5 border border-destructive/20'
-                  }`}>
-                    <div className="text-[10px] max-sm:text-[9px] font-bold text-destructive/70 uppercase mb-1">Below</div>
-                    <div className={`text-2xl max-sm:text-xl font-black text-destructive ${isBearish ? 'animate-pulse' : ''}`}>{fgBelow}</div>
-                    {isBearish && <div className="text-[9px] text-destructive font-semibold mt-1">&gt; Above Bearish</div>}
-                  </div>
-                </div>
-              
+                <Area
+                  type="monotone"
+                  dataKey="fg_above"
+                  stroke="transparent"
+                  fill="url(#greenAreaGradient)"
+                  yAxisId="left"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="fg_below"
+                  stroke="transparent"
+                  fill="url(#redAreaGradient)"
+                  yAxisId="left"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="fg_above"
+                  stroke="#22c55e"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: "#22c55e", stroke: "#fff", strokeWidth: 2 }}
+                  yAxisId="left"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="fg_below"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: "#ef4444", stroke: "#fff", strokeWidth: 2 }}
+                  yAxisId="left"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="nifty_pc"
+                  stroke="#f97316"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: "#f97316", stroke: "#fff", strokeWidth: 2 }}
+                  yAxisId="right"
+                />
+              </ComposedChart>
+            </ChartContainer>
+          </div>
 
-
-              <div className={`p-3 max-sm:p-2 rounded-lg ${isBullish ? 'bg-success/5 border-success/20' : isBearish ? 'bg-destructive/5 border-destructive/20' : 'bg-warning/5 border-warning/20'} border`}>
-                {isBullish ? (
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-success shrink-0 mt-0.5" />
-                    <p className="text-success/90 text-xs max-sm:text-[11px] leading-relaxed">
-                      <span className="font-bold">Bullish:</span> Strong acceptance at higher prices. Upside likely.
-                    </p>
-                  </div>
-                ) : isBearish ? (
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-                    <p className="text-destructive/90 text-xs max-sm:text-[11px] leading-relaxed">
-                      <span className="font-bold">Caution:</span> Weakening acceptance. Possible pullback ahead.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2">
-                    <Minus className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-                    <p className="text-warning/90 text-xs max-sm:text-[11px] leading-relaxed">
-                      <span className="font-bold">Neutral:</span> Mixed signals. Wait for clearer direction.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-start gap-2 px-1">
-                <Info className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0 mt-0.5" />
-                <p className="text-muted-foreground/60 text-[10px] leading-relaxed">
-                  Tracks stock balance at relative price levels.
-                </p>
-              </div>
+          <div className="flex items-center justify-center gap-4 mt-2 text-[9px]">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-sm bg-success/80"></div>
+              <span className="text-muted-foreground/80">Above</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-sm bg-destructive/80"></div>
+              <span className="text-muted-foreground/80">Below</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-sm bg-orange-500/80"></div>
+              <span className="text-muted-foreground/80">Nifty 50</span>
             </div>
           </div>
 
-          <InfoModal
-              isOpen={showModal}
-              onClose={closeModal}
-              title="Understanding Market Balance"
-              layout="horizontal"
-              sections={[
-                {
-                  heading: "What is Market Balance?",
-                  content: "Market Balance shows where the market is accepting prices by tracking how many stocks are finding balance at higher levels versus lower levels. It reflects price acceptance behaviour across the market."
-                },
-                {
-                  heading: "Balance Above > 15 – Bullish Signal",
-                  content: "Historically, when a higher number of stocks find balance at higher prices, it signals strong acceptance by the market. The probability of upside continuation is higher than downside, making long positions a favourable approach."
-                },
-                {
-                  heading: "Balance Below > Balance Above – Caution",
-                  content: "When more stocks find balance at lower prices, it indicates weakening acceptance at higher levels. Traders are advised to stay cautious, as the market may correct or experience a pullback."
-                },
-                {
-                  heading: "How to Use This Indicator",
-                  content: "Market Balance reflects price acceptance behaviour and should be used alongside trend and risk indicators. It helps identify whether the market structure supports continued moves or is showing signs of weakness."
-                }
-              ]}
-              videoLink="#"
-            />
+          <div className="mt-3 p-2.5 rounded-lg bg-muted/5 border border-muted/10">
+            <p className="text-[11px] max-sm:text-[10px] text-muted-foreground/70 leading-relaxed mb-2">
+              <span className="font-semibold text-muted-foreground/90">Market Balance</span> shows where the market is accepting prices by tracking how many stocks are finding balance at <span className="font-semibold text-white/90">higher levels</span> versus <span className="font-semibold text-white/90">lower levels</span>.
+            </p>
+            <ul className="text-[11px] max-sm:text-[10px] text-muted-foreground/70 leading-relaxed space-y-2">
+              <li className={`p-2 rounded transition-all duration-300 ${isDisplayBullish ? 'bg-success/10 border-l-2 border-success' : ''}`}>
+                <span className="font-semibold text-success">Balance Above &gt; 15:</span> Historically, when a higher number of stocks find balance at <span className="font-semibold text-white/80">higher prices</span>, it signals strong acceptance by the market. Historical observations show a tendency toward upward continuation. This condition reflects stronger acceptance at higher price levels.
+              </li>
+              <span className="font-semibold text-destructive">Balance Below &gt; Balance Above:</span> When more stocks find balance at <span className="font-semibold text-white/80">lower prices</span>, it indicates weakening acceptance at higher levels. This condition reflects increasing downside sensitivity in the market.
+            </ul>
+            <p className="text-[10px] max-sm:text-[9px] text-muted-foreground/50 leading-relaxed mt-2 italic border-l-2 border-muted/30 pl-2">
+              Market Balance reflects price acceptance behaviour and should be used alongside trend and risk indicators.
+            </p>
+          </div>
+        </div>
+
+        <div className="w-full flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3 max-sm:gap-2">
+            <div className={`p-3 max-sm:p-2 rounded-lg text-center transition-all duration-300 ${isBullish
+                ? 'bg-success/20 border-2 border-success shadow-[0_0_15px_rgba(34,197,94,0.4)] ring-2 ring-success/30'
+                : 'bg-success/5 border border-success/20'
+              }`}>
+              <div className="text-[10px] max-sm:text-[9px] font-bold text-success/70 uppercase mb-1">Above</div>
+              <div className={`text-2xl max-sm:text-xl font-black text-success ${isBullish ? 'animate-pulse' : ''}`}>{fgAbove}</div>
+              {isBullish && <div className="text-[9px] text-success font-semibold mt-1">&gt; 15 Bullish</div>}
+            </div>
+            <div className={`p-3 max-sm:p-2 rounded-lg text-center transition-all duration-300 ${isBearish
+                ? 'bg-destructive/20 border-2 border-destructive shadow-[0_0_15px_rgba(239,68,68,0.4)] ring-2 ring-destructive/30'
+                : 'bg-destructive/5 border border-destructive/20'
+              }`}>
+              <div className="text-[10px] max-sm:text-[9px] font-bold text-destructive/70 uppercase mb-1">Below</div>
+              <div className={`text-2xl max-sm:text-xl font-black text-destructive ${isBearish ? 'animate-pulse' : ''}`}>{fgBelow}</div>
+              {isBearish && <div className="text-[9px] text-destructive font-semibold mt-1">&gt; Above Bearish</div>}
+            </div>
+          </div>
+
+
+
+          <div className={`p-3 max-sm:p-2 rounded-lg ${isBullish ? 'bg-success/5 border-success/20' : isBearish ? 'bg-destructive/5 border-destructive/20' : 'bg-warning/5 border-warning/20'} border`}>
+            {isBullish ? (
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-success shrink-0 mt-0.5" />
+                <p className="text-success/90 text-xs max-sm:text-[11px] leading-relaxed">
+                  <span className="font-bold">Bullish:</span> Strong acceptance at higher prices. Upside likely.
+                </p>
+              </div>
+            ) : isBearish ? (
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                <p className="text-destructive/90 text-xs max-sm:text-[11px] leading-relaxed">
+                  <span className="font-bold">Observation:</span> Weakening price acceptance at higher levels.
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2">
+                <Minus className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+                <p className="text-warning/90 text-xs max-sm:text-[11px] leading-relaxed">
+                  <span className="font-bold">Neutral:</span> Mixed signals. Wait for clearer direction.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-start gap-2 px-1">
+            <Info className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0 mt-0.5" />
+            <p className="text-muted-foreground/60 text-[10px] leading-relaxed">
+              Tracks stock balance at relative price levels.
+            </p>
+          </div>
+        </div>
       </div>
+
+      <InfoModal
+        isOpen={showModal}
+        onClose={closeModal}
+        title="Understanding Market Balance"
+        layout="horizontal"
+        sections={[
+          {
+            heading: "What is Market Balance?",
+            content: "Market Balance shows where the market is accepting prices by tracking how many stocks are finding balance at higher levels versus lower levels. It reflects price acceptance behaviour across the market."
+          },
+          {
+            heading: "Balance Above > 15 – Bullish Signal",
+            content: "Historically, when a higher number of stocks find balance at higher prices, it signals strong acceptance by the market. Historical observations show a tendency toward upward continuation. This condition reflects stronger acceptance at higher price levels."
+          },
+          {
+            heading: "Balance Below > Balance Above – Caution",
+            content: "When more stocks find balance at lower prices, it indicates weakening acceptance at higher levels. This condition reflects increasing downside sensitivity in the market."
+          },
+          {
+            heading: "How to Use This Indicator",
+            content: "Market Balance reflects price acceptance behaviour and should be used alongside trend and risk indicators. It helps identify whether the market structure supports continued moves or is showing signs of weakness."
+          }
+        ]}
+        videoLink="#"
+      />
+    </div>
   );
 }

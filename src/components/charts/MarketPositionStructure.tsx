@@ -1,6 +1,8 @@
 import { useMarketPosition } from "@/hooks/useLiveData";
 import { TrendingUp, TrendingDown, Activity, Target, RotateCcw, Loader2, Info, X, Play } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { db } from "@/lib/firebase";
+import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import {
   Tooltip,
   TooltipContent,
@@ -83,6 +85,17 @@ function IndicatorBar({ label, leftLabel, rightLabel, leftValue, rightValue, ico
 
 export default function MarketPositionStructure({ eodDate }: MarketPositionStructureProps) {
   const { data, isLoading } = useMarketPosition();
+  const [dynamicUpdate, setDynamicUpdate] = useState<string | null>(null);
+
+  useEffect(() => {
+    const q = query(collection(db, 'sir_edits'), orderBy('timestamp', 'desc'), limit(1));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        setDynamicUpdate(snapshot.docs[0].data().content);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   if (isLoading || !data) {
     return (
@@ -192,13 +205,14 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
         </div>
       </div>
 
-      <SummaryWithInfo />
+      <SummaryWithInfo dynamicContent={dynamicUpdate} />
     </div>
   );
 }
 
-function SummaryWithInfo() {
+function SummaryWithInfo({ dynamicContent }: { dynamicContent: string | null }) {
   const [showModal, setShowModal] = useState(false);
+  const defaultDesc = "This multi-modal engine combines multiple analytical models to map current market positioning across trends, patterns, and probabilities. It integrates historical context with predictive intelligence to project likely market movements. Bullish signals indicate oversold conditions with upside potential; bearish signals warn of over-extended markets preparing for reversal.";
 
   return (
     <>
@@ -206,8 +220,8 @@ function SummaryWithInfo() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
             <h4 className="text-sm font-semibold text-foreground/90 tracking-wide">How It Works</h4>
-            <p className="text-sm text-muted-foreground/80 leading-relaxed">
-              This multi-modal engine combines multiple analytical models to map current market positioning across trends, patterns, and probabilities. It integrates historical context with predictive intelligence to project likely market movements. Bullish signals indicate oversold conditions with upside potential; bearish signals warn of over-extended markets preparing for reversal.
+            <p className="text-sm text-white font-semibold leading-relaxed">
+              {dynamicContent || defaultDesc}
             </p>
           </div>
           <button
@@ -271,6 +285,13 @@ function SummaryWithInfo() {
                     Watch Video Guide
                   </a>
                 </div>
+              </div>
+
+              {/* Compliance Disclaimer */}
+              <div className="pt-6 border-t border-white/10">
+                <p className="text-[10px] text-muted-foreground/60 italic leading-relaxed">
+                  This indicator analyses historical price behaviour to highlight observable market characteristics. It does not predict future prices and should be interpreted as analytical context only.
+                </p>
               </div>
             </div>
           </div>

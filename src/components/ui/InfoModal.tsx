@@ -29,14 +29,13 @@ export function InfoModal({ title, sections, videoLink, isOpen, onClose, layout 
   const isHorizontal = layout === "horizontal";
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div 
-        className={`relative w-full max-h-[85vh] overflow-y-auto bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl ${
-          isHorizontal ? "max-w-5xl" : "max-w-2xl"
-        }`}
+      <div
+        className={`relative w-full max-h-[85vh] overflow-y-auto bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl ${isHorizontal ? "max-w-5xl" : "max-w-2xl"
+          }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 flex items-center justify-between p-4 border-b border-white/10 bg-background/95 backdrop-blur-xl">
@@ -59,6 +58,13 @@ export function InfoModal({ title, sections, videoLink, isOpen, onClose, layout 
             </div>
           ))}
 
+          {/* Compliance Disclaimer */}
+          <div className={`mt-4 pt-4 border-t border-white/5 ${isHorizontal ? "col-span-2" : ""}`}>
+            <p className="text-[10px] text-muted-foreground/60 italic leading-relaxed">
+              This indicator analyses historical price behaviour to highlight observable market characteristics. It does not predict future prices and should be interpreted as analytical context only.
+            </p>
+          </div>
+
           {videoLink && (
             <div className={`space-y-4 ${isHorizontal ? "col-span-2" : ""}`}>
               <h4 className="text-sm font-semibold text-primary uppercase tracking-wide flex items-center gap-2">
@@ -67,7 +73,7 @@ export function InfoModal({ title, sections, videoLink, isOpen, onClose, layout 
               </h4>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <p className="text-xs text-muted-foreground mb-3">Watch our detailed explanation video:</p>
-                <a 
+                <a
                   href={videoLink}
                   target="_blank"
                   rel="noopener noreferrer"

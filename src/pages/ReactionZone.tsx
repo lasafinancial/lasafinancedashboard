@@ -9,6 +9,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
@@ -108,6 +109,13 @@ export function ReactionZone() {
             </div>
 
             <div className="relative container mx-auto px-4 py-8">
+                {/* Screener Top Disclaimer */}
+                <div className="mb-8 p-3 rounded-xl bg-primary/5 border border-primary/10 text-center max-w-4xl mx-auto">
+                    <p className="text-[11px] md:text-xs text-muted-foreground/80 leading-relaxed font-medium">
+                        Stocks shown are filtered based on the selected analytical criteria and do not constitute buy or sell recommendations. No ranking or prioritization is implied.
+                    </p>
+                </div>
+
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -194,7 +202,20 @@ export function ReactionZone() {
                                         EMA200 {sortField === "dEma200Status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
                                     <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("mlTargetPercent")}>
-                                        Model % {sortField === "mlTargetPercent" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div className="flex items-center gap-1">
+                                                    Model % {sortField === "mlTargetPercent" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                                    <Info className="w-3 h-3 ml-0.5 opacity-50" />
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="w-64 p-3 bg-background border border-white/10 rounded-lg shadow-2xl z-[100] normal-case tracking-normal">
+                                                <p className="text-[10px] text-muted-foreground/90 leading-relaxed font-medium">
+                                                    Model % measures the relative distance between the current market price and a model-derived reference level based on historical price structure.
+                                                    It is a positional metric used to understand price location within a model framework and does not indicate probability, direction, or potential returns.
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
                                     </div>
                                     <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("id")}>
                                         Stocks {sortField === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}

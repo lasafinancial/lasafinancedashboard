@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 
     const { title, body, image } = req.body;
     const authHeader = req.headers.authorization;
-    const adminSecret = process.env.ADMIN_SECRET || 'lasa_admin_secret_123'; // Fallback for testing if env not set
+    const adminSecret = process.env.ADMIN_SECRET || 'lasa123'; // Matches the frontend password gateway
 
     // Simple Admin Auth Check
     if (!authHeader || authHeader !== `Bearer ${adminSecret}`) {

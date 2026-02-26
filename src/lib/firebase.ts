@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 import { getFirestore, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -22,6 +23,9 @@ const db = getFirestore(app);
 
 // Initialize Storage
 const storage = getStorage(app);
+
+// Initialize Auth
+const auth = getAuth(app);
 
 // Initialize Firebase Cloud Messaging
 let messaging: Messaging | null = null;
@@ -134,4 +138,4 @@ export async function removeTokenFromFirestore(token: string): Promise<boolean> 
   }
 }
 
-export { app, messaging, db, storage };
+export { app, messaging, db, storage, auth };

@@ -5,6 +5,7 @@ const XLSX = require('xlsx');
 const fs = require('fs');
 const path = require('path');
 const admin = require('firebase-admin');
+const twilio = require('twilio');
 
 // Global error handlers to prevent silent crashes
 process.on('uncaughtException', (err) => {
@@ -1039,7 +1040,7 @@ app.all('/api/send-market-mood', async (req, res) => {
 app.post('/api/admin/send-broadcast', async (req, res) => {
   const { title, body, image } = req.body;
   const authHeader = req.headers.authorization;
-  const adminSecret = process.env.ADMIN_SECRET || 'lasa_admin_secret_123';
+  const adminSecret = process.env.ADMIN_SECRET || 'lasa123';
 
   if (!authHeader || authHeader !== `Bearer ${adminSecret}`) {
     return res.status(401).json({ error: 'Unauthorized: Invalid Admin Secret' });
@@ -1122,6 +1123,92 @@ app.post('/api/admin/send-broadcast', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// ── Twilio OTP Routes (local dev — mirrors api/send-otp.js & api/verify-otp.js) ──
+app.post('/api/send-otp', async (req, res) => {
+  const { phoneNumber } = req.body;
+
+  // Re-read env vars each time to be safe in dev, or just ensure they are available
+  const twilioClient = twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
+  const twilioServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+
+  if (!phoneNumber) return res.status(400).json({ error: 'Phone number is required' });
+
+  // Robust formatting: Clean non-digits first, then re-apply +91 prefix
+  let cleanPhone = phoneNumber.replace(/\D/g, '');
+  if (cleanPhone.startsWith('91') && cleanPhone.length > 10) {
+    cleanPhone = cleanPhone.slice(2); // Strip extra 91 if someone sent 919311489386
+  }
+  const formattedPhone = `+91${cleanPhone}`;
+
+  console.log(`[DEBUG-OTP] phoneNumber from body: "${phoneNumber}"`);
+  console.log(`[DEBUG-OTP] formattedPhone: "${formattedPhone}" (Cleaned: ${cleanPhone})`);
+
+  try {
+    console.log(`[send-otp] Sending OTP to: ${formattedPhone}`);
+    const verification = await twilioClient.verify.v2
+      .services(twilioServiceSid)
+      .verifications.create({ to: formattedPhone, channel: 'sms' });
+    console.log(`[send-otp] Status: ${verification.status}`);
+    res.json({ success: true, message: `OTP sent to ${formattedPhone}` });
+  } catch (err) {
+    console.error('[send-otp] Error:', err.message);
+    res.status(500).json({ error: 'Failed to send OTP', details: err.message });
+  }
+});
+
+app.post('/api/verify-otp', async (req, res) => {
+  const { phoneNumber, code } = req.body;
+
+  // Re-read env vars each time to be safe in dev, or just ensure they are available
+  const twilioClient = twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
+  const twilioServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+
+  if (!phoneNumber || !code) return res.status(400).json({ error: 'Phone number and OTP code are required' });
+
+  const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+
+  try {
+    console.log(`[DEBUG-OTP-VERIFY] phoneNumber: "${phoneNumber}", code: "${code}"`);
+    console.log(`[DEBUG-OTP-VERIFY] formattedPhone: "${formattedPhone}"`);
+    console.log(`[DEBUG-OTP-VERIFY] Using Service SID: "${twilioServiceSid}"`);
+
+    console.log(`[verify-otp] Checking code for: ${formattedPhone}`);
+    const check = await twilioClient.verify.v2
+      .services(twilioServiceSid)
+      .verificationChecks.create({ to: formattedPhone, code });
+    console.log(`[verify-otp] Status: ${check.status}`);
+
+    if (check.status !== 'approved') {
+      return res.status(400).json({ error: 'Invalid or expired OTP. Please try again.' });
+    }
+
+    // Create/fetch Firebase user with deterministic UID (same phone = same user always)
+    const uid = `phone_${formattedPhone.replace('+', '')}`;
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUser(uid);
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        userRecord = await admin.auth().createUser({ uid, phoneNumber: formattedPhone, displayName: formattedPhone });
+        console.log(`[verify-otp] Created new Firebase user: ${uid}`);
+      } else throw err;
+    }
+
+    const customToken = await admin.auth().createCustomToken(uid);
+    res.json({ success: true, customToken });
+  } catch (err) {
+    console.error('[verify-otp] Error:', err.message, err.code ?? '');
+    res.status(500).json({ error: 'Verification failed', details: err.message });
+  }
+});
+// ── End Twilio OTP Routes ────────────────────────────────────────────────────
 
 const PORT = 3001;
 app.listen(PORT, () => {
