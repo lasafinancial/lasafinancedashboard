@@ -39,6 +39,16 @@ const screenerOptions = [
         bgColor: "bg-purple-400/10",
         borderColor: "group-hover:border-purple-400/50",
         gradient: "from-purple-400/20 to-transparent"
+    },
+    {
+        path: "/screeners/intraday-breakout",
+        label: "Intraday Breakout",
+        description: "High-intensity momentum breakouts with volume confirmation captured during the last two trading days.",
+        icon: Rocket,
+        color: "text-orange-400",
+        bgColor: "bg-orange-400/10",
+        borderColor: "group-hover:border-orange-400/50",
+        gradient: "from-orange-400/20 to-transparent"
     }
     // Multibagger Hidden per boss request
     /* {

@@ -85,6 +85,7 @@ export interface GoogleSheetsData {
   nearResistance?: any[];
   supportReversal?: any[];
   reactionZone?: any[];
+  intradayBreakout?: any[];
   lastUpdated: string;
 }
 

@@ -30,6 +30,7 @@ const StockAnalysis = () => {
   const [hoveredChartData, setHoveredChartData] = useState<HoveredData | null>(null);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showVideoModalHindi, setShowVideoModalHindi] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Helper for fuzzy matching and normalization
@@ -246,6 +247,14 @@ const StockAnalysis = () => {
               >
                 <PlayCircle className="w-4 h-4 text-primary transition-colors" />
                 <span className="text-xs font-semibold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Explanation Video</span>
+              </button>
+              <button
+                onClick={() => setShowVideoModalHindi(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(249,115,22,0.1)]"
+                title="हिंदी में देखें"
+              >
+                <PlayCircle className="w-4 h-4 text-orange-400 transition-colors" />
+                <span className="text-xs font-semibold text-orange-400/90 group-hover:text-orange-400 transition-colors uppercase tracking-wider">हिंदी Video</span>
               </button>
             </div>
             <p className="text-muted-foreground">Historical charts and data from lasa-master</p>
@@ -519,6 +528,47 @@ const StockAnalysis = () => {
             <div className="p-4 bg-primary/5 border-t border-white/10">
               <p className="text-sm text-muted-foreground text-center italic">
                 Learn how to interpret our algorithmic price structures and trading zones.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stock Analysis Hindi Video Modal */}
+      {showVideoModalHindi && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          onClick={() => setShowVideoModalHindi(false)}
+        >
+          <div
+            className="relative w-full max-w-4xl bg-background/95 backdrop-blur-xl border border-orange-500/20 rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <PlayCircle className="w-5 h-5 text-orange-400" />
+                <h3 className="text-lg font-semibold text-foreground">Stock Analysis — हिंदी में</h3>
+              </div>
+              <button
+                onClick={() => setShowVideoModalHindi(false)}
+                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="w-full aspect-video bg-black">
+              <iframe
+                src="https://www.youtube.com/embed/qOEfpC_Ctyo?autoplay=1"
+                title="Stock Analysis Hindi Explanation Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            </div>
+            <div className="p-4 bg-orange-500/5 border-t border-white/10">
+              <p className="text-sm text-muted-foreground text-center italic">
+                स्टॉक एनालिसिस और प्राइस ज़ोन को हिंदी में समझें।
               </p>
             </div>
           </div>

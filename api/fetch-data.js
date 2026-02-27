@@ -644,6 +644,68 @@ async function fetchData() {
       topGainers: sortedByChange.filter(s => s.changePercent > 0).slice(0, 10),
       topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
     };
+
+    // --- Start Intraday Breakout Screener ---
+    var intradayBreakout = [];
+    try {
+      const breakoutRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: EOD_SHEET_ID,
+        range: 'intraday-breakout-scanner!A:Q',
+      });
+      const breakoutRows = breakoutRes.data.values;
+      if (breakoutRows && breakoutRows.length > 1) {
+        const breakoutData = rowsToObjects(breakoutRows);
+
+        // Logic: Unique rows for last two trading days, de-duplicate Symbol + Time + Date
+        const allBreakoutDates = [...new Set(breakoutData.map(r => r['Date']).filter(Boolean))];
+        const sortedBreakoutDates = allBreakoutDates.sort((a, b) => new Date(b) - new Date(a));
+        const lastTwoDates = sortedBreakoutDates.slice(0, 2);
+
+        const seen = new Set();
+        intradayBreakout = breakoutData
+          .filter(row => row['Date'] && lastTwoDates.includes(row['Date']))
+          .filter(row => {
+            const key = `${row['Symbol']}_${row['Time']}_${row['Date']}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .map(row => {
+            // Robust header lookup
+            const getVal = (key, idx) => {
+              const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
+              return (foundKey ? row[foundKey] : row[idx]) || '';
+            };
+
+            return {
+              symbol: getVal('Symbol', 0) || 'N/A',
+              date: getVal('Date', 1) || 'N/A',
+              time: getVal('Time', 2) || 'N/A',
+              close: getNum(getVal('Close', 6)),
+              Volume_multiplie: getNum(getVal('Volume_multiplie', 9)),
+              'Price_%_Move': getNum(getVal('Price_%_Move', 10)),
+              BALANCE: getVal('BALANCE', 12) || 'N/A',
+              MODEL: getVal('MODEL', 13) || 'N/A',
+              PATTERN: getVal('PATTERN', 14) || 'N/A',
+              RESISTANCE: getVal('RESISTANCE', 16) || 'N/A'
+            };
+          })
+          .sort((a, b) => {
+            // Sort by Date and Time descending
+            try {
+              const dateA = new Date(`${a.date} ${a.time}`);
+              const dateB = new Date(`${b.date} ${b.time}`);
+              return dateB - dateA;
+            } catch (e) {
+              return 0;
+            }
+          });
+      }
+    } catch (err) {
+      console.warn('Could not fetch intraday breakout data:', err.message);
+    }
+    // --- End Intraday Breakout Screener ---
+
   } catch (err) {
     console.warn('Could not fetch top movers from current tab:', err.message);
   }
@@ -658,6 +720,7 @@ async function fetchData() {
     nearResistance,
     supportReversal,
     reactionZone,
+    intradayBreakout, // Added here
     lastUpdated: new Date().toISOString()
   };
 }

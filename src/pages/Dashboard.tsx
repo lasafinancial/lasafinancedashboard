@@ -47,6 +47,7 @@ const Dashboard = () => {
   const { marketStrength: liveMarketStrength, marketMood: liveMarketMood } = useLiveData();
   const { showModal: showMarketMoodModal, openModal: openMarketMoodModal, closeModal: closeMarketMoodModal } = useInfoModal();
   const [showExpVideo, setShowExpVideo] = useState(false);
+  const [showExpVideoHindi, setShowExpVideoHindi] = useState(false);
 
   useEffect(() => {
     const checkDisclaimer = () => {
@@ -181,6 +182,14 @@ const Dashboard = () => {
               >
                 <PlayCircle className="w-5 h-5 text-primary transition-colors group-hover:scale-110" />
                 <span className="text-xs font-bold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Explainer video</span>
+              </button>
+              <button
+                onClick={() => setShowExpVideoHindi(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(249,115,22,0.1)]"
+                title="हिंदी में देखें"
+              >
+                <PlayCircle className="w-5 h-5 text-orange-400 transition-colors group-hover:scale-110" />
+                <span className="text-xs font-bold text-orange-400/90 group-hover:text-orange-400 transition-colors uppercase tracking-wider">हिंदी Video</span>
               </button>
             </div>
             <p className="text-sm text-muted-foreground max-w-2xl font-medium leading-relaxed">
@@ -423,6 +432,46 @@ const Dashboard = () => {
             <div className="p-4 bg-muted/20 border-t border-white/10">
               <p className="text-xs text-muted-foreground text-center font-medium italic">
                 Get a quick overview of our proprietary dashboard analytics, market mood indicators, and precision screeners.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Dashboard Hindi Explainer Video Modal */}
+      {showExpVideoHindi && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
+          onClick={() => setShowExpVideoHindi(false)}
+        >
+          <div
+            className="relative w-full max-w-4xl bg-background/95 backdrop-blur-xl border border-orange-500/20 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-muted/30">
+              <div className="flex items-center gap-3 font-semibold text-foreground">
+                <PlayCircle className="w-5 h-5 text-orange-400" />
+                <span>Dashboard Explainer — हिंदी में</span>
+              </div>
+              <button
+                onClick={() => setShowExpVideoHindi(false)}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="aspect-video w-full bg-black flex items-center justify-center">
+              <iframe
+                className="w-full h-full"
+                src="https://www.youtube.com/embed/o-MfbZz0sEQ?autoplay=1"
+                title="Dashboard Explainer Video Hindi"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              ></iframe>
+            </div>
+            <div className="p-4 bg-orange-500/5 border-t border-white/10">
+              <p className="text-xs text-muted-foreground text-center font-medium italic">
+                हमारे डैशबोर्ड को हिंदी में समझें — मार्केट मूड, इंडिकेटर और स्क्रीनर।
               </p>
             </div>
           </div>

@@ -25,6 +25,7 @@ export function NearResistance() {
     const [sortField, setSortField] = useState<SortField>("dEma200Status");
     const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
     const [showVideoModal, setShowVideoModal] = useState(false);
+    const [showVideoModalHindi, setShowVideoModalHindi] = useState(false);
 
     const formatNumber = (num: number) => {
         if (num === null || num === undefined) return "N/A";
@@ -197,6 +198,14 @@ export function NearResistance() {
                                     <PlayCircle className="w-4 h-4 text-primary transition-colors" />
                                     <span className="text-xs font-semibold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Explanation Video</span>
                                 </button>
+                                <button
+                                    onClick={() => setShowVideoModalHindi(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/40 transition-all duration-200 group"
+                                    title="हिंदी में देखें"
+                                >
+                                    <PlayCircle className="w-4 h-4 text-orange-400 transition-colors" />
+                                    <span className="text-xs font-semibold text-orange-400/90 group-hover:text-orange-400 transition-colors uppercase tracking-wider">हिंदी Video</span>
+                                </button>
                             </div>
                             <p className="text-muted-foreground text-sm flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -331,6 +340,48 @@ export function NearResistance() {
                 }
             </div >
 
+            {/* Hindi Video Modal - Breakout Screener */}
+            {
+                showVideoModalHindi && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+                        onClick={() => setShowVideoModalHindi(false)}
+                    >
+                        <div
+                            className="relative w-full max-w-4xl bg-background/95 backdrop-blur-xl border border-orange-500/20 rounded-2xl shadow-2xl overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between p-4 border-b border-white/10">
+                                <div className="flex items-center gap-2">
+                                    <PlayCircle className="w-5 h-5 text-orange-400" />
+                                    <h3 className="text-lg font-semibold text-foreground">Breakout Screener — हिंदी में</h3>
+                                </div>
+                                <button
+                                    onClick={() => setShowVideoModalHindi(false)}
+                                    className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-muted-foreground" />
+                                </button>
+                            </div>
+                            <div className="w-full aspect-video bg-black">
+                                <iframe
+                                    src="https://www.youtube.com/embed/Jp2hNXDTbJ4?autoplay=1"
+                                    title="Breakout Screener Hindi Video"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                    className="w-full h-full"
+                                />
+                            </div>
+                            <div className="p-4 bg-orange-500/5 border-t border-white/10">
+                                <p className="text-sm text-muted-foreground text-center italic">
+                                    ब्रेकआउट स्क्रीनर को हिंदी में समझें।
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
             {/* Video Modal */}
             {
                 showVideoModal && (

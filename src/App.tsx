@@ -18,6 +18,7 @@ import Screeners from "@/pages/Screeners";
 import NearResistance from "@/pages/NearResistance";
 import SupportReversal from "@/pages/SupportReversal";
 import ReactionZone from "@/pages/ReactionZone";
+import IntradayBreakout from "@/pages/IntradayBreakout";
 import Backtests from "@/pages/Backtests";
 import Admin from "@/pages/Admin";
 import Help from "@/pages/Help";
@@ -185,6 +186,7 @@ const AppContent = () => {
         <Route path="/screeners/near-resistance" element={<ProtectedRoute><NearResistance /></ProtectedRoute>} />
         <Route path="/screeners/support-reversal" element={<ProtectedRoute><SupportReversal /></ProtectedRoute>} />
         <Route path="/screeners/reaction-zone" element={<ProtectedRoute><ReactionZone /></ProtectedRoute>} />
+        <Route path="/screeners/intraday-breakout" element={<ProtectedRoute><IntradayBreakout /></ProtectedRoute>} />
         <Route path="/backtests" element={<ProtectedRoute><Backtests /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />

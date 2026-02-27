@@ -26,6 +26,7 @@ export function useLiveData() {
   const [nearResistance, setNearResistance] = useState<any[]>(cached ? cached.nearResistance || [] : []);
   const [supportReversal, setSupportReversal] = useState<any[]>(cached ? cached.supportReversal || [] : []);
   const [reactionZone, setReactionZone] = useState<any[]>(cached ? cached.reactionZone || [] : []);
+  const [intradayBreakout, setIntradayBreakout] = useState<any[]>(cached ? cached.intradayBreakout || [] : []);
   const [isLoading, setIsLoading] = useState(!cached);
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
 
@@ -40,6 +41,7 @@ export function useLiveData() {
       setNearResistance(data.nearResistance || []);
       setSupportReversal(data.supportReversal || []);
       setReactionZone(data.reactionZone || []);
+      setIntradayBreakout(data.intradayBreakout || []);
       setLastUpdate(new Date().toLocaleTimeString());
       setIsLoading(false);
     });
@@ -63,6 +65,7 @@ export function useLiveData() {
     nearResistance,
     supportReversal,
     reactionZone,
+    intradayBreakout,
     isLoading,
     lastUpdate,
     refresh: refreshAllData
