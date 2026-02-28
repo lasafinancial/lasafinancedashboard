@@ -5,6 +5,7 @@
     "googleapis": "^170.1.0",
     "gaxios": "^6.7.1",
     "gcp-metadata": "^6.1.0",
-    "google-auth-library": "^9.15.0"
+    "google-auth-library": "^9.15.0",
+    "twilio": "^5.12.2"
   }
 }
