@@ -428,12 +428,13 @@ async function fetchData() {
   let nearResistance = [];
   let supportReversal = [];
   let reactionZone = [];
+  let currentData = [];
   try {
     const currentRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
       range: "'current'!A1:FJ",
     });
-    const currentData = rowsToObjects(currentRes.data.values);
+    currentData = rowsToObjects(currentRes.data.values);
 
     const moodStocks = currentData.slice(0, 470).filter(row => {
       const group = (row['GROUP'] || '').toString().toUpperCase();
