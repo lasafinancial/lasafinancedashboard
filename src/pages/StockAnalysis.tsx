@@ -226,40 +226,42 @@ const StockAnalysis = () => {
 
       <div className="relative container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8 flex justify-between items-end">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold mb-2">
+        <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-6">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+              <h1 className="text-2xl md:text-3xl font-bold">
                 Stock <span className="gradient-text italic pr-4">Analysis</span>
               </h1>
-              <button
-                onClick={() => setShowInfoModal(true)}
-                className="p-2 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(var(--primary),0.1)]"
-                title="Learn about Price Structure & Zone Analysis"
-              >
-                <Info className="w-4 h-4 text-primary/70 group-hover:text-primary transition-colors" />
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setShowInfoModal(true)}
+                  className="p-2 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all duration-200 group"
+                  title="Learn about Price Structure & Zone Analysis"
+                >
+                  <Info className="w-4 h-4 text-primary/70 group-hover:text-primary transition-colors" />
+                </button>
 
-              <button
-                onClick={() => setShowVideoModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(var(--primary),0.1)]"
-                title="Watch Explanation Video"
-              >
-                <PlayCircle className="w-4 h-4 text-primary transition-colors" />
-                <span className="text-xs font-semibold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Explanation Video</span>
-              </button>
-              <button
-                onClick={() => setShowVideoModalHindi(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(249,115,22,0.1)]"
-                title="हिंदी में देखें"
-              >
-                <PlayCircle className="w-4 h-4 text-orange-400 transition-colors" />
-                <span className="text-xs font-semibold text-orange-400/90 group-hover:text-orange-400 transition-colors uppercase tracking-wider">हिंदी Video</span>
-              </button>
+                <button
+                  onClick={() => setShowVideoModal(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all duration-200 group whitespace-nowrap"
+                  title="Watch Explanation Video"
+                >
+                  <PlayCircle className="w-4 h-4 text-primary transition-colors" />
+                  <span className="text-[10px] sm:text-xs font-semibold text-primary/90 transition-colors uppercase tracking-wider">Explanation Video</span>
+                </button>
+                <button
+                  onClick={() => setShowVideoModalHindi(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/40 transition-all duration-200 group whitespace-nowrap"
+                  title="हिंदी में देखें"
+                >
+                  <PlayCircle className="w-4 h-4 text-orange-400 transition-colors" />
+                  <span className="text-[10px] sm:text-xs font-semibold text-orange-400/90 transition-colors uppercase tracking-wider">हिंदी Video</span>
+                </button>
+              </div>
             </div>
-            <p className="text-muted-foreground">Historical charts and data from lasa-master</p>
+            <p className="text-muted-foreground text-sm md:text-base">Historical charts and data from lasa-master</p>
           </div>
-          <div className="text-right">
+          <div className="flex flex-col md:items-end">
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Data Source: lasa-master (Live)</p>
             <p className="text-[10px] font-mono text-primary">Last Updated: {lastUpdate}</p>
           </div>

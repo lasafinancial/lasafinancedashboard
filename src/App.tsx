@@ -39,6 +39,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Login from "@/pages/Login";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
+import { ProfileSetupModal } from "@/components/auth/ProfileSetupModal";
 
 const queryClient = new QueryClient();
 
@@ -47,8 +48,11 @@ const AppContent = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCountrySelection, setShowCountrySelection] = useState(false);
   const [showTraderTypeSelection, setShowTraderTypeSelection] = useState(false);
-  const [onboardingFinishedSesssion, setOnboardingFinishedSession] = useState(false);
-  const { userData, updateUserData, user } = useAuth();
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [slidesFinishedSession, setSlidesFinishedSession] = useState(false);
+  const [traderTypeFinishedSession, setTraderTypeFinishedSession] = useState(false);
+  const [profileSetupFinishedSession, setProfileSetupFinishedSession] = useState(false);
+  const { userData, updateUserData, user, loading: authLoading } = useAuth();
   const [selectedCountry, setSelectedCountry] = useState<CountryId>('india');
   const { isLoading } = useLiveData();
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -93,13 +97,24 @@ const AppContent = () => {
     }
   }, [showLanding, isLoading]);
 
-  // Automatically show onboarding if required after auth is ready
+  // Automatically show onboarding steps sequentially if required after auth is ready
   useEffect(() => {
-    if (!showLanding && !showOnboarding && !onboardingFinishedSesssion && userData && !userData.hasSeenOnboarding && !isAdminPath) {
-      console.log("[App] User needs onboarding, showing modal.");
-      setShowOnboarding(true);
+    // Only trigger if we've bypassed or finished the landing page, not on admin/login path, and have userData
+    if (!showLanding && !isAdminPath && !isLoginPage && userData) {
+      // 1. Check for Onboarding Slides
+      if (!userData.hasSeenOnboarding && !showOnboarding && !slidesFinishedSession) {
+        setShowOnboarding(true);
+      }
+      // 2. Check for Trader Type (only if onboarding slides are done)
+      else if ((userData.hasSeenOnboarding || slidesFinishedSession) && !userData.traderType && !showTraderTypeSelection && !traderTypeFinishedSession) {
+        setShowTraderTypeSelection(true);
+      }
+      // 3. Check for Profile Setup - Name & Checkbox (only after trader type)
+      else if ((userData.traderType || traderTypeFinishedSession) && !userData.hasCompletedProfile && !showProfileSetup && !profileSetupFinishedSession) {
+        setShowProfileSetup(true);
+      }
     }
-  }, [userData, showLanding, showOnboarding, onboardingFinishedSesssion, isAdminPath]);
+  }, [userData, showLanding, showOnboarding, slidesFinishedSession, isAdminPath, showTraderTypeSelection, showProfileSetup, traderTypeFinishedSession, profileSetupFinishedSession]);
 
   // Track activity
   useActivityLogger();
@@ -110,20 +125,11 @@ const AppContent = () => {
   };
 
   const handleOnboardingComplete = () => {
-    console.log("[App] Onboarding slides complete.");
     setShowOnboarding(false);
-    setOnboardingFinishedSession(true); // Prevent re-triggering
+    setSlidesFinishedSession(true); // Prevent re-triggering in same session
     updateUserData({
       hasSeenOnboarding: true,
-      selectedCountry: 'india' // Default to India as requested
     });
-
-    // Skip Country Selection per user request - go straight to Trader Type
-    if (!userData?.traderType) {
-      setShowTraderTypeSelection(true);
-    } else {
-      window.dispatchEvent(new CustomEvent("onboardingComplete"));
-    }
   };
 
   const handleCountrySelect = (countryId: CountryId) => {
@@ -140,9 +146,18 @@ const AppContent = () => {
   };
 
   const handleTraderTypeSelect = (type: TraderType) => {
-    updateUserData({ traderType: type });
     setShowTraderTypeSelection(false);
-    window.dispatchEvent(new CustomEvent("onboardingComplete"));
+    setTraderTypeFinishedSession(true);
+    updateUserData({ traderType: type });
+  };
+
+  const handleProfileSetupComplete = (userName: string) => {
+    setShowProfileSetup(false);
+    setProfileSetupFinishedSession(true);
+    updateUserData({
+      name: userName,
+      hasCompletedProfile: true
+    });
   };
 
   const handleCountryChange = (countryId: CountryId) => {
@@ -150,13 +165,24 @@ const AppContent = () => {
     updateUserData({ selectedCountry: countryId });
   };
 
+  // Determine if the main app content should be visible
+  // We show main content if:
+  // 1. It's the login page
+  // 2. User is fully onboarded
+  // 3. User is NOT logged in (to allow ProtectedRoute to redirect to /login)
+  const isFullyOnboarded = !!(userData?.disclaimerAcceptedAt || FEATURE_FLAGS.BYPASS_LOGIN);
+  const showMainContent = isLoginPage || isFullyOnboarded || !user;
+
+  // Navbar visibility: ONLY show if fully onboarded (or logged out and not on login page)
+  const shouldShowNavbar = !isLoginPage && (isFullyOnboarded || !user);
+
   if (showLanding) {
     return <LandingPage onEnter={handleEnter} />;
   }
 
-  // Show splash screen if live data is still loading after entering
-  // We allow a small delay for the 100% state to be visible before transitioning
-  if (isLoading || loadingProgress < 100) {
+  // Show splash screen if live data is still loading OR auth is still loading
+  // OR if we are logged in but don't have userData yet (still fetching from Firestore)
+  if (isLoading || loadingProgress < 100 || authLoading || (user && !userData)) {
     return <SplashScreen progress={loadingProgress} />;
   }
 
@@ -167,33 +193,52 @@ const AppContent = () => {
         onOpenChange={setShowOnboarding}
         onComplete={handleOnboardingComplete}
       />
-      {/* Disclaimer only shows when initial onboarding steps are done AND not in bypass mode */}
-      {!FEATURE_FLAGS.BYPASS_LOGIN && (userData?.hasSeenOnboarding || onboardingFinishedSesssion) && userData?.traderType && (
-        <DisclaimerModal />
-      )}
+
+      {!FEATURE_FLAGS.BYPASS_LOGIN && <DisclaimerModal />}
+
       <TraderTypeModal
         isOpen={showTraderTypeSelection}
         onSelect={handleTraderTypeSelect}
       />
-      {!isLoginPage && <Navbar selectedCountry={selectedCountry} onCountryChange={handleCountryChange} />}
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/stocks" element={<ProtectedRoute><StockAnalysis /></ProtectedRoute>} />
-        <Route path="/sectors" element={<ProtectedRoute><Sectors /></ProtectedRoute>} />
-        <Route path="/multibagger" element={<ProtectedRoute><Multibagger /></ProtectedRoute>} />
-        <Route path="/screeners" element={<ProtectedRoute><Screeners /></ProtectedRoute>} />
-        <Route path="/screeners/near-resistance" element={<ProtectedRoute><NearResistance /></ProtectedRoute>} />
-        <Route path="/screeners/support-reversal" element={<ProtectedRoute><SupportReversal /></ProtectedRoute>} />
-        <Route path="/screeners/reaction-zone" element={<ProtectedRoute><ReactionZone /></ProtectedRoute>} />
-        <Route path="/screeners/intraday-breakout" element={<ProtectedRoute><IntradayBreakout /></ProtectedRoute>} />
-        <Route path="/backtests" element={<ProtectedRoute><Backtests /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-        <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      {!isLoginPage && <Footer />}
-      {!isLoginPage && <AIChatbot />}
+
+      <ProfileSetupModal
+        isOpen={showProfileSetup}
+        onComplete={handleProfileSetupComplete}
+      />
+
+      {showMainContent ? (
+        <>
+          {shouldShowNavbar && <Navbar selectedCountry={selectedCountry} onCountryChange={handleCountryChange} />}
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/stocks" element={<ProtectedRoute><StockAnalysis /></ProtectedRoute>} />
+            <Route path="/sectors" element={<ProtectedRoute><Sectors /></ProtectedRoute>} />
+            <Route path="/multibagger" element={<ProtectedRoute><Multibagger /></ProtectedRoute>} />
+            <Route path="/screeners" element={<ProtectedRoute><Screeners /></ProtectedRoute>} />
+            <Route path="/screeners/near-resistance" element={<ProtectedRoute><NearResistance /></ProtectedRoute>} />
+            <Route path="/screeners/support-reversal" element={<ProtectedRoute><SupportReversal /></ProtectedRoute>} />
+            <Route path="/screeners/reaction-zone" element={<ProtectedRoute><ReactionZone /></ProtectedRoute>} />
+            <Route path="/screeners/intraday-breakout" element={<ProtectedRoute><IntradayBreakout /></ProtectedRoute>} />
+            <Route path="/backtests" element={<ProtectedRoute><Backtests /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+            <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          {!isLoginPage && <Footer />}
+          {!isLoginPage && <AIChatbot />}
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center bg-black">
+          {/* Dashboard is hidden during onboarding stage */}
+          <div className="max-w-md w-full p-8 text-center space-y-4">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-white/5 rounded w-3/4 mx-auto"></div>
+              <div className="h-4 bg-white/5 rounded w-1/2 mx-auto"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -12,17 +12,15 @@ import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 
 export function DisclaimerModal() {
-    const { user } = useAuth();
+    const { user, userData, updateUserData } = useAuth();
     const location = useLocation();
     const [isOpen, setIsOpen] = useState(false);
     const [accepted, setAccepted] = useState(false);
-    const [name, setName] = useState("");
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const checkDisclaimerStatus = async () => {
-            if (!user) {
-                console.log("[DisclaimerModal] No user, hiding.");
+            if (!user || !userData) {
                 setIsOpen(false);
                 return;
             }
@@ -33,52 +31,20 @@ export function DisclaimerModal() {
                 return;
             }
 
-            try {
-                console.log("[DisclaimerModal] Checking status for user:", user.uid);
-                const userRef = doc(db, "users", user.uid);
-                const userSnap = await getDoc(userRef);
-
-                if (userSnap.exists()) {
-                    const data = userSnap.data();
-                    console.log("[DisclaimerModal] User data found:", data);
-
-                    // If name is just the phone number (auto-populated by backend), clear it to force input
-                    const currentName = data.name || "";
-                    const isNamePhoneNumber = currentName.startsWith('+') || /^\d+$/.test(currentName.replace(/\s/g, ''));
-
-                    if (isNamePhoneNumber) {
-                        console.log("[DisclaimerModal] Name is phone number, clearing for manual entry.");
-                        setName("");
-                    } else if (currentName) {
-                        setName(currentName);
-                    }
-
-                    // One-time only: if they've accepted in Firestore, don't show it again
-                    if (data.disclaimerAcceptedAt) {
-                        console.log("[DisclaimerModal] Already accepted at:", data.disclaimerAcceptedAt);
-                        setIsOpen(false);
-                    } else {
-                        console.log("[DisclaimerModal] Not yet accepted.");
-                        setIsOpen(true);
-                    }
-                } else {
-                    console.log("[DisclaimerModal] New user record, needs acceptance.");
-                    setIsOpen(true);
-                }
-            } catch (error) {
-                console.error("[DisclaimerModal] Error checking disclaimer status:", error);
+            // Only show if onboarding steps are done but disclaimer hasn't been accepted in Firestore
+            const hasDoneBasics = userData.hasSeenOnboarding && userData.traderType && userData.hasCompletedProfile;
+            if (hasDoneBasics && !userData.disclaimerAcceptedAt) {
+                setIsOpen(true);
+            } else {
                 setIsOpen(false);
             }
         };
 
         checkDisclaimerStatus();
-    }, [user, location.pathname]);
+    }, [user, userData, location.pathname]);
 
     const handleAccept = async () => {
-        if (!user || !accepted || !name.trim()) {
-            if (!name.trim()) toast.error("Please enter your name");
-            return;
-        }
+        if (!user || !accepted) return;
 
         setLoading(true);
         try {
@@ -86,30 +52,22 @@ export function DisclaimerModal() {
             let userIP = "Unknown";
             try {
                 const ipResponse = await fetch('https://api.ipify.org?format=json');
-                const ipData = await ipResponse.json();
-                userIP = ipData.ip;
+                if (ipResponse.ok) {
+                    const ipData = await ipResponse.json();
+                    userIP = ipData.ip;
+                }
             } catch (ipErr) {
                 console.error("Failed to fetch IP:", ipErr);
             }
 
-            const userRef = doc(db, "users", user.uid);
-
-            await setDoc(userRef, {
-                uid: user.uid,
-                phoneNumber: user.phoneNumber,
-                name: name.trim(),
-                tier: "free",
+            await updateUserData({
                 disclaimerAcceptedAt: serverTimestamp(),
-                disclaimerVersion: "1.0",
-                lastLoginAt: serverTimestamp(),
-                acceptanceIP: userIP // Log the IP address
-            }, { merge: true });
-
-            // Mark as accepted for this session
-            sessionStorage.setItem(`disclaimer_accepted_${user.uid}`, "true");
+                disclaimerVersion: "2.5", // Incremented for the new text + checkbox requirement
+                acceptanceIP: userIP
+            });
 
             setIsOpen(false);
-            toast.success("Welcome, " + name.trim());
+            toast.success("Identity Verified. Access Granted.");
         } catch (error) {
             console.error("Error saving disclaimer acceptance:", error);
             toast.error("Failed to save. Please try again.");
@@ -119,78 +77,71 @@ export function DisclaimerModal() {
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && setIsOpen(true)}> {/* Prevent closing by clicking outside */}
-            <DialogContent className="sm:max-w-[500px] border-l-4 border-l-primary" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-                <DialogHeader>
-                    <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="h-6 w-6 text-yellow-500" />
-                        <DialogTitle className="text-xl">Welcome to LASA Finance</DialogTitle>
-                    </div>
-                    <DialogDescription className="text-base text-foreground/90 leading-relaxed">
-                        Please provide your details and acknowledge the disclaimer to continue.
-                    </DialogDescription>
-                </DialogHeader>
+        <Dialog open={isOpen} onOpenChange={() => { }}>
+            <DialogContent className="sm:max-w-[550px] border-l-4 border-l-primary p-0 overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
 
-                <div className="py-2 space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="name" className="text-sm font-semibold">Your Full Name</Label>
-                        <Input
-                            id="name"
-                            placeholder="Enter your name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="bg-white/5 border-white/10"
-                            autoFocus
-                        />
+                <div className="p-6 sm:p-8 space-y-6 relative">
+                    <DialogHeader className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                                <AlertTriangle className="h-6 w-6 text-orange-500" />
+                            </div>
+                            <DialogTitle className="text-2xl font-bold tracking-tight">Final Legal Disclaimer</DialogTitle>
+                        </div>
+                        <DialogDescription className="text-sm font-medium text-muted-foreground">
+                            {userData?.name ? `Hello ${userData.name}, please` : "Please"} acknowledge the following to access the dashboard.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="p-5 sm:p-6 bg-muted/40 rounded-2xl border border-white/5 text-sm sm:text-base leading-relaxed text-foreground/90 font-medium italic">
+                        "The information, price levels, and analytics are generated from algorithmic models and are intended solely for educational and research purposes. Nothing on this platform constitutes investment advice, recommendation, or solicitation. Users should exercise independent judgment and consult a SEBI-registered investment advisor before making any financial decisions. The platform, its owners, and affiliates are not liable for any direct or indirect losses or gains resulting from the use of this data or securities shown in the screener."
                     </div>
 
-                    <div className="p-4 bg-muted/30 rounded-lg border border-border text-xs text-muted-foreground space-y-2">
-                        <p>
-                            <strong>Disclaimer:</strong> LASA Finance is an analytics and educational platform. We provide market tools and data visualization. We are <strong>NOT</strong> a SEBI-registered investment adviser.
-                        </p>
-                        <p>
-                            No content here constitutes investment advice. Always consult a qualified financial advisor before investing.
-                        </p>
-                    </div>
+                    <div className="space-y-4">
+                        <div className="flex items-start space-x-3 p-4 rounded-xl bg-primary/5 border border-primary/20 transition-all hover:bg-primary/10">
+                            <Checkbox
+                                id="legal-agree"
+                                checked={accepted}
+                                onCheckedChange={(checked) => setAccepted(checked as boolean)}
+                                className="mt-1"
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                                <Label
+                                    htmlFor="legal-agree"
+                                    className="text-sm font-bold leading-none cursor-pointer hover:text-primary transition-colors"
+                                >
+                                    I have read and agree to the legal disclaimer
+                                </Label>
+                                <p className="text-[11px] text-muted-foreground leading-snug">
+                                    I acknowledge that the data is for educational use and I accept full responsibility for my financial decisions.
+                                </p>
+                            </div>
+                        </div>
 
-                    <div className="flex items-start space-x-3 pt-1">
-                        <Checkbox
-                            id="terms"
-                            checked={accepted}
-                            onCheckedChange={(checked) => setAccepted(checked as boolean)}
-                            className="mt-1"
-                        />
-                        <div className="grid gap-1.5 leading-none">
-                            <Label
-                                htmlFor="terms"
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                                I understand and agree
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                                I acknowledge that this platform is for analytics purposes only.
+                        <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-white/5 border border-white/10">
+                            <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
+                            <p className="text-[10px] text-muted-foreground leading-snug">
+                                Your acceptance is securely logged with IP address and timestamp.
                             </p>
                         </div>
                     </div>
-                </div>
 
-                <DialogFooter className="sm:justify-between items-center">
-                    <p className="text-[10px] text-muted-foreground text-left flex-1">
-                        Your name and acceptance will be logged for compliance.
-                    </p>
-                    <Button
-                        type="button"
-                        onClick={handleAccept}
-                        disabled={!accepted || !name.trim() || loading}
-                        className="w-full sm:w-auto min-w-[120px]"
-                    >
-                        {loading ? "Processing..." : (
-                            <>
-                                Accept & Enter <ShieldCheck className="ml-2 h-4 w-4" />
-                            </>
-                        )}
-                    </Button>
-                </DialogFooter>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            onClick={handleAccept}
+                            disabled={loading || !accepted}
+                            className="w-full h-12 text-lg font-bold shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            {loading ? (
+                                <span className="flex items-center gap-2">Processing...</span>
+                            ) : (
+                                "I Understand & Acknowledge"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </div>
             </DialogContent>
         </Dialog>
     );

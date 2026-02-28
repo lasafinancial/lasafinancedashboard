@@ -197,7 +197,7 @@ export function ReactionZone() {
                         <div className="overflow-auto scroll-smooth h-full custom-scrollbar">
                             <div className="min-w-[1200px] flex flex-col gap-2 relative">
                                 {/* Header */}
-                                <div className="sticky top-0 z-50 bg-[#020617] border-b border-white/10 px-3 py-3 md:px-4 md:py-4 flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider shadow-md">
+                                <div className="sticky top-0 z-50 bg-[#020617] border-b border-white/10 px-3 py-3 md:px-4 md:py-4 flex items-center text-xs font-bold text-white/75 uppercase tracking-wider shadow-md">
                                     <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dEma200Status")}>
                                         EMA200 {sortField === "dEma200Status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>

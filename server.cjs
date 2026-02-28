@@ -745,6 +745,39 @@ async function fetchData() {
       topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
     };
 
+    // --- Link Current Live Data to Stock History ---
+    const currentLiveMap = {};
+    currentData.forEach(row => {
+      const symbol = row['ID'] || row['STOCK_NAME'];
+      if (symbol) currentLiveMap[symbol] = row;
+    });
+
+    // Modifying stockData in place to avoid ReferenceErrors
+    stockData.forEach(stock => {
+      const liveRow = currentLiveMap[stock.symbol];
+      if (liveRow && stock.history.length > 0) {
+        const liveDate = formatDate(new Date());
+        const cp = getNum(liveRow['CLOSE_PRICE'] || liveRow[colToIdx('E')]);
+
+        // Update main stock price with live value for summary cards/search
+        stock.price = cp;
+
+        // Append live point - ONLY price should extend on the chart
+        stock.history.push({
+          date: `${liveDate} (LIVE)`,
+          price: cp,
+          support: null,
+          resistance: null,
+          mlFutPrice20d: null,
+          wolfeD: null,
+          projFvg: null,
+          rsi: null,
+          trend: null,
+          isLive: true
+        });
+      }
+    });
+
     // --- Start Intraday Breakout Screener ---
     var intradayBreakout = [];
     try {

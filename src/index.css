@@ -143,11 +143,17 @@
     font-family: 'Inter', sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-semibold tracking-tight;
   }
 
-  code, .mono {
+  code,
+  .mono {
     font-family: 'JetBrains Mono', monospace;
   }
 }
@@ -241,7 +247,7 @@
   }
 
   .nav-link {
-    @apply relative px-4 py-2 text-muted-foreground hover:text-foreground transition-colors duration-200;
+    @apply relative px-4 py-2 text-foreground/75 font-semibold hover:text-foreground transition-colors duration-200;
   }
 
   .nav-link.active {
@@ -311,18 +317,24 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -332,32 +344,56 @@
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes move-bg {
-  0% { background-position: 0 0; }
-  100% { background-position: 40px 0; }
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 40px 0;
+  }
 }
 
 .animate-fade-in {
@@ -376,11 +412,19 @@
   animation: move-bg 2s linear infinite;
 }
 
-.delay-1000 { animation-delay: 1000ms; }
-.delay-2000 { animation-delay: 2000ms; }
+.delay-1000 {
+  animation-delay: 1000ms;
+}
+
+.delay-2000 {
+  animation-delay: 2000ms;
+}
 
 /* Hide Spline Watermark */
-#logo, .spline-watermark, #spline-viewer #logo, [shadow-root] #logo {
+#logo,
+.spline-watermark,
+#spline-viewer #logo,
+[shadow-root] #logo {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
@@ -390,5 +434,3 @@
 spline-viewer {
   --spline-viewer-logo-display: none !important;
 }
-
-

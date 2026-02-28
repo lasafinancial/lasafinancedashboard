@@ -136,76 +136,81 @@ export function NearResistance() {
                                 <Sparkles className="w-3 h-3" />
                                 Screener: Breakouts
                             </div>
-                            <div className="flex items-center gap-3">
-                                <h1 className="text-3xl font-bold tracking-tight">
-                                    Trend <span className="gradient-text italic">Breakouts</span>
-                                </h1>
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <button className="p-1 rounded-full hover:bg-white/10 transition-colors text-muted-foreground hover:text-primary">
-                                            <Info className="w-5 h-5" />
-                                        </button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-[#0f172a]/95 backdrop-blur-xl border-white/10">
-                                        <DialogHeader>
-                                            <DialogTitle className="text-2xl font-bold gradient-text">Breakout Zone — Stocks at Key Resistance</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="space-y-4 text-sm text-gray-300 mt-4 leading-relaxed">
-                                            <p>This section highlights stocks that are pushing into important resistance zones and showing strength strong enough to attempt a breakout.</p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-3xl font-bold tracking-tight">
+                                        Trend <span className="gradient-text italic">Breakouts</span>
+                                    </h1>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <button className="p-1 rounded-full hover:bg-white/10 transition-colors text-muted-foreground hover:text-primary">
+                                                <Info className="w-5 h-5" />
+                                            </button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-[#0f172a]/95 backdrop-blur-xl border-white/10">
+                                            <DialogHeader>
+                                                <DialogTitle className="text-2xl font-bold gradient-text">Breakout Zone — Stocks at Key Resistance</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="space-y-4 text-sm text-gray-300 mt-4 leading-relaxed">
+                                                <p>This section highlights stocks that are pushing into important resistance zones and showing strength strong enough to attempt a breakout.</p>
 
-                                            <p>Our algorithms track price structure, momentum, and market balance to identify stocks where demand is building near supply zones. When price repeatedly presses against resistance without meaningful pullbacks, it often signals accumulation before expansion.</p>
+                                                <p>Our algorithms track price structure, momentum, and market balance to identify stocks where demand is building near supply zones. When price repeatedly presses against resistance without meaningful pullbacks, it often signals accumulation before expansion.</p>
 
-                                            <div className="space-y-2">
-                                                <h3 className="text-lg font-semibold text-primary">What this means for traders:</h3>
-                                                <ul className="list-disc pl-5 space-y-1 text-gray-400">
-                                                    <li>These stocks are trading near resistance but holding strength</li>
-                                                    <li>A successful breakout can lead to fast moves toward higher targets</li>
-                                                    <li>Momentum suggests buyers are in control, not reacting sellers</li>
-                                                </ul>
+                                                <div className="space-y-2">
+                                                    <h3 className="text-lg font-semibold text-primary">What this means for traders:</h3>
+                                                    <ul className="list-disc pl-5 space-y-1 text-gray-400">
+                                                        <li>These stocks are trading near resistance but holding strength</li>
+                                                        <li>A successful breakout can lead to fast moves toward higher targets</li>
+                                                        <li>Momentum suggests buyers are in control, not reacting sellers</li>
+                                                    </ul>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <h3 className="text-lg font-semibold text-primary">How to trade this section responsibly:</h3>
+                                                    <ul className="space-y-2 text-gray-400">
+                                                        <li className="flex gap-2"><span className="text-emerald-500">📈 Upside:</span> If resistance breaks, price can expand quickly toward higher algorithmic targets</li>
+                                                        <li className="flex gap-2"><span className="text-red-500">🛑 Risk control:</span> Always place stop-loss near support or weak structure levels</li>
+                                                        <li className="flex gap-2"><span>⚖️ Balance check:</span> Review the Balance / equilibrium points identified by our algorithms. These zones indicate where price may pause, consolidate, or retest</li>
+                                                    </ul>
+                                                </div>
+
+                                                <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 space-y-2">
+                                                    <h3 className="font-semibold text-primary flex items-center gap-2">Important note:</h3>
+                                                    <p>Not every resistance break turns into a runaway move. That’s why our system combines:</p>
+                                                    <ul className="list-disc pl-5 space-y-1 text-gray-400">
+                                                        <li>Resistance pressure</li>
+                                                        <li>Structural support</li>
+                                                        <li>Balance zones</li>
+                                                    </ul>
+                                                    <p>to help you manage risk while participating in potential breakouts.</p>
+                                                </div>
+
+                                                <div className="pt-2 border-t border-white/10">
+                                                    <p className="italic text-gray-400"><span className="font-semibold text-primary">In simple terms:</span> These are stocks knocking on the door. If the door opens, they can run. If it doesn’t, risk is clearly defined.</p>
+                                                </div>
                                             </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
 
-                                            <div className="space-y-2">
-                                                <h3 className="text-lg font-semibold text-primary">How to trade this section responsibly:</h3>
-                                                <ul className="space-y-2 text-gray-400">
-                                                    <li className="flex gap-2"><span className="text-emerald-500">📈 Upside:</span> If resistance breaks, price can expand quickly toward higher algorithmic targets</li>
-                                                    <li className="flex gap-2"><span className="text-red-500">🛑 Risk control:</span> Always place stop-loss near support or weak structure levels</li>
-                                                    <li className="flex gap-2"><span>⚖️ Balance check:</span> Review the Balance / equilibrium points identified by our algorithms. These zones indicate where price may pause, consolidate, or retest</li>
-                                                </ul>
-                                            </div>
-
-                                            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 space-y-2">
-                                                <h3 className="font-semibold text-primary flex items-center gap-2">Important note:</h3>
-                                                <p>Not every resistance break turns into a runaway move. That’s why our system combines:</p>
-                                                <ul className="list-disc pl-5 space-y-1 text-gray-400">
-                                                    <li>Resistance pressure</li>
-                                                    <li>Structural support</li>
-                                                    <li>Balance zones</li>
-                                                </ul>
-                                                <p>to help you manage risk while participating in potential breakouts.</p>
-                                            </div>
-
-                                            <div className="pt-2 border-t border-white/10">
-                                                <p className="italic text-gray-400"><span className="font-semibold text-primary">In simple terms:</span> These are stocks knocking on the door. If the door opens, they can run. If it doesn’t, risk is clearly defined.</p>
-                                            </div>
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
-                                <button
-                                    onClick={() => setShowVideoModal(true)}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all duration-200 group"
-                                    title="Watch Explanation Video"
-                                >
-                                    <PlayCircle className="w-4 h-4 text-primary transition-colors" />
-                                    <span className="text-xs font-semibold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Explanation Video</span>
-                                </button>
-                                <button
-                                    onClick={() => setShowVideoModalHindi(true)}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/40 transition-all duration-200 group"
-                                    title="हिंदी में देखें"
-                                >
-                                    <PlayCircle className="w-4 h-4 text-orange-400 transition-colors" />
-                                    <span className="text-xs font-semibold text-orange-400/90 group-hover:text-orange-400 transition-colors uppercase tracking-wider">हिंदी Video</span>
-                                </button>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <button
+                                        onClick={() => setShowVideoModal(true)}
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all duration-200 group whitespace-nowrap"
+                                        title="Watch Explanation Video"
+                                    >
+                                        <PlayCircle className="w-4 h-4 text-primary transition-colors" />
+                                        <span className="text-[10px] sm:text-xs font-semibold text-primary/90 transition-colors uppercase tracking-wider">Explanation Video</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setShowVideoModalHindi(true)}
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/40 transition-all duration-200 group whitespace-nowrap"
+                                        title="हिंदी में देखें"
+                                    >
+                                        <PlayCircle className="w-4 h-4 text-orange-400 transition-colors" />
+                                        <span className="text-[10px] sm:text-xs font-semibold text-orange-400/90 transition-colors uppercase tracking-wider">हिंदी Video</span>
+                                    </button>
+                                </div>
                             </div>
                             <p className="text-muted-foreground text-sm flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -243,7 +248,7 @@ export function NearResistance() {
                             <div className="overflow-auto scroll-smooth h-full custom-scrollbar">
                                 <div className="min-w-[1200px] flex flex-col gap-2 relative">
                                     {/* Header */}
-                                    <div className="sticky top-0 z-50 bg-[#020617] border-b border-white/10 px-3 py-3 md:px-4 md:py-4 flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider shadow-md">
+                                    <div className="sticky top-0 z-50 bg-[#020617] border-b border-white/10 px-3 py-3 md:px-4 md:py-4 flex items-center text-xs font-bold text-white/75 uppercase tracking-wider shadow-md">
                                         <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dEma200Status")}>
                                             EMA200 {sortField === "dEma200Status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                         </div>

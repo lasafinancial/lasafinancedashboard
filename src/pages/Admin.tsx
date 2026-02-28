@@ -103,7 +103,7 @@ const Admin = () => {
         // Fetch market history
         const qMarket = query(collection(db, 'sir_edits'), orderBy('timestamp', 'desc'));
         const unsubscribeMarket = onSnapshot(qMarket, (snapshot) => {
-            const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+            const history = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as any));
             setMarketUpdateHistory(history);
             if (history.length > 0 && !marketUpdate) {
                 // Pre-fill with latest if empty
@@ -292,6 +292,22 @@ const Admin = () => {
         }
     };
 
+    const deleteUserPermanently = async (userId: string) => {
+        try {
+            await deleteDoc(doc(db, 'users', userId));
+            toast({
+                title: "User Deleted Permanently",
+                description: "All profile data has been removed from the database.",
+            });
+        } catch (error) {
+            toast({
+                title: "Deletion Failed",
+                description: "Could not remove user record.",
+                variant: "destructive"
+            });
+        }
+    };
+
     const handleSaveHelp = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!helpTitle || !helpContent) {
@@ -454,11 +470,19 @@ const Admin = () => {
     };
 
     const deleteMarketHistory = async (id: string) => {
+        if (!id) return;
         try {
-            await deleteDoc(doc(db, 'market_daily_updates', id));
-            toast({ title: "History Record Deleted" });
-        } catch (error) {
-            toast({ title: "Delete Failed", variant: "destructive" });
+            await deleteDoc(doc(db, 'sir_edits', id));
+            toast({
+                title: "History Record Deleted",
+            });
+        } catch (error: any) {
+            console.error("[Admin] Delete error:", error);
+            toast({
+                title: "Delete Failed",
+                description: error.message,
+                variant: "destructive"
+            });
         }
     };
 
@@ -677,14 +701,37 @@ const Admin = () => {
                                                         </div>
                                                         <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">{update.content}</p>
                                                     </div>
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        onClick={() => deleteMarketHistory(update.id)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                                            >
+                                                                <Trash2 className="h-4 h-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent className="bg-slate-900/95 border-white/10 backdrop-blur-xl text-white">
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Delete Insight?</AlertDialogTitle>
+                                                                <AlertDialogDescription className="text-muted-foreground">
+                                                                    Are you sure you want to permanently delete this insight?
+                                                                    <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10 text-[11px] italic text-foreground/80 line-clamp-4">
+                                                                        "{update.content}"
+                                                                    </div>
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel className="bg-white/5 border-white/10 hover:bg-white/10 border-0">Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    onClick={() => deleteMarketHistory(update.id)}
+                                                                    className="bg-destructive hover:bg-destructive/90 text-white"
+                                                                >
+                                                                    Delete Forever
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
                                                 </div>
                                             </div>
                                         ))
@@ -930,6 +977,40 @@ const Admin = () => {
                                                                 </>
                                                             )}
                                                         </Button>
+
+                                                        {user.isDeactivated && (
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="h-8 gap-2 text-destructive hover:bg-destructive/10"
+                                                                    >
+                                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                                        Delete Forever
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent className="bg-slate-900/95 border-white/10 backdrop-blur-xl text-white">
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>Delete User Permanently?</AlertDialogTitle>
+                                                                        <AlertDialogDescription className="text-muted-foreground">
+                                                                            This will irreversibly remove all profile data for <span className="text-white font-bold">{user.email || user.phoneNumber || 'this user'}</span>.
+                                                                            They can still re-signup later but will be treated as a brand new account.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel className="bg-white/5 border-white/10 hover:bg-white/10 border-0">Cancel</AlertDialogCancel>
+                                                                        <AlertDialogAction
+                                                                            onClick={() => deleteUserPermanently(user.id)}
+                                                                            className="bg-destructive hover:bg-destructive/90 text-white"
+                                                                        >
+                                                                            Delete Permanently
+                                                                        </AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        )}
+
                                                         <Button
                                                             size="sm"
                                                             variant="outline"

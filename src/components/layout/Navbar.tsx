@@ -239,8 +239,8 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{userData?.name || "User"}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user?.phoneNumber || "Phone not set"}
+                    <p className="text-xs leading-none text-muted-foreground truncate max-w-[180px]">
+                      {user?.email || user?.phoneNumber || "No contact info"}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -306,8 +306,8 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-background/95 backdrop-blur-xl">
-                <div className="flex flex-col h-full gap-6">
+              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-background/95 backdrop-blur-xl overflow-y-auto">
+                <div className="flex flex-col min-h-full gap-6 pb-8">
                   {/* Mobile Nav Links */}
                   <div className="flex flex-col gap-2">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Menu</h3>

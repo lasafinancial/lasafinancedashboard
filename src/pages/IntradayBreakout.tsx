@@ -169,7 +169,7 @@ export function IntradayBreakout() {
                         <div className="overflow-auto scroll-smooth h-full custom-scrollbar">
                             <div className="min-w-[1300px] flex flex-col gap-2 relative">
                                 {/* Header */}
-                                <div className="sticky top-0 z-50 bg-[#020617]/80 backdrop-blur-md border-b border-white/10 px-4 py-4 flex items-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shadow-md">
+                                <div className="sticky top-0 z-50 bg-[#020617]/80 backdrop-blur-md border-b border-white/10 px-4 py-4 flex items-center text-[10px] font-bold text-white/75 uppercase tracking-wider shadow-md">
                                     <div className="flex-[1.2] cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("symbol")}>
                                         Symbol {sortField === "symbol" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                                     </div>
@@ -219,7 +219,7 @@ export function IntradayBreakout() {
                                                     <div className="flex-[1.2] font-bold text-sm md:text-base text-primary tracking-tight">
                                                         {stock.symbol}
                                                     </div>
-                                                    <div className="flex-1 text-xs text-muted-foreground font-medium">
+                                                    <div className="flex-1 text-xs text-foreground/70 font-medium">
                                                         {stock.date}
                                                     </div>
                                                     <div className="flex-1 text-xs font-semibold text-foreground/90 tabular-nums">
@@ -234,13 +234,13 @@ export function IntradayBreakout() {
                                                     <div className={`flex-1 text-right font-bold tabular-nums text-sm ${stock['Price_%_Move'] >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {stock['Price_%_Move'] > 0 ? '+' : ''}{formatPercent(stock['Price_%_Move'])}
                                                     </div>
-                                                    <div className="flex-1 text-right text-[10px] md:text-xs font-medium text-muted-foreground tabular-nums">
+                                                    <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
                                                         {stock.BALANCE || '—'}
                                                     </div>
-                                                    <div className="flex-1 text-right text-[10px] md:text-xs font-medium text-muted-foreground tabular-nums">
+                                                    <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
                                                         {stock.MODEL || '—'}
                                                     </div>
-                                                    <div className="flex-1 text-right text-[10px] md:text-xs font-medium text-muted-foreground tabular-nums">
+                                                    <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
                                                         {stock.PATTERN || '—'}
                                                     </div>
                                                     <div className="flex-1 text-right text-[10px] md:text-xs font-bold text-red-400 tabular-nums pr-4">

@@ -1,8 +1,8 @@
 import { useMarketPosition } from "@/hooks/useLiveData";
-import { TrendingUp, TrendingDown, Activity, Target, RotateCcw, Loader2, Info, X, Play } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Target, RotateCcw, Loader2, Info, X, Play, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import {
   Tooltip,
   TooltipContent,
@@ -85,14 +85,13 @@ function IndicatorBar({ label, leftLabel, rightLabel, leftValue, rightValue, ico
 
 export default function MarketPositionStructure({ eodDate }: MarketPositionStructureProps) {
   const { data, isLoading } = useMarketPosition();
-  const [dynamicUpdate, setDynamicUpdate] = useState<string | null>(null);
+  const [allInsights, setAllInsights] = useState<any[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'sir_edits'), orderBy('timestamp', 'desc'), limit(1));
+    const q = query(collection(db, 'sir_edits'), orderBy('timestamp', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        setDynamicUpdate(snapshot.docs[0].data().content);
-      }
+      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setAllInsights(data);
     });
     return () => unsubscribe();
   }, []);
@@ -102,7 +101,7 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
       <div className="h-full flex flex-col">
         <div className="flex justify-between items-center mb-6">
           <div className="space-y-1">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Market Position Structure</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-foreground/80">Market Position Structure</h3>
             <p className="text-xs text-muted-foreground/60 font-medium italic">Multi-modal analytical engine</p>
           </div>
         </div>
@@ -134,7 +133,7 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-foreground/80">
             Current Overall Market Position Structure {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
           </h3>
           <p className="text-xs text-muted-foreground/60 font-medium italic">Multi-modal analytical engine</p>
@@ -205,35 +204,67 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
         </div>
       </div>
 
-      <SummaryWithInfo dynamicContent={dynamicUpdate} />
+      <DailyInsightsFeed insights={allInsights} />
     </div>
   );
 }
 
-function SummaryWithInfo({ dynamicContent }: { dynamicContent: string | null }) {
+function DailyInsightsFeed({ insights }: { insights: any[] }) {
   const [showModal, setShowModal] = useState(false);
-  const defaultDesc = "This multi-modal engine combines multiple analytical models to map current market positioning across trends, patterns, and probabilities. It integrates historical context with predictive intelligence to project likely market movements. Bullish signals indicate oversold conditions with upside potential; bearish signals warn of over-extended markets preparing for reversal.";
+
+  const formatInsightDate = (item: any) => {
+    if (item.timestamp) {
+      try {
+        const date = item.timestamp.toDate ? item.timestamp.toDate() : new Date(item.timestamp);
+        return new Intl.DateTimeFormat('en-IN', {
+          day: '2-digit', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: true,
+        }).format(date);
+      } catch { /* fall through */ }
+    }
+    if (item.date && item.time) return `${item.date}, ${item.time}`;
+    return 'Unknown date';
+  };
 
   return (
     <>
-      <div className="mt-5 p-5 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 shadow-lg">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 space-y-2">
-            <h4 className="text-sm font-semibold text-foreground/90 tracking-wide">How It Works</h4>
-            <p className="text-sm text-white font-semibold leading-relaxed">
-              {dynamicContent || defaultDesc}
-            </p>
+      <div className="mt-5 rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10 shadow-lg overflow-hidden">
+        {/* Header row */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3 text-primary" />
+            <span className="text-[11px] font-bold text-foreground/90 uppercase tracking-wide">Daily Insights</span>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex-shrink-0 p-2.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(var(--primary),0.1)]"
-            title="Learn more"
+            className="p-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:scale-105 transition-all group"
+            title="Learn more about Market Position Structure"
           >
-            <Info className="w-5 h-5 text-primary/70 group-hover:text-primary transition-colors" />
+            <Info className="w-3.5 h-3.5 text-primary/70 group-hover:text-primary transition-colors" />
           </button>
+        </div>
+
+        {/* Scrollable cards */}
+        <div className="max-h-[320px] overflow-y-auto custom-scrollbar p-2 space-y-1.5">
+          {insights.length === 0 ? (
+            <p className="text-center text-muted-foreground/50 py-6 text-[11px] italic">No insights published yet.</p>
+          ) : (
+            insights.map((item) => (
+              <div
+                key={item.id}
+                className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-colors"
+              >
+                <span className="inline-block text-[10px] font-bold text-primary/80 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 mb-1.5">
+                  {formatInsightDate(item)}
+                </span>
+                <p className="text-[11px] text-foreground/80 leading-relaxed">{item.content}</p>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
+      {/* Info Modal — unchanged */}
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
@@ -287,7 +318,6 @@ function SummaryWithInfo({ dynamicContent }: { dynamicContent: string | null }) 
                 </div>
               </div>
 
-              {/* Compliance Disclaimer */}
               <div className="pt-6 border-t border-white/10">
                 <p className="text-[10px] text-muted-foreground/60 italic leading-relaxed">
                   This indicator analyses historical price behaviour to highlight observable market characteristics. It does not predict future prices and should be interpreted as analytical context only.

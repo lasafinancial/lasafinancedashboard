@@ -24,6 +24,9 @@ interface UserData {
     selectedCountry?: string;
     traderType?: 'Beginner' | 'Mid-level' | 'Expert';
     isDeactivated?: boolean;
+    disclaimerVersion?: string;
+    acceptanceIP?: string;
+    hasCompletedProfile?: boolean;
 }
 
 interface AuthContextType {
@@ -70,9 +73,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     uid: firebaseUser.uid,
                     email: firebaseUser.email || '',
                     phoneNumber: firebaseUser.phoneNumber || '',
-                    name: firebaseUser.displayName || firebaseUser.phoneNumber || 'New User',
+                    // We leave "name" empty for new users so they are forced to enter it in onboarding
                     provider: firebaseUser.providerData[0]?.providerId || (firebaseUser.phoneNumber ? 'phone' : 'unknown'),
                     tier: 'free',
+                    hasSeenOnboarding: false,
+                    hasCompletedProfile: false,
                     createdAt: serverTimestamp(),
                     lastLoginAt: serverTimestamp(),
                 });
@@ -164,6 +169,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         } else {
                             setUserData(data);
                         }
+                    } else {
+                        // For a truly new user, initialize with an empty object so logic in App.tsx triggers
+                        setUserData({});
                     }
                     setLoading(false);
                 });
@@ -262,8 +270,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const updateUserData = async (data: Partial<UserData>) => {
         if (!user) return;
+
+        // Optimistic update
+        setUserData(prev => prev ? { ...prev, ...data } : data as UserData);
+
         const userRef = doc(db, 'users', user.uid);
-        await setDoc(userRef, data, { merge: true });
+        try {
+            await setDoc(userRef, data, { merge: true });
+        } catch (error) {
+            console.error("Error updating user data:", error);
+            // Revert on error if necessary, but for onboarding flags it's usually safe to keep local
+        }
     };
 
     return (

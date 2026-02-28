@@ -62,11 +62,21 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         lastProjFvg = rawProjFvg;
       }
 
+      const isLive = d.isLive;
+      const isLastHistorical = !isLive && (i === data.length - 2 && data[data.length - 1]?.isLive);
+
       const result: any = {
         ...rest,
-        model: calculateRollingMedian(mlValues, i, 10),
-        wolfeD: lastWolfeD,
-        projFvg: lastProjFvg,
+        model: isLive ? null : calculateRollingMedian(mlValues, i, 10),
+        wolfeD: isLive ? null : lastWolfeD,
+        projFvg: isLive ? null : lastProjFvg,
+        // Segmented keys for rendering
+        priceHist: !isLive ? d.price : null,
+        priceLive: (isLive || isLastHistorical) ? d.price : null,
+        supportHist: !isLive ? d.support : null,
+        supportLive: (isLive || isLastHistorical) ? d.support : null,
+        resistanceHist: !isLive ? d.resistance : null,
+        resistanceLive: (isLive || isLastHistorical) ? d.resistance : null,
       };
       return result;
     });
@@ -84,15 +94,15 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
 
   const handleMouseMove = useCallback((state: any) => {
     if (state?.activePayload?.length) {
-      const payload = state.activePayload;
+      const p = state.activePayload[0].payload;
       const hoveredData: HoveredData = {
-        date: payload[0]?.payload?.date || '',
-        price: payload.find((p: any) => p.dataKey === 'price')?.value ?? null,
-        support: payload.find((p: any) => p.dataKey === 'support')?.value ?? null,
-        resistance: payload.find((p: any) => p.dataKey === 'resistance')?.value ?? null,
-        model: payload.find((p: any) => p.dataKey === 'model')?.value ?? null,
-        pattern: payload.find((p: any) => p.dataKey === 'wolfeD')?.value ?? null,
-        projFvg: payload.find((p: any) => p.dataKey === 'projFvg')?.value ?? null,
+        date: p.date || '',
+        price: p.price ?? null,
+        support: p.support ?? null,
+        resistance: p.resistance ?? null,
+        model: p.model ?? null,
+        pattern: p.wolfeD ?? null,
+        projFvg: p.projFvg ?? null,
       };
       setLocalHovered(hoveredData);
       onHover?.(hoveredData);
@@ -106,15 +116,15 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
 
   const handleClick = useCallback((state: any) => {
     if (state?.activePayload?.length) {
-      const payload = state.activePayload;
+      const p = state.activePayload[0].payload;
       const hoveredData: HoveredData = {
-        date: payload[0]?.payload?.date || '',
-        price: payload.find((p: any) => p.dataKey === 'price')?.value ?? null,
-        support: payload.find((p: any) => p.dataKey === 'support')?.value ?? null,
-        resistance: payload.find((p: any) => p.dataKey === 'resistance')?.value ?? null,
-        model: payload.find((p: any) => p.dataKey === 'model')?.value ?? null,
-        pattern: payload.find((p: any) => p.dataKey === 'wolfeD')?.value ?? null,
-        projFvg: payload.find((p: any) => p.dataKey === 'projFvg')?.value ?? null,
+        date: p.date || '',
+        price: p.price ?? null,
+        support: p.support ?? null,
+        resistance: p.resistance ?? null,
+        model: p.model ?? null,
+        pattern: p.wolfeD ?? null,
+        projFvg: p.projFvg ?? null,
       };
       setLocalHovered(hoveredData);
       onHover?.(hoveredData);
@@ -256,8 +266,8 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               tickLine={false}
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
               dy={10}
-              interval="preserveStartEnd"
-              minTickGap={30}
+              interval="preserveEnd"
+              minTickGap={5}
             />
 
             <YAxis
@@ -282,9 +292,11 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               fill="url(#priceGradient)"
             />
 
+            {/* Solid Historical Price Line */}
             <Line
               type="monotone"
-              dataKey="price"
+              dataKey="priceHist"
+              name="Price"
               stroke="hsl(var(--chart-primary))"
               strokeWidth={3}
               dot={<CustomDot />}
@@ -295,26 +307,68 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
                 stroke: 'hsl(var(--background))',
                 strokeWidth: 2
               }}
+              connectNulls
+            />
+
+            {/* Dotted Live Extension */}
+            <Line
+              type="monotone"
+              dataKey="priceLive"
+              name="Live"
+              stroke="hsl(var(--chart-primary))"
+              strokeWidth={3}
+              strokeDasharray="4 4"
+              dot={false}
+              filter="url(#glow)"
+              activeDot={false}
+              animationDuration={500}
+              connectNulls
             />
 
             <Line
               type="monotone"
-              dataKey="support"
+              dataKey="supportHist"
               name="Support"
               stroke="#ff4d4d"
               strokeWidth={2}
               dot={false}
               filter="url(#glow)"
+              connectNulls
             />
 
             <Line
               type="monotone"
-              dataKey="resistance"
+              dataKey="supportLive"
+              name="Live (Support)"
+              stroke="#ff4d4d"
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={false}
+              filter="url(#glow)"
+              connectNulls
+            />
+
+            <Line
+              type="monotone"
+              dataKey="resistanceHist"
               name="Resistance"
               stroke="#00ff88"
               strokeWidth={2}
               dot={false}
               filter="url(#glow)"
+              connectNulls
+            />
+
+            <Line
+              type="monotone"
+              dataKey="resistanceLive"
+              name="Live (Resistance)"
+              stroke="#00ff88"
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={false}
+              filter="url(#glow)"
+              connectNulls
             />
 
             <Line

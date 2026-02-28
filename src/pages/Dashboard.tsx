@@ -171,26 +171,28 @@ const Dashboard = () => {
               <Sparkles className="w-3 h-3" />
               Decision Support Analytics Platform
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-none">
                 Market <span className="gradient-text italic pr-2">Overview</span>
               </h1>
-              <button
-                onClick={() => setShowExpVideo(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(var(--primary),0.1)]"
-                title="Watch Explainer Video"
-              >
-                <PlayCircle className="w-5 h-5 text-primary transition-colors group-hover:scale-110" />
-                <span className="text-xs font-bold text-primary/90 group-hover:text-primary transition-colors uppercase tracking-wider">Explainer video</span>
-              </button>
-              <button
-                onClick={() => setShowExpVideoHindi(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/40 hover:scale-105 transition-all duration-200 group shadow-[0_0_15px_rgba(249,115,22,0.1)]"
-                title="हिंदी में देखें"
-              >
-                <PlayCircle className="w-5 h-5 text-orange-400 transition-colors group-hover:scale-110" />
-                <span className="text-xs font-bold text-orange-400/90 group-hover:text-orange-400 transition-colors uppercase tracking-wider">हिंदी Video</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setShowExpVideo(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all duration-200 group whitespace-nowrap"
+                  title="Watch Explainer Video"
+                >
+                  <PlayCircle className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                  <span className="text-[10px] sm:text-xs font-bold text-primary/90 transition-colors uppercase tracking-wider">Explainer video</span>
+                </button>
+                <button
+                  onClick={() => setShowExpVideoHindi(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 hover:border-orange-500/40 transition-all duration-200 group whitespace-nowrap"
+                  title="हिंदी में देखें"
+                >
+                  <PlayCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
+                  <span className="text-[10px] sm:text-xs font-bold text-orange-400/90 transition-colors uppercase tracking-wider">हिंदी Video</span>
+                </button>
+              </div>
             </div>
             <p className="text-sm text-muted-foreground max-w-2xl font-medium leading-relaxed">
               Precision analytics and real-time indicators for professional market monitoring.
@@ -211,7 +213,7 @@ const Dashboard = () => {
             <div className="h-full flex flex-col">
               <div className="flex justify-between items-center mb-10">
                 <div className="space-y-1">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-foreground/80">
                     Market Mood Today <span className="text-primary/80">(LIVE DATA)</span>
                   </h3>
                   <p className="text-xs text-muted-foreground/60 font-medium italic">
@@ -253,7 +255,7 @@ const Dashboard = () => {
               {/* Top Movers Section */}
               {topMovers && (topMovers.topGainers?.length > 0 || topMovers.topLosers?.length > 0) && (
                 <div className="mt-8 pt-6 border-t border-white/5">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wide text-foreground/80 mb-4">
                     Market Mood <span className="text-primary/80">(LIVE DATA)</span>
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
