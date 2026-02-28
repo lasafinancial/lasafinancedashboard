@@ -4,22 +4,31 @@
 import admin from 'firebase-admin';
 
 // Initialize Firebase Admin (only once)
-if (!admin.apps.length) {
-  // For Vercel, use environment variables
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-    : null;
+if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  try {
+    let keyStr = process.env.FIREBASE_SERVICE_ACCOUNT_KEY.trim();
+    if ((keyStr.startsWith("'") && keyStr.endsWith("'")) || (keyStr.startsWith('"') && keyStr.endsWith('"'))) {
+      keyStr = keyStr.slice(1, -1);
+    }
+    const serviceAccount = JSON.parse(keyStr);
 
-  if (serviceAccount) {
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-  } else {
-    // Fallback for development without service account
+  } catch (e) {
+    console.error('[send-notification] Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', e.message);
     admin.initializeApp({
       projectId: 'lasa-dashboard-2f21d',
     });
   }
+} else {
+  admin.initializeApp({
+    projectId: 'lasa-dashboard-2f21d',
+  });
 }
 
 export default async function handler(req, res) {

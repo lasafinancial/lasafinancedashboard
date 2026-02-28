@@ -8,12 +8,16 @@ if (!admin.apps.length) {
 
     if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         try {
-            // Support both direct JSON string and stringified shell escape
             let keyStr = process.env.FIREBASE_SERVICE_ACCOUNT_KEY.trim();
             if ((keyStr.startsWith("'") && keyStr.endsWith("'")) || (keyStr.startsWith('"') && keyStr.endsWith('"'))) {
                 keyStr = keyStr.slice(1, -1);
             }
             const serviceAccount = JSON.parse(keyStr);
+
+            if (serviceAccount.private_key) {
+                serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+            }
+
             credential = admin.credential.cert(serviceAccount);
         } catch (e) {
             console.error('[verify-otp] Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', e.message);
