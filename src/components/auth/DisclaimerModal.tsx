@@ -81,7 +81,7 @@ export function DisclaimerModal() {
             <DialogContent className="sm:max-w-[550px] border-l-4 border-l-primary p-0 overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
 
-                <div className="p-6 sm:p-8 space-y-6 relative">
+                <div className="p-6 sm:p-8 space-y-6 relative max-h-[85vh] overflow-y-auto custom-scrollbar">
                     <DialogHeader className="space-y-3">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">

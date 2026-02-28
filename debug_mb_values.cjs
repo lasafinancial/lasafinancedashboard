@@ -12,7 +12,7 @@ async function run() {
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
   });
   const sheets = google.sheets({ version: 'v4', auth });
-  
+
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
@@ -21,21 +21,21 @@ async function run() {
     const rows = res.data.values;
     const headers = rows[0];
     const isMbIdx = headers.indexOf('IS_MB');
-    
+
     console.log('Total rows:', rows.length);
-    
+
     const uniqueValues = new Set();
     rows.slice(1).forEach(row => {
-        if (row[isMbIdx] !== undefined) {
-            uniqueValues.add(row[isMbIdx]);
-        }
+      if (row[isMbIdx] !== undefined) {
+        uniqueValues.add(row[isMbIdx]);
+      }
     });
     console.log('Unique values in IS_MB:', Array.from(uniqueValues));
 
     const nonZero = rows.filter(row => row[isMbIdx] !== '0' && row[isMbIdx] !== undefined && row[isMbIdx] !== '');
     console.log('Number of non-zero/non-empty IS_MB rows:', nonZero.length);
     if (nonZero.length > 0) {
-        console.log('Sample non-zero row:', JSON.stringify(nonZero[0].slice(0, 5)), 'IS_MB:', nonZero[0][isMbIdx]);
+      console.log('Sample non-zero row:', JSON.stringify(nonZero[0].slice(0, 5)), 'IS_MB:', nonZero[0][isMbIdx]);
     }
 
   } catch (err) {

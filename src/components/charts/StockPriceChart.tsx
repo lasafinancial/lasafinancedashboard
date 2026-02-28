@@ -62,15 +62,16 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         lastProjFvg = rawProjFvg;
       }
 
-      const isLive = d.isLive;
-      const isLastHistorical = !isLive && (i === data.length - 2 && data[data.length - 1]?.isLive);
+      const isLive = !!d.isLive;
+      const isLastHistorical = !isLive && (i === data.length - 2 && !!data[data.length - 1]?.isLive);
 
       const result: any = {
         ...rest,
+        isLive,
         model: isLive ? null : calculateRollingMedian(mlValues, i, 10),
         wolfeD: isLive ? null : lastWolfeD,
         projFvg: isLive ? null : lastProjFvg,
-        // Segmented keys for rendering
+        // Segmented keys for rendering - explicitly nulling to prevent overlap
         priceHist: !isLive ? d.price : null,
         priceLive: (isLive || isLastHistorical) ? d.price : null,
         supportHist: !isLive ? d.support : null,
@@ -317,10 +318,29 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               name="Live"
               stroke="hsl(var(--chart-primary))"
               strokeWidth={3}
-              strokeDasharray="4 4"
-              dot={false}
-              filter="url(#glow)"
-              activeDot={false}
+              strokeDasharray="10 6"
+              dot={({ cx, cy, payload, index }) => {
+                // Only show a dot for the very last point in the chart data
+                if (index === chartData.length - 1) {
+                  return (
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={4}
+                      fill="white"
+                      stroke="hsl(var(--chart-primary))"
+                      strokeWidth={2}
+                    />
+                  );
+                }
+                return null;
+              }}
+              activeDot={{
+                r: 6,
+                fill: 'white',
+                stroke: 'hsl(var(--chart-primary))',
+                strokeWidth: 2
+              }}
               animationDuration={500}
               connectNulls
             />
@@ -342,9 +362,8 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               name="Live (Support)"
               stroke="#ff4d4d"
               strokeWidth={2}
-              strokeDasharray="4 4"
+              strokeDasharray="8 5"
               dot={false}
-              filter="url(#glow)"
               connectNulls
             />
 
@@ -365,9 +384,8 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               name="Live (Resistance)"
               stroke="#00ff88"
               strokeWidth={2}
-              strokeDasharray="4 4"
+              strokeDasharray="8 5"
               dot={false}
-              filter="url(#glow)"
               connectNulls
             />
 
