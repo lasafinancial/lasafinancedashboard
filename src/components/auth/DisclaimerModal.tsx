@@ -10,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 
 export function DisclaimerModal() {
     const { user, userData, updateUserData } = useAuth();
@@ -20,7 +21,7 @@ export function DisclaimerModal() {
 
     useEffect(() => {
         const checkDisclaimerStatus = async () => {
-            if (!user || !userData) {
+            if (!user || !userData || !FEATURE_FLAGS.ENABLE_LEGAL_DISCLAIMER) {
                 setIsOpen(false);
                 return;
             }

@@ -434,3 +434,14 @@
 spline-viewer {
   --spline-viewer-logo-display: none !important;
 }
+
+/* Trendlyne Widget Styling Fixes */
+.trendlyne-widgets {
+  overflow: hidden !important;
+}
+
+.trendlyne-widgets iframe {
+  height: 100% !important;
+  min-height: 550px !important;
+  overflow: hidden !important;
+}

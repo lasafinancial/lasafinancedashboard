@@ -555,6 +555,60 @@ async function fetchData() {
     }).map(mapStock).sort((a, b) => b.mlTargetPercent - a.mlTargetPercent);
     // --- End Reaction Zone ---
 
+    // --- INDICES sheet: official stock lists per index (fixes 32→52 bug for NIFTY 50 etc.) ---
+    const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';
+
+    // Known display names (with proper spacing).
+    const knownIndexDisplayNames = [
+      'NIFTY 50', 'NIFTY BANK', 'NIFTY FINANCIAL SERVICES', 'NIFTY MIDCAP SELECT',
+      'NIFTY NEXT 50', 'NIFTY 500', 'NIFTY MICROCAP 250', 'NIFTY SMALLCAP 250',
+      'NIFTY MIDCAP 150', 'NIFTY LARGEMIDCAP', 'NIFTY AUTO', 'NIFTY CHEMICALS',
+      'NIFTY CONSUMER DURABLES', 'NIFTY IT', 'NIFTY PHARMA', 'NIFTY METAL',
+      'NIFTY FMCG', 'NIFTY INFRA', 'NIFTY PSU BANK', 'NIFTY PVT BANK', 'NIFTY CPSE',
+    ];
+
+    // Normalize: strip ALL spaces and uppercase — "NIFTY50" and "NIFTY 50" both → "NIFTY50"
+    const norm = (s) => s.replace(/\s+/g, '').toUpperCase();
+
+    // Build a lookup: norm(displayName) -> displayName
+    const normToDisplayName = {};
+    knownIndexDisplayNames.forEach(name => { normToDisplayName[norm(name)] = name; });
+
+    // Build a map: displayName -> Set of stock IDs
+    const indexStockIdSets = {};
+    let nifty50Stocks = [];
+
+    try {
+      const indicesRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: INDICES_SHEET_ID,
+        range: 'Sheet1!A:Z',
+      });
+      const indicesRows = indicesRes.data.values || [];
+      if (indicesRows.length > 2) {
+        // Headers are in row 2 (index 1)
+        const indicesHeaders = indicesRows[1].map(h => (h || '').toString().trim());
+        indicesHeaders.forEach((header, colIdx) => {
+          if (!header) return;
+          // Map raw sheet header (e.g. "NIFTY50") to display name (e.g. "NIFTY 50")
+          const key = normToDisplayName[norm(header)] || header.trim();
+          indexStockIdSets[key] = new Set();
+          for (let rowIdx = 2; rowIdx < indicesRows.length; rowIdx++) {
+            const cell = (indicesRows[rowIdx][colIdx] || '').toString().trim();
+            if (cell) indexStockIdSets[key].add(cell.toUpperCase());
+          }
+        });
+        console.log('INDICES sheet loaded. Keys: ' + Object.keys(indexStockIdSets).join(', '));
+        console.log('NIFTY 50 count from INDICES: ' + ((indexStockIdSets['NIFTY 50'] || new Set()).size));
+      }
+    } catch (indErr) {
+      console.warn('Could not fetch INDICES sheet, falling back to column flags:', indErr.message);
+    }
+
+
+    // Use INDICES sheet sets if available; otherwise fall back to old column-flag approach
+    const useIndicesSheet = Object.keys(indexStockIdSets).length > 0;
+
+    // Old fallback column map
     const indexColumns = {
       'NIFTY 50': 'NIFTY50',
       'NIFTY BANK': 'NIFTYBANK',
@@ -570,31 +624,36 @@ async function fetchData() {
       'NIFTY 500': 'NIFTY500'
     };
 
+    const indexNames = useIndicesSheet ? Object.keys(indexStockIdSets) : Object.keys(indexColumns);
     const indexStocksMap = {};
-    Object.keys(indexColumns).forEach(idx => {
+    indexNames.forEach(idx => {
       indexStocksMap[idx] = { stocks: [], bullish: 0, bearish: 0 };
     });
 
+    // Build a lookup: stockId/stockName (uppercase) -> row data
     const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
     const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
-
+    const currentDataById = {};
     stocksSource.forEach(row => {
-      const stockName = row['STOCK_NAME'];
-      const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-      const stockId = row['ID'] || stockName;
-      const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
-      const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
+      const id = (row['ID'] || '').toString().trim().toUpperCase();
+      const name = (row['STOCK_NAME'] || '').toString().trim().toUpperCase();
+      if (id) currentDataById[id] = row;
+      if (name && name !== id) currentDataById[name] = row;
+    });
 
-      if (!stockName) return;
-
-      const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
-
-      Object.keys(indexColumns).forEach(indexName => {
-        const colName = indexColumns[indexName];
-        const val = row[colName];
-        if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
-          const isBullish = dynamicStatus === 'BULLISH';
-          const isBearish = dynamicStatus === 'BEARISH';
+    if (useIndicesSheet) {
+      // New approach: iterate over each index's known stock IDs and look them up in current data
+      indexNames.forEach(indexName => {
+        const idSet = indexStockIdSets[indexName];
+        idSet.forEach(stockIdUpper => {
+          const row = currentDataById[stockIdUpper];
+          if (!row) return;
+          const stockName = row['STOCK_NAME'] || stockIdUpper;
+          const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+          const stockId = row['ID'] || stockName;
+          const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+          const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
+          const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
 
           indexStocksMap[indexName].stocks.push({
             id: stockId,
@@ -604,22 +663,61 @@ async function fetchData() {
             upperRange,
             lowerRange
           });
-
-          if (isBullish) indexStocksMap[indexName].bullish++;
-          if (isBearish) indexStocksMap[indexName].bearish++;
-        }
+          if (dynamicStatus === 'BULLISH') indexStocksMap[indexName].bullish++;
+          if (dynamicStatus === 'BEARISH') indexStocksMap[indexName].bearish++;
+        });
       });
-    });
+    } else {
+      // Old fallback: column-flag approach
+      stocksSource.forEach(row => {
+        const stockName = row['STOCK_NAME'];
+        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+        const stockId = row['ID'] || stockName;
+        const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
+        const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
+        if (!stockName) return;
+        const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
+        Object.keys(indexColumns).forEach(indexName => {
+          const colName = indexColumns[indexName];
+          const val = row[colName];
+          if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
+            indexStocksMap[indexName].stocks.push({ id: stockId, stockName, price: closePrice, status: dynamicStatus, upperRange, lowerRange });
+            if (dynamicStatus === 'BULLISH') indexStocksMap[indexName].bullish++;
+            if (dynamicStatus === 'BEARISH') indexStocksMap[indexName].bearish++;
+          }
+        });
+      });
+    }
 
-    indexPerformance = Object.keys(indexStocksMap).map(indexName => {
+    // Extract nifty50Stocks for the dedicated NIFTY 50 page
+    nifty50Stocks = (indexStocksMap['NIFTY 50'] || { stocks: [] }).stocks;
+
+    // Symbol mappings for known discrepancies
+    const symbolAliasMap = {
+      'TMPV': 'TMCV',
+      'M&M': 'M&M'
+    };
+
+    const indexPerformance = Object.keys(indexStocksMap).map(indexName => {
       const data = indexStocksMap[indexName];
-      const total = data.stocks.length;
-      const strengthScore = total > 0 ? Math.round((data.bullish / total) * 100) : 50;
+      // Apply alias mapping to stock IDs before processing
+      const processedStocks = data.stocks.map(stock => {
+        const aliasedId = symbolAliasMap[stock.id] || stock.id;
+        // If the aliased ID points to a different stock, we might want to use its data
+        // For now, we'll just update the ID in the stock object if an alias exists
+        return { ...stock, id: aliasedId };
+      });
+
+      const total = processedStocks.length;
+      const bullishCount = processedStocks.filter(s => s.status === 'BULLISH').length;
+      const bearishCount = processedStocks.filter(s => s.status === 'BEARISH').length;
+      const strengthScore = total > 0 ? Math.round((bullishCount / total) * 100) : 50;
+
       return {
         name: indexName,
         stocksCount: total,
-        bullishCount: data.bullish,
-        bearishCount: data.bearish,
+        bullishCount: bullishCount,
+        bearishCount: bearishCount,
         strengthScore,
         stocks: data.stocks
       };
@@ -751,10 +849,11 @@ async function fetchData() {
     stockData: finalStockData,
     topMovers,
     indexPerformance,
+    nifty50Stocks,
     nearResistance,
     supportReversal,
     reactionZone,
-    intradayBreakout, // Added here
+    intradayBreakout,
     lastUpdated: new Date().toISOString()
   };
 }

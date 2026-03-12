@@ -4,3 +4,23 @@ secerate_googlekey/
 .DS_Store
 dist
 build
+
+# Google Service Account Keys (NEVER push to GitHub)
+*.json
+!package.json
+!package-lock.json
+!tsconfig*.json
+!components.json
+!api/package.json
+!public/*.json
+!src/data/processed/*.json
+
+# Large temporary data & debug files
+temp_data.json
+temp_response.json
+api_output.json
+current_dump.json
+
+# Test/debug scripts (not needed in production)
+test-gemini.js
+test-gemini.html

@@ -19,6 +19,7 @@ import NearResistance from "@/pages/NearResistance";
 import SupportReversal from "@/pages/SupportReversal";
 import ReactionZone from "@/pages/ReactionZone";
 import IntradayBreakout from "@/pages/IntradayBreakout";
+import Nifty50 from "@/pages/Nifty50";
 import Backtests from "@/pages/Backtests";
 import Admin from "@/pages/Admin";
 import Help from "@/pages/Help";
@@ -106,11 +107,11 @@ const AppContent = () => {
         setShowOnboarding(true);
       }
       // 2. Check for Trader Type (only if onboarding slides are done)
-      else if ((userData.hasSeenOnboarding || slidesFinishedSession) && !userData.traderType && !showTraderTypeSelection && !traderTypeFinishedSession) {
+      else if (FEATURE_FLAGS.ENABLE_TRADER_TYPE_ONBOARDING && (userData.hasSeenOnboarding || slidesFinishedSession) && !userData.traderType && !showTraderTypeSelection && !traderTypeFinishedSession) {
         setShowTraderTypeSelection(true);
       }
-      // 3. Check for Profile Setup - Name & Checkbox (only after trader type)
-      else if ((userData.traderType || traderTypeFinishedSession) && !userData.hasCompletedProfile && !showProfileSetup && !profileSetupFinishedSession) {
+      // 3. Check for Profile Setup - Name & Checkbox (only after trader type OR if trader type skipped)
+      else if (((!FEATURE_FLAGS.ENABLE_TRADER_TYPE_ONBOARDING || (userData.traderType || traderTypeFinishedSession)) && (userData.hasSeenOnboarding || slidesFinishedSession)) && !userData.hasCompletedProfile && !showProfileSetup && !profileSetupFinishedSession) {
         setShowProfileSetup(true);
       }
     }
@@ -170,7 +171,7 @@ const AppContent = () => {
   // 1. It's the login page
   // 2. User is fully onboarded
   // 3. User is NOT logged in (to allow ProtectedRoute to redirect to /login)
-  const isFullyOnboarded = !!(userData?.disclaimerAcceptedAt || FEATURE_FLAGS.BYPASS_LOGIN);
+  const isFullyOnboarded = !!(userData?.disclaimerAcceptedAt || FEATURE_FLAGS.BYPASS_LOGIN || !FEATURE_FLAGS.ENABLE_LEGAL_DISCLAIMER);
   const showMainContent = isLoginPage || isFullyOnboarded || !user;
 
   // Navbar visibility: ONLY show if fully onboarded (or logged out and not on login page)
@@ -194,7 +195,7 @@ const AppContent = () => {
         onComplete={handleOnboardingComplete}
       />
 
-      {!FEATURE_FLAGS.BYPASS_LOGIN && <DisclaimerModal />}
+      {FEATURE_FLAGS.ENABLE_LEGAL_DISCLAIMER && !FEATURE_FLAGS.BYPASS_LOGIN && <DisclaimerModal />}
 
       <TraderTypeModal
         isOpen={showTraderTypeSelection}
@@ -220,6 +221,7 @@ const AppContent = () => {
             <Route path="/screeners/support-reversal" element={<ProtectedRoute><SupportReversal /></ProtectedRoute>} />
             <Route path="/screeners/reaction-zone" element={<ProtectedRoute><ReactionZone /></ProtectedRoute>} />
             <Route path="/screeners/intraday-breakout" element={<ProtectedRoute><IntradayBreakout /></ProtectedRoute>} />
+            <Route path="/nifty50" element={<ProtectedRoute><Nifty50 /></ProtectedRoute>} />
             <Route path="/backtests" element={<ProtectedRoute><Backtests /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />

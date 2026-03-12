@@ -23,6 +23,7 @@ export function useLiveData() {
   const [topMovers, setTopMovers] = useState<TopMoversData>(cached ? cached.topMovers : (staticTopMovers as unknown as TopMoversData));
   const [marketPosition, setMarketPosition] = useState<MarketPositionData | null>(cached ? cached.marketPosition : (staticMarketPosition as unknown as MarketPositionData));
   const [indexPerformance, setIndexPerformance] = useState<any[]>(cached ? cached.indexPerformance || [] : []);
+  const [nifty50Stocks, setNifty50Stocks] = useState<any[]>(cached ? (cached as any).nifty50Stocks || [] : []);
   const [nearResistance, setNearResistance] = useState<any[]>(cached ? cached.nearResistance || [] : []);
   const [supportReversal, setSupportReversal] = useState<any[]>(cached ? cached.supportReversal || [] : []);
   const [reactionZone, setReactionZone] = useState<any[]>(cached ? cached.reactionZone || [] : []);
@@ -38,6 +39,7 @@ export function useLiveData() {
       setTopMovers(data.topMovers);
       setMarketPosition(data.marketPosition);
       setIndexPerformance(data.indexPerformance || []);
+      setNifty50Stocks((data as any).nifty50Stocks || []);
       setNearResistance(data.nearResistance || []);
       setSupportReversal(data.supportReversal || []);
       setReactionZone(data.reactionZone || []);
@@ -62,6 +64,7 @@ export function useLiveData() {
     topMovers,
     marketPosition,
     indexPerformance,
+    nifty50Stocks,
     nearResistance,
     supportReversal,
     reactionZone,

@@ -227,7 +227,7 @@ export function IndicesPerformance() {
                   <span className="text-[10px] text-muted-foreground/60 font-mono">({index.stocksCount} stocks)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm font-bold ${dynamicStrengthScore >= 70 ? 'text-success' : dynamicStrengthScore >= 50 ? 'text-warning' : 'text-destructive'}`}>
+                  <span className="text-sm font-bold text-success">
                     {dynamicStrengthScore}%
                   </span>
                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
