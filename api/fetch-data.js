@@ -429,6 +429,8 @@ async function fetchData() {
   let supportReversal = [];
   let reactionZone = [];
   let currentData = [];
+  let nifty50Stocks = [];
+  let intradayBreakout = [];
   try {
     const currentRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
@@ -576,7 +578,6 @@ async function fetchData() {
 
     // Build a map: displayName -> Set of stock IDs
     const indexStockIdSets = {};
-    let nifty50Stocks = [];
 
     try {
       const indicesRes = await sheets.spreadsheets.values.get({
@@ -745,7 +746,6 @@ async function fetchData() {
     };
 
     // --- Start Intraday Breakout Screener ---
-    var intradayBreakout = [];
     try {
       const breakoutRes = await sheets.spreadsheets.values.get({
         spreadsheetId: EOD_SHEET_ID,
