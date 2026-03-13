@@ -732,9 +732,11 @@ async function fetchData() {
           const sectorIdx = newsHeaders.indexOf('Sector');
           const sourceIdx = newsHeaders.indexOf('Source');
 
+          const dateRegex = /^(\d{1,2}-[a-zA-Z]{3}-\d{4}|\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}-\d{1,2}-\d{4}|\d{4}-\d{1,2}-\d{1,2})$/;
           for (let i = 1; i < newsRows.length; i++) {
             const row = newsRows[i];
-            if (!row || row.length === 0 || !row[dateIdx]) continue;
+            const rawDate = (row[dateIdx] || '').toString().trim();
+            if (!row || row.length === 0 || !rawDate || !dateRegex.test(rawDate)) continue;
 
             dailyNews.push({
               date: row[dateIdx] || '',

@@ -196,6 +196,10 @@ async function fetchData() {
   };
 
   console.log('Fetching live data from Google Sheets...');
+  const symbolAliasMap = {
+    'TMPV': 'TMCV',
+    'M&M': 'M&M'
+  };
   const credentials = getCredentials();
 
   const auth = new google.auth.GoogleAuth({
@@ -624,10 +628,12 @@ async function fetchData() {
         const sectorIdx = newsHeaders.indexOf('Sector');
         const sourceIdx = newsHeaders.indexOf('Source');
 
+        const dateRegex = /^(\d{1,2}-[a-zA-Z]{3}-\d{4}|\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}-\d{1,2}-\d{4}|\d{4}-\d{1,2}-\d{1,2})$/;
         for (let i = 1; i < newsRows.length; i++) {
           const row = newsRows[i];
-          // Skip completely empty rows
-          if (!row || row.length === 0 || !row[dateIdx]) continue;
+          const rawDate = (row[dateIdx] || '').toString().trim();
+          // Skip completely empty rows or rows with invalid dates
+          if (!row || row.length === 0 || !rawDate || !dateRegex.test(rawDate)) continue;
 
           dailyNews.push({
             date: row[dateIdx] || '',
@@ -857,12 +863,6 @@ async function fetchData() {
 
     // Extract nifty50Stocks for the dedicated NIFTY 50 page
     nifty50Stocks = (indexStocksMap['NIFTY 50'] || { stocks: [] }).stocks;
-
-    // Symbol mappings for known discrepancies
-    const symbolAliasMap = {
-      'TMPV': 'TMCV',
-      'M&M': 'M&M'
-    };
 
     indexPerformance = Object.keys(indexStocksMap).map(indexName => {
       const data = indexStocksMap[indexName];
