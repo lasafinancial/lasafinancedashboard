@@ -437,11 +437,12 @@ spline-viewer {
 
 /* Trendlyne Widget Styling Fixes */
 .trendlyne-widgets {
-  overflow: hidden !important;
+  /* overflow must NOT be hidden - SWOT widget click-to-expand needs visibility */
+  width: 100%;
 }
 
 .trendlyne-widgets iframe {
-  height: 100% !important;
+  width: 100% !important;
   min-height: 550px !important;
-  overflow: hidden !important;
+  /* Do NOT add overflow:hidden here - it breaks SWOT expansion */
 }

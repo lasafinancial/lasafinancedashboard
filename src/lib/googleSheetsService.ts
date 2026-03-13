@@ -75,6 +75,40 @@ export interface NearResistanceStock {
   algoW: number;
 }
 
+export interface DailyNewsItem {
+  date: string;
+  stock: string;
+  company: string;
+  news: string;
+  impact: string;
+  reason: string;
+  sector: string;
+  source: string;
+}
+
+export interface NiftyAnalysisData {
+  summary: {
+    date: string;
+    marketMood: string;
+    niftyClose: string;
+  };
+  scenarios: Array<{
+    scenario: string;
+    probability: string;
+    direction: string;
+    trigger: string;
+    target: string;
+    keyStocks: string;
+  }>;
+  actionPlan: Array<{
+    traderType: string;
+    action: string;
+    detail: string;
+    keyLevels: string;
+    suggestedStocks: string;
+  }>;
+}
+
 export interface GoogleSheetsData {
   marketMood: MarketMood;
   marketStrength: MarketStrengthItem[];
@@ -86,6 +120,8 @@ export interface GoogleSheetsData {
   supportReversal?: any[];
   reactionZone?: any[];
   intradayBreakout?: any[];
+  dailyNews?: DailyNewsItem[];
+  niftyAnalysis?: NiftyAnalysisData;
   lastUpdated: string;
 }
 

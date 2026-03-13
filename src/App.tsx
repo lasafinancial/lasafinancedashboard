@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { StickyFooter } from "@/components/layout/StickyFooter";
 import { AIChatbot } from "@/components/AIChatbot";
 import { Analytics } from "@vercel/analytics/react";
 import Dashboard from "@/pages/Dashboard";
@@ -20,6 +21,7 @@ import SupportReversal from "@/pages/SupportReversal";
 import ReactionZone from "@/pages/ReactionZone";
 import IntradayBreakout from "@/pages/IntradayBreakout";
 import Nifty50 from "@/pages/Nifty50";
+import DailyNews from "@/pages/DailyNews";
 import Backtests from "@/pages/Backtests";
 import Admin from "@/pages/Admin";
 import Help from "@/pages/Help";
@@ -188,7 +190,7 @@ const AppContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 flex flex-col">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 flex flex-col pb-16">
       <OnboardingModal
         isOpen={showOnboarding}
         onOpenChange={setShowOnboarding}
@@ -222,12 +224,14 @@ const AppContent = () => {
             <Route path="/screeners/reaction-zone" element={<ProtectedRoute><ReactionZone /></ProtectedRoute>} />
             <Route path="/screeners/intraday-breakout" element={<ProtectedRoute><IntradayBreakout /></ProtectedRoute>} />
             <Route path="/nifty50" element={<ProtectedRoute><Nifty50 /></ProtectedRoute>} />
+            <Route path="/daily-news" element={<ProtectedRoute><DailyNews /></ProtectedRoute>} />
             <Route path="/backtests" element={<ProtectedRoute><Backtests /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           {!isLoginPage && <Footer />}
+          {!isLoginPage && <StickyFooter />}
           {!isLoginPage && <AIChatbot />}
         </>
       ) : (
@@ -251,7 +255,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <AppContent />
           </AuthProvider>

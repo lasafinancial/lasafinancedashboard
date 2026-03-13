@@ -4,12 +4,15 @@ import { Search, TrendingUp, Activity, TrendingDown, Loader2, Info, X, PlayCircl
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import StockPriceChart from "@/components/charts/StockPriceChart";
 import StockStrengthZone from "@/components/charts/StockStrengthZone";
 import { useLiveData } from "@/hooks/useLiveData";
 import { getStockNarration } from "@/lib/gemini";
 import TrendlyneWidget from "@/components/charts/TrendlyneWidget";
+import TechnicalAnalysisWidget from "@/components/charts/TechnicalAnalysisWidget";
 
 interface HoveredData {
   date: string;
@@ -35,7 +38,20 @@ const StockAnalysis = () => {
   const [showVideoModalHindi, setShowVideoModalHindi] = useState(false);
   const [narration, setNarration] = useState<string>("");
   const [isNarrationLoading, setIsNarrationLoading] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const hasSeen = localStorage.getItem("hasSeenStockDisclaimer");
+    if (!hasSeen) {
+      setShowDisclaimer(true);
+    }
+  }, []);
+
+  const handleAcceptDisclaimer = () => {
+    localStorage.setItem("hasSeenStockDisclaimer", "true");
+    setShowDisclaimer(false);
+  };
 
   // Helper for fuzzy matching and normalization
   const normalize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -541,13 +557,32 @@ const StockAnalysis = () => {
         <div className="absolute bottom-1/3 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
       </div>
 
+      <Dialog open={showDisclaimer} onOpenChange={setShowDisclaimer}>
+        <DialogContent className="sm:max-w-[500px] border-l-4 border-l-orange-500">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Info className="w-5 h-5 text-orange-500" />
+              Stock Analysis Disclaimer
+            </DialogTitle>
+            <DialogDescription className="text-base leading-relaxed pt-4 text-foreground/90 font-medium">
+              Stock data shown is algorithmically derived. Trend, support, and resistance levels are analytical observations, not recommendations. This is not SEBI-registered investment advice. Consult a qualified financial advisor before trading.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button onClick={handleAcceptDisclaimer} className="w-full">
+              I Understand & Acknowledge
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="relative container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-6">
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-              <h1 className="text-2xl md:text-3xl font-bold">
-                Stock <span className="gradient-text italic pr-4">Analysis</span>
+              <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-tight">
+                STOCKS
               </h1>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -800,11 +835,9 @@ const StockAnalysis = () => {
           <StockPriceChart data={chartData} onHover={setHoveredChartData} symbol={currentStock?.symbol} />
         </div>
 
-        {/* Trendlyne Widgets Grid */}
-        <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 animate-fade-in-up-delay-2 items-start">
-          <TrendlyneWidget symbol={currentStock?.symbol} type="checklist-widget" theme="dark" />
-          <TrendlyneWidget symbol={currentStock?.symbol} type="swot-widget" theme="light" />
-          <TrendlyneWidget symbol={currentStock?.symbol} type="technical-widget" theme="dark" />
+        {/* TradingView Technical Analysis Widget */}
+        <div className="mb-6 animate-fade-in-up-delay-2">
+          <TechnicalAnalysisWidget symbol={`NSE:${currentStock?.symbol}`} height={450} />
         </div>
 
         {/* Data Table */}

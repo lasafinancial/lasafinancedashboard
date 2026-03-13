@@ -10,5 +10,5 @@ export const FEATURE_FLAGS = {
 
     // NEW: Control the onboarding steps
     ENABLE_TRADER_TYPE_ONBOARDING: false, // Set to false to skip trader type selection
-    ENABLE_LEGAL_DISCLAIMER: false,       // Set to false to skip the legal disclaimer modal
+    ENABLE_LEGAL_DISCLAIMER: true,       // Set to false to skip the legal disclaimer modal
 };

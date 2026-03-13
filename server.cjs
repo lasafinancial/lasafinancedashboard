@@ -100,6 +100,7 @@ app.use(express.json());
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
+const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';
 
 function getCredentials() {
   let credentials;
@@ -315,7 +316,9 @@ async function fetchData() {
   let nearResistance = [];
   let supportReversal = [];
   let reactionZone = [];
+  let dailyNews = [];
   let intradayBreakout = [];
+  let niftyAnalysis = { summary: {}, scenarios: [], actionPlan: [] };
 
   console.log('Fetching live data from Google Sheets...');
   const credentials = getCredentials();
@@ -710,6 +713,164 @@ async function fetchData() {
           });
           console.log('INDICES sheet loaded. Keys: ' + Object.keys(indexStockIdSets).join(', '));
         }
+
+        // Fetch DAILY_NEWS tab
+        const newsRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: INDICES_SHEET_ID,
+          range: 'DAILY_NEWS!A:Z',
+        });
+        const newsRows = newsRes.data.values || [];
+        if (newsRows.length > 1) {
+          // Headers are in row 1
+          const newsHeaders = newsRows[0].map(h => (h || '').toString().trim());
+          const dateIdx = newsHeaders.indexOf('Date');
+          const stockIdx = newsHeaders.indexOf('Stock');
+          const companyIdx = newsHeaders.indexOf('Company');
+          const newsTextIdx = newsHeaders.indexOf('News');
+          const impactIdx = newsHeaders.indexOf('Impact');
+          const reasonIdx = newsHeaders.indexOf('Reason');
+          const sectorIdx = newsHeaders.indexOf('Sector');
+          const sourceIdx = newsHeaders.indexOf('Source');
+
+          for (let i = 1; i < newsRows.length; i++) {
+            const row = newsRows[i];
+            if (!row || row.length === 0 || !row[dateIdx]) continue;
+
+            dailyNews.push({
+              date: row[dateIdx] || '',
+              stock: row[stockIdx] || '',
+              company: row[companyIdx] || '',
+              news: row[newsTextIdx] || '',
+              impact: row[impactIdx] || '',
+              reason: row[reasonIdx] || '',
+              sector: row[sectorIdx] || '',
+              source: row[sourceIdx] || ''
+            });
+          }
+          console.log(`Fetched ${dailyNews.length} news items from DAILY_NEWS.`);
+        }
+
+        // Fetch DAILY_NIFTY_ANALYSIS tab
+        try {
+          const niftyRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: INDICES_SHEET_ID,
+            range: 'DAILY_NIFTY_ANALYSIS!A1:Z500',
+          });
+          const niftyRows = niftyRes.data.values || [];
+          console.log(`DAILY_NIFTY_ANALYSIS fetch successful. Found ${niftyRows.length} rows.`);
+
+          if (niftyRows.length > 0) {
+            const blocks = [];
+            let currentBlock = null;
+            let scenarioNames = new Set();
+            let currentSection = '';
+
+            for (let i = 0; i < niftyRows.length; i++) {
+              const row = niftyRows[i];
+              if (!row || row.length === 0) continue;
+
+              const dateMatch = (row[0] || '').toString().trim();
+              // Broader date match: 13-Mar-2026, 13/03/2026, 13-03-2026, or 2026-03-13
+              const dateRegex = /^(\d{1,2}-[a-zA-Z]{3}-\d{4}|\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}-\d{1,2}-\d{4}|\d{4}-\d{1,2}-\d{1,2})$/;
+              const isDate = dateMatch && dateRegex.test(dateMatch);
+
+              if (isDate && (!currentBlock || currentBlock.summary.date !== dateMatch)) {
+                if (currentBlock) blocks.push(currentBlock);
+                currentBlock = {
+                  summary: {
+                    date: dateMatch,
+                    marketMood: row[2] || '',
+                    niftyClose: row[4] || ''
+                  },
+                  scenarios: [],
+                  actionPlan: [],
+                  bottomLine: '',
+                  keyWatch: ''
+                };
+                scenarioNames = new Set();
+                currentSection = '';
+                continue;
+              }
+
+              if (!currentBlock) continue;
+
+              const firstCell = (row[1] || '').toString().trim();
+              if (firstCell.includes('SCENARIO TABLE')) {
+                currentSection = 'SCENARIOS';
+                i++;
+                continue;
+              } else if (firstCell.includes('TRADER ACTION PLAN')) {
+                currentSection = 'ACTION_PLAN';
+                i++;
+                continue;
+              } else if (firstCell.includes('BOTTOM LINE')) {
+                currentSection = 'BOTTOM_LINE';
+                // Look across all columns in same row for content first
+                const sameRowContent = row.slice(2).find(c => (c || '').toString().trim().length > 0);
+                if (sameRowContent) {
+                  currentBlock.bottomLine = sameRowContent.toString().trim();
+                  currentSection = '';
+                }
+                continue;
+              } else if (firstCell.includes('KEY WATCH')) {
+                currentSection = 'KEY_WATCH';
+                // Look across all columns in same row for content first
+                const sameRowContent = row.slice(2).find(c => (c || '').toString().trim().length > 0);
+                if (sameRowContent) {
+                  currentBlock.keyWatch = sameRowContent.toString().trim();
+                  currentSection = '';
+                }
+                continue;
+              }
+
+              if (currentSection === 'SCENARIOS' && row[1]) {
+                const scenarioName = (row[1] || '').toString().trim();
+                if (scenarioName && !scenarioNames.has(scenarioName)) {
+                  scenarioNames.add(scenarioName);
+                  currentBlock.scenarios.push({
+                    scenario: scenarioName,
+                    probability: row[2] || '',
+                    direction: row[3] || '',
+                    trigger: row[4] || '',
+                    target: row[5] || '',
+                    keyStocks: row[6] || ''
+                  });
+                }
+              } else if (currentSection === 'ACTION_PLAN' && row[1]) {
+                currentBlock.actionPlan.push({
+                  traderType: (row[1] || '').toString().trim(),
+                  action: (row[2] || '').toString().trim(),
+                  detail: (row[3] || '').toString().trim(),
+                  keyLevels: (row[4] || '').toString().trim(),
+                  suggestedStocks: (row[5] || '').toString().trim()
+                });
+              } else if (currentSection === 'BOTTOM_LINE' && row[1]) {
+                const content = (row[1] || '').toString().trim();
+                if (!content.includes('MARKET MOOD') && !content.includes('NIFTY') && content.length > 5) {
+                  currentBlock.bottomLine = content;
+                  currentSection = '';
+                }
+              } else if (currentSection === 'KEY_WATCH' && row[1]) {
+                const content = (row[1] || '').toString().trim();
+                if (!content.includes('MARKET MOOD') && !content.includes('NIFTY') && content.length > 5) {
+                  currentBlock.keyWatch = content;
+                  currentSection = '';
+                }
+              }
+            }
+            if (currentBlock) blocks.push(currentBlock);
+
+            // Reverse blocks so the latest (last in sheet) is at index 0
+            blocks.reverse();
+
+            niftyAnalysis = { history: blocks };
+            console.log(`Parsed Nifty Analysis: ${blocks.length} date blocks found.`);
+          }
+        } catch (niftyErr) {
+          console.warn('Could not fetch DAILY_NIFTY_ANALYSIS:', niftyErr.message);
+        }
+
+
       } catch (indErr) {
         console.warn('Could not fetch INDICES sheet:', indErr.message);
       }
@@ -944,6 +1105,8 @@ async function fetchData() {
     supportReversal,
     reactionZone,
     intradayBreakout, // Added here
+    dailyNews,
+    niftyAnalysis,
     lastUpdated: new Date().toISOString()
   };
 }

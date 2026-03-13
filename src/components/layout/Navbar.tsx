@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader2, Send, Filter, ChevronDown, Menu, MessageSquare, HelpCircle, TrendingUp } from "lucide-react";
+import { Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader2, Send, Filter, ChevronDown, Menu, MessageSquare, HelpCircle, TrendingUp, Newspaper } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useState } from "react";
@@ -60,8 +60,9 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
 
   const navItems = [
     { path: "/", label: "Dashboard", icon: BarChart3 },
-    { path: "/stocks", label: "Stock Analysis", icon: Search },
-    { path: "/nifty50", label: "NIFTY 50", icon: TrendingUp },
+    { path: "/stocks", label: "Stocks", icon: Search },
+    { path: "/nifty50", label: "NIFTY", icon: TrendingUp },
+    { path: "/daily-news", label: "News", icon: Newspaper },
     { path: "/screeners", label: "Screeners", icon: Filter },
     { path: "/help", label: "Help", icon: HelpCircle },
   ];
