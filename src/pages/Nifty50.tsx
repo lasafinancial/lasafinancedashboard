@@ -280,24 +280,8 @@ const Nifty50 = () => {
                   Scenario probabilities and technical triggers as defined in the daily algorithmic analysis.
                 </p>
               </div>
-              {!isMobile && (
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex flex-col items-end group hover:border-primary/40 transition-all">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Nifty Close ({selectedAnalysis.summary.date})</span>
-                  <span className="text-2xl font-mono font-bold text-foreground group-hover:text-primary transition-colors">
-                    ₹{Number(selectedAnalysis.summary.niftyClose).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              )}
             </div>
 
-            {isMobile && (
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-end group hover:border-primary/40 transition-all">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Nifty Close ({selectedAnalysis.summary.date})</span>
-                <span className="text-2xl font-mono font-bold text-foreground group-hover:text-primary transition-colors">
-                  ₹{Number(selectedAnalysis.summary.niftyClose).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            )}
 
             {/* Prominent Date Switcher Buttons */}
             <div className="flex flex-col gap-3">
