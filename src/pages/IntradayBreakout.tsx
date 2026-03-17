@@ -11,6 +11,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
+import { PremiumProtector } from "@/components/ui/PremiumProtector";
+import { useAuth } from "@/context/AuthContext";
 
 // Updated type to match backend keys exactly
 type SortField = "symbol" | "date" | "time" | "close" | "Volume_multiplie" | "Price_%_Move" | "BALANCE" | "MODEL" | "PATTERN" | "RESISTANCE";
@@ -19,6 +21,7 @@ type SortDirection = "asc" | "desc";
 export function IntradayBreakout() {
     const navigate = useNavigate();
     const { intradayBreakout: stocks, isLoading } = useLiveData();
+    const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [sortField, setSortField] = useState<SortField>("time");
     const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -207,57 +210,59 @@ export function IntradayBreakout() {
 
                                 {/* List Body */}
                                 <div className="flex flex-col gap-2 p-2">
-                                    {processedStocks.map((stock, idx) => (
-                                        <motion.div
-                                            key={`${stock.symbol}-${stock.time}-${idx}`}
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: idx * 0.02 }}
-                                        >
-                                            <GlassCard className="p-0 border-white/5 hover:border-primary/30 transition-all duration-300 group-hover:bg-white/[0.03]">
-                                                <div className="flex items-center w-full px-4 py-4">
-                                                    <div className="flex-[1.2] font-bold text-sm md:text-base text-primary tracking-tight">
-                                                        {stock.symbol}
+                                    <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium Feature" description="Upgrade to view all Intraday Breakout data.">
+                                        {(isFree ? processedStocks.slice(0, 8) : processedStocks).map((stock, idx) => (
+                                            <motion.div
+                                                key={`${stock.symbol}-${stock.time}-${idx}`}
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: idx * 0.02 }}
+                                            >
+                                                <GlassCard className="p-0 border-white/5 hover:border-primary/30 transition-all duration-300 group-hover:bg-white/[0.03]">
+                                                    <div className="flex items-center w-full px-4 py-4">
+                                                        <div className="flex-[1.2] font-bold text-sm md:text-base text-primary tracking-tight">
+                                                            {stock.symbol}
+                                                        </div>
+                                                        <div className="flex-1 text-xs text-foreground/70 font-medium">
+                                                            {stock.date}
+                                                        </div>
+                                                        <div className="flex-1 text-xs font-semibold text-foreground/90 tabular-nums">
+                                                            {stock.time}
+                                                        </div>
+                                                        <div className="flex-1 text-right font-bold tabular-nums text-sm">
+                                                            ₹{formatNumber(stock.close)}
+                                                        </div>
+                                                        <div className="flex-1 text-right font-bold tabular-nums text-primary/90 text-sm">
+                                                            {Number(stock.Volume_multiplie).toFixed(2)}x
+                                                        </div>
+                                                        <div className={`flex-1 text-right font-bold tabular-nums text-sm ${stock['Price_%_Move'] >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                            {stock['Price_%_Move'] > 0 ? '+' : ''}{formatPercent(stock['Price_%_Move'])}
+                                                        </div>
+                                                        <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
+                                                            {stock.BALANCE || '—'}
+                                                        </div>
+                                                        <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
+                                                            {stock.MODEL || '—'}
+                                                        </div>
+                                                        <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
+                                                            {stock.PATTERN || '—'}
+                                                        </div>
+                                                        <div className="flex-1 text-right text-[10px] md:text-xs font-bold text-red-400 tabular-nums pr-4">
+                                                            {stock.RESISTANCE || '—'}
+                                                        </div>
+                                                        <div className="flex-[0.4] flex justify-end">
+                                                            <button
+                                                                onClick={() => handleStockClick(stock.symbol)}
+                                                                className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all group-hover:scale-110"
+                                                            >
+                                                                <ArrowUpRight className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-1 text-xs text-foreground/70 font-medium">
-                                                        {stock.date}
-                                                    </div>
-                                                    <div className="flex-1 text-xs font-semibold text-foreground/90 tabular-nums">
-                                                        {stock.time}
-                                                    </div>
-                                                    <div className="flex-1 text-right font-bold tabular-nums text-sm">
-                                                        ₹{formatNumber(stock.close)}
-                                                    </div>
-                                                    <div className="flex-1 text-right font-bold tabular-nums text-primary/90 text-sm">
-                                                        {Number(stock.Volume_multiplie).toFixed(2)}x
-                                                    </div>
-                                                    <div className={`flex-1 text-right font-bold tabular-nums text-sm ${stock['Price_%_Move'] >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                        {stock['Price_%_Move'] > 0 ? '+' : ''}{formatPercent(stock['Price_%_Move'])}
-                                                    </div>
-                                                    <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
-                                                        {stock.BALANCE || '—'}
-                                                    </div>
-                                                    <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
-                                                        {stock.MODEL || '—'}
-                                                    </div>
-                                                    <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
-                                                        {stock.PATTERN || '—'}
-                                                    </div>
-                                                    <div className="flex-1 text-right text-[10px] md:text-xs font-bold text-red-400 tabular-nums pr-4">
-                                                        {stock.RESISTANCE || '—'}
-                                                    </div>
-                                                    <div className="flex-[0.4] flex justify-end">
-                                                        <button
-                                                            onClick={() => handleStockClick(stock.symbol)}
-                                                            className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all group-hover:scale-110"
-                                                        >
-                                                            <ArrowUpRight className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </GlassCard>
-                                        </motion.div>
-                                    ))}
+                                                </GlassCard>
+                                            </motion.div>
+                                        ))}
+                                    </PremiumProtector>
                                 </div>
                             </div>
                         </div>

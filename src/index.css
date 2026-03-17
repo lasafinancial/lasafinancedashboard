@@ -436,13 +436,29 @@ spline-viewer {
 }
 
 /* Trendlyne Widget Styling Fixes */
+/* Trendlyne Widget Styling Fixes */
 .trendlyne-widgets {
-  /* overflow must NOT be hidden - SWOT widget click-to-expand needs visibility */
   width: 100%;
 }
 
 .trendlyne-widgets iframe {
   width: 100% !important;
   min-height: 550px !important;
-  /* Do NOT add overflow:hidden here - it breaks SWOT expansion */
+}
+
+/* TradingView Widget Overrides */
+.TV-widget-wrapper {
+  overflow: hidden;
+  border-radius: 12px;
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.TV-widget-wrapper iframe {
+  border: none !important;
+}
+
+.tradingview-widget-container iframe {
+  border: none !important;
+  border-radius: 12px;
 }

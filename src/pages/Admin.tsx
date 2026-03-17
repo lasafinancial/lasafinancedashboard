@@ -9,7 +9,8 @@ import { Send, Lock, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Upl
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import {
     Table,
     TableBody,
@@ -77,6 +78,7 @@ const Admin = () => {
     const [selectedUserLogs, setSelectedUserLogs] = useState<any[]>([]);
     const [showLogsModal, setShowLogsModal] = useState(false);
     const [focusedUser, setFocusedUser] = useState<any>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     // Fetch users for User Management
     useEffect(() => {
@@ -255,15 +257,15 @@ const Admin = () => {
         }
     };
 
-    const toggleUserTier = async (userId: string, currentTier: string) => {
+    const updateUserTier = async (userId: string, newTier: string) => {
         try {
             const userRef = doc(db, 'users', userId);
             await updateDoc(userRef, {
-                tier: currentTier === 'pro' ? 'free' : 'pro'
+                tier: newTier
             });
             toast({
                 title: "Tier Updated",
-                description: `User is now ${currentTier === 'pro' ? 'Free' : 'Pro'}`,
+                description: `User is now ${newTier.toUpperCase()}`,
             });
         } catch (error) {
             toast({
@@ -491,6 +493,41 @@ const Admin = () => {
         (u.email?.toLowerCase() || '').includes(userSearch.toLowerCase()) ||
         (u.phoneNumber || '').includes(userSearch)
     );
+
+    const handleSyncAllTiers = async () => {
+        if (!window.confirm(`Are you sure you want to force ALL ${users.length} users to the ${FEATURE_FLAGS.FORCE_ELITE_FOR_ALL ? 'ELITE' : 'FREE'} tier in the database?`)) return;
+
+        setIsSyncing(true);
+        try {
+            const batch = writeBatch(db);
+            const targetTier = FEATURE_FLAGS.FORCE_ELITE_FOR_ALL ? 'elite' : 'free';
+
+            // Process in chunks of 500 (Firestore batch limit)
+            const chunks = [];
+            for (let i = 0; i < users.length; i += 500) {
+                chunks.push(users.slice(i, i + 500));
+            }
+
+            for (const chunk of chunks) {
+                const chunkBatch = writeBatch(db);
+                chunk.forEach((user: any) => {
+                    const userRef = doc(db, 'users', user.id);
+                    chunkBatch.update(userRef, { tier: targetTier });
+                });
+                await chunkBatch.commit();
+            }
+
+            toast({
+                title: "Global Sync Success",
+                description: `Database updated for ${users.length} users. All tiers set to ${targetTier.toUpperCase()}.`,
+            });
+        } catch (error) {
+            console.error("Global sync failed:", error);
+            toast({ title: "Sync Failed", description: "Could not update all user records.", variant: "destructive" });
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     const formatDate = (timestamp: any) => {
         if (!timestamp) return 'Never';
@@ -882,8 +919,20 @@ const Admin = () => {
                                     onChange={(e) => setUserSearch(e.target.value)}
                                 />
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                                Total Users: <span className="text-foreground font-semibold">{users.length}</span>
+                            <div className="flex items-center gap-4">
+                                <div className="text-sm text-muted-foreground">
+                                    Total Users: <span className="text-foreground font-semibold">{users.length}</span>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 gap-2 border-orange-500/30 text-orange-500 hover:bg-orange-500/10"
+                                    onClick={handleSyncAllTiers}
+                                    disabled={isSyncing || users.length === 0}
+                                >
+                                    {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                                    Sync All to {FEATURE_FLAGS.FORCE_ELITE_FOR_ALL ? 'ELITE' : 'FREE'}
+                                </Button>
                             </div>
                         </div>
 
@@ -944,12 +993,28 @@ const Admin = () => {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge
-                                                        variant={user.isDeactivated ? "destructive" : user.tier === 'pro' ? "default" : "secondary"}
-                                                        className="text-[10px] uppercase font-bold"
-                                                    >
-                                                        {user.isDeactivated ? 'Deactivated' : user.tier || 'free'}
-                                                    </Badge>
+                                                    <div className="flex flex-col gap-1">
+                                                        <Badge
+                                                            variant={user.isDeactivated ? "destructive" : user.tier === 'elite' ? "default" : user.tier === 'pro' ? "secondary" : "outline"}
+                                                            className={cn(
+                                                                "text-[10px] uppercase font-bold w-fit",
+                                                                user.tier === 'elite' && "bg-gradient-to-r from-yellow-400 to-orange-500 border-none shadow-lg shadow-orange-500/20",
+                                                                user.tier === 'pro' && "bg-primary/20 text-primary border-primary/30"
+                                                            )}
+                                                        >
+                                                            {user.isDeactivated ? 'Deactivated' : user.tier || 'free'}
+                                                        </Badge>
+                                                        {FEATURE_FLAGS.FORCE_ELITE_FOR_ALL && user.tier !== 'elite' && (
+                                                            <span className="text-[8px] text-orange-500 font-bold uppercase tracking-tighter">
+                                                                → Elite (Forced)
+                                                            </span>
+                                                        )}
+                                                        {!FEATURE_FLAGS.FORCE_ELITE_FOR_ALL && user.tier === 'elite' && (
+                                                            <span className="text-[8px] text-muted-foreground font-bold uppercase tracking-tighter">
+                                                                → Free (Terminated)
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                                     {formatDate(user.lastLoginAt || user.lastLogin)}
@@ -1011,15 +1076,42 @@ const Admin = () => {
                                                             </AlertDialog>
                                                         )}
 
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="h-8 border-white/10 hover:bg-white/5"
-                                                            onClick={() => toggleUserTier(user.id, user.tier || 'free')}
-                                                        >
-                                                            <Crown className={cn("h-3.5 w-3.5 mr-2", user.tier === 'pro' ? "text-yellow-500" : "text-muted-foreground")} />
-                                                            {user.tier === 'pro' ? 'Make Free' : 'Make Pro'}
-                                                        </Button>
+                                                        <div className="flex bg-white/5 border border-white/10 rounded-lg p-0.5">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className={cn(
+                                                                    "h-7 px-2 text-[10px] font-bold transition-all",
+                                                                    (user.tier === 'free' || !user.tier) ? "bg-white/10 text-white" : "text-muted-foreground opacity-50 hover:opacity-100"
+                                                                )}
+                                                                onClick={() => updateUserTier(user.id, 'free')}
+                                                            >
+                                                                FREE
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className={cn(
+                                                                    "h-7 px-2 text-[10px] font-bold transition-all",
+                                                                    user.tier === 'pro' ? "bg-primary text-white" : "text-muted-foreground opacity-50 hover:opacity-100"
+                                                                )}
+                                                                onClick={() => updateUserTier(user.id, 'pro')}
+                                                            >
+                                                                PRO
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className={cn(
+                                                                    "h-7 px-2 text-[10px] font-bold transition-all",
+                                                                    user.tier === 'elite' ? "bg-orange-500 text-white" : "text-muted-foreground opacity-50 hover:opacity-100"
+                                                                )}
+                                                                onClick={() => updateUserTier(user.id, 'elite')}
+                                                            >
+                                                                <Crown className="h-3 w-3 mr-1" />
+                                                                ELITE
+                                                            </Button>
+                                                        </div>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"

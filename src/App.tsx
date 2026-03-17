@@ -25,6 +25,7 @@ import DailyNews from "@/pages/DailyNews";
 import Backtests from "@/pages/Backtests";
 import Admin from "@/pages/Admin";
 import Help from "@/pages/Help";
+import Pricing from "@/pages/Pricing";
 import NotFound from "./pages/NotFound";
 import LandingPage from "@/pages/Landing";
 import { startAutoRefresh } from "@/lib/googleSheetsService";
@@ -228,6 +229,7 @@ const AppContent = () => {
             <Route path="/backtests" element={<ProtectedRoute><Backtests /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+            <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           {!isLoginPage && <Footer />}

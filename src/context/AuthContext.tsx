@@ -17,7 +17,7 @@ import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 interface UserData {
     name?: string;
-    tier?: 'free' | 'pro';
+    tier?: 'free' | 'pro' | 'elite';
     phoneNumber?: string;
     disclaimerAcceptedAt?: any;
     hasSeenOnboarding?: boolean;
@@ -42,6 +42,9 @@ interface AuthContextType {
     setAdminAuthorized: (isAuth: boolean) => void;
     updateUserData: (data: Partial<UserData>) => Promise<void>;
     logout: () => Promise<void>;
+    isFree: boolean;
+    isPro: boolean;
+    isElite: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -75,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     phoneNumber: firebaseUser.phoneNumber || '',
                     // We leave "name" empty for new users so they are forced to enter it in onboarding
                     provider: firebaseUser.providerData[0]?.providerId || (firebaseUser.phoneNumber ? 'phone' : 'unknown'),
-                    tier: 'free',
+                    tier: FEATURE_FLAGS.FORCE_ELITE_FOR_ALL ? 'elite' : 'free',
                     hasSeenOnboarding: false,
                     hasCompletedProfile: false,
                     createdAt: serverTimestamp(),
@@ -83,9 +86,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 });
             } else {
                 console.log("[AuthContext] Updating last login for existing user.");
-                // Update last login
+                // Update last login and respect ELITE tier force flag
                 await setDoc(userRef, {
                     lastLoginAt: serverTimestamp(),
+                    tier: FEATURE_FLAGS.FORCE_ELITE_FOR_ALL ? 'elite' : 'free',
                     // Ensure phoneNumber is updated if it was missing 
                     ...(firebaseUser.phoneNumber && { phoneNumber: firebaseUser.phoneNumber })
                 }, { merge: true });
@@ -132,7 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 // In Guest mode, we still sync to firestore but we can mock the data locally too
                 setUserData({
                     name: 'Beta User',
-                    tier: 'free',
+                    tier: 'elite',
                     hasSeenOnboarding: false, // Keep onboarding active as requested
                     disclaimerAcceptedAt: new Date(), // Pretend it's accepted to skip the modal
                 });
@@ -283,6 +287,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    // Helper booleans for Tier logic
+    // FORCE_ELITE_FOR_ALL toggle: 
+    // - true: Everyone is ELITE
+    // - false: Everyone is FREE (unless the tier system is disabled)
+    const isElite = FEATURE_FLAGS.FORCE_ELITE_FOR_ALL || (userData?.tier === 'elite' || !FEATURE_FLAGS.ENABLE_TIER_RESTRICTIONS);
+    const isPro = FEATURE_FLAGS.FORCE_ELITE_FOR_ALL || userData?.tier === 'pro' || isElite;
+    const isFree = !FEATURE_FLAGS.FORCE_ELITE_FOR_ALL && (userData?.tier === 'free' || !userData?.tier) && FEATURE_FLAGS.ENABLE_TIER_RESTRICTIONS;
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -296,7 +308,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             isAdminAuthorized,
             setAdminAuthorized: setIsAdminAuthorized,
             updateUserData,
-            logout
+            logout,
+            isFree,
+            isPro,
+            isElite
         }}>
             {children}
         </AuthContext.Provider>

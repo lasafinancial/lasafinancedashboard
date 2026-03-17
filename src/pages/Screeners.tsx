@@ -1,6 +1,7 @@
 // Enhanced Screeners Page
 import { Filter, ChevronDown, TrendingUp, ArrowUpRight, Search, Zap, Crosshair, BarChart2, Rocket } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { Link, useNavigate } from "react-router-dom";
 import {
     DropdownMenu,
@@ -102,8 +103,10 @@ export function Screeners() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {screenerOptions.map((option) => {
                         const Icon = option.icon;
-                        return (
-                            <Link key={option.path} to={option.path} className="group h-full">
+                        const isPremiumScreener = option.label === "Reaction Zone" || option.label === "Intraday Breakout";
+
+                        const CardContent = (
+                            <Link key={option.path} to={option.path} className="group h-full block">
                                 <GlassCard className={`relative p-6 h-full flex flex-col justify-between overflow-hidden transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-2xl border-white/5 ${option.borderColor}`}>
 
                                     {/* Hover Gradient Background */}
@@ -135,6 +138,12 @@ export function Screeners() {
                                     </div>
                                 </GlassCard>
                             </Link>
+                        );
+
+                        return (
+                            <PremiumProtector key={option.path} requiredTier="pro">
+                                {CardContent}
+                            </PremiumProtector>
                         );
                     })}
                 </div>

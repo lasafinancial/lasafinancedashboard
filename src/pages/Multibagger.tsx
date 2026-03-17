@@ -3,6 +3,8 @@ import { Rocket, TrendingUp, Star, Filter, ArrowUpRight, Target, Loader2, BarCha
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { PremiumProtector } from "@/components/ui/PremiumProtector";
+import { useAuth } from "@/context/AuthContext";
 import {
   AreaChart,
   Area,
@@ -89,6 +91,7 @@ const cardVariants = {
 
 export function Multibagger() {
   const navigate = useNavigate();
+  const { isFree } = useAuth();
   const [selectedStock, setSelectedStock] = useState<MultibaggerStock | null>(null);
   const [stocks, setStocks] = useState<MultibaggerStock[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -299,137 +302,139 @@ export function Multibagger() {
               animate="visible"
               className="grid grid-cols-1 gap-3"
             >
-              {filteredStocks.map((stock, index) => (
-                <motion.div
-                  key={`${stock.id}-${index}`}
-                  variants={cardVariants}
-                  whileHover="hover"
-                  layout
-                >
-                  <GlassCard className="relative p-0 overflow-hidden border-white/10 group">
-                    {/* Status Accent */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/40 group-hover:bg-primary transition-all duration-300 z-20" />
+              <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium Feature" description="Upgrade to view all Multibagger data.">
+                {(isFree ? filteredStocks.slice(0, 8) : filteredStocks).map((stock, index) => (
+                  <motion.div
+                    key={`${stock.id}-${index}`}
+                    variants={cardVariants}
+                    whileHover="hover"
+                    layout
+                  >
+                    <GlassCard className="relative p-0 overflow-hidden border-white/10 group">
+                      {/* Status Accent */}
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/40 group-hover:bg-primary transition-all duration-300 z-20" />
 
-                    <div className="flex flex-col sm:flex-row items-stretch">
-                      {/* Stock Info */}
-                      <div className="flex items-center gap-4 p-4 sm:w-[280px] border-b sm:border-b-0 sm:border-r border-white/5">
-                        <span className="text-lg font-bold text-muted-foreground tabular-nums w-8">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
+                      <div className="flex flex-col sm:flex-row items-stretch">
+                        {/* Stock Info */}
+                        <div className="flex items-center gap-4 p-4 sm:w-[280px] border-b sm:border-b-0 sm:border-r border-white/5">
+                          <span className="text-lg font-bold text-muted-foreground tabular-nums w-8">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
 
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-base font-semibold tracking-tight group-hover:text-primary transition-colors truncate">
-                              {stock.id}
-                            </h3>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground mt-0.5">
-                            <BarChart3 className="w-3 h-3 text-primary/50" />
-                            <span className="text-xs font-medium">{stock.sector}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Metrics */}
-                      <div className="flex-1 grid grid-cols-3 gap-4 p-4 items-center">
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground mb-0.5">CMP</p>
-                          <p className="text-base font-semibold tabular-nums">₹{Number(stock.cmp).toLocaleString()}</p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground mb-0.5">RSI</p>
-                          <p className={`text-base font-semibold tabular-nums ${Number(stock.rsi) > 50 ? 'text-success' : 'text-blue-400'
-                            }`}>
-                            {Number(stock.rsi).toFixed(1)}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground mb-0.5">Weekly RSI</p>
-                          <p className="text-base font-semibold text-blue-400 tabular-nums">{Number(stock.wRsi).toFixed(1)}</p>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 p-4 border-t sm:border-t-0 sm:border-l border-white/5">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <button
-                              className="h-9 px-4 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold hover:bg-white/10 hover:border-primary/30 transition-all"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedStock(stock);
-                              }}
-                            >
-                              Details
-                            </button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[450px]">
-                            <DialogHeader>
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <DialogTitle className="text-xl font-bold">
-                                    {stock.id}
-                                  </DialogTitle>
-                                  <p className="text-xs text-muted-foreground mt-1">{stock.sector}</p>
-                                </div>
-                                <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                                  <Target className="w-5 h-5 text-primary" />
-                                </div>
-                              </div>
-                            </DialogHeader>
-
-                            <div className="grid grid-cols-2 gap-3 mt-4">
-                              {[
-                                { label: "PE Ratio", value: stock.peRatio || 'N/A' },
-                                { label: "5Y High", value: `₹${Number(stock.fiveYHigh).toLocaleString()}` },
-                                { label: "EMA 63", value: `₹${Math.round(Number(stock.dEma63))}` },
-                                { label: "EMA 200", value: `₹${Math.round(Number(stock.dEma200))}` },
-                              ].map((item, i) => (
-                                <div key={i} className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05]">
-                                  <p className="text-xs text-muted-foreground font-medium mb-1">{item.label}</p>
-                                  <p className="font-semibold tabular-nums">{item.value}</p>
-                                </div>
-                              ))}
-
-                              <div className="col-span-2 p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-center justify-between">
-                                <div>
-                                  <p className="text-xs text-primary font-medium mb-1">200-EMA Status</p>
-                                  <p className={`font-semibold ${stock.dEma200Status === 'ABOVE' ? 'text-success' : 'text-destructive'}`}>
-                                    {stock.dEma200Status || 'N/A'}
-                                  </p>
-                                </div>
-                                <div className={`p-2 rounded-lg ${stock.dEma200Status === 'ABOVE' ? 'bg-success/20' : 'bg-destructive/20'}`}>
-                                  <ArrowUpRight className={`w-5 h-5 ${stock.dEma200Status === 'ABOVE' ? 'text-success' : 'text-destructive'}`} />
-                                </div>
-                              </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-base font-semibold tracking-tight group-hover:text-primary transition-colors truncate">
+                                {stock.id}
+                              </h3>
                             </div>
+                            <div className="flex items-center gap-1.5 text-muted-foreground mt-0.5">
+                              <BarChart3 className="w-3 h-3 text-primary/50" />
+                              <span className="text-xs font-medium">{stock.sector}</span>
+                            </div>
+                          </div>
+                        </div>
 
-                            <button
-                              className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                              onClick={() => handleStockClick(stock)}
-                            >
-                              Open Analytics
-                              <ArrowUpRight className="w-4 h-4" />
-                            </button>
-                          </DialogContent>
-                        </Dialog>
+                        {/* Metrics */}
+                        <div className="flex-1 grid grid-cols-3 gap-4 p-4 items-center">
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-0.5">CMP</p>
+                            <p className="text-base font-semibold tabular-nums">₹{Number(stock.cmp).toLocaleString()}</p>
+                          </div>
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStockClick(stock);
-                          }}
-                          className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all"
-                        >
-                          <ArrowUpRight className="w-4 h-4" />
-                        </button>
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-0.5">RSI</p>
+                            <p className={`text-base font-semibold tabular-nums ${Number(stock.rsi) > 50 ? 'text-success' : 'text-blue-400'
+                              }`}>
+                              {Number(stock.rsi).toFixed(1)}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-0.5">Weekly RSI</p>
+                            <p className="text-base font-semibold text-blue-400 tabular-nums">{Number(stock.wRsi).toFixed(1)}</p>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 p-4 border-t sm:border-t-0 sm:border-l border-white/5">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button
+                                className="h-9 px-4 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold hover:bg-white/10 hover:border-primary/30 transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStock(stock);
+                                }}
+                              >
+                                Details
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[450px]">
+                              <DialogHeader>
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <DialogTitle className="text-xl font-bold">
+                                      {stock.id}
+                                    </DialogTitle>
+                                    <p className="text-xs text-muted-foreground mt-1">{stock.sector}</p>
+                                  </div>
+                                  <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                    <Target className="w-5 h-5 text-primary" />
+                                  </div>
+                                </div>
+                              </DialogHeader>
+
+                              <div className="grid grid-cols-2 gap-3 mt-4">
+                                {[
+                                  { label: "PE Ratio", value: stock.peRatio || 'N/A' },
+                                  { label: "5Y High", value: `₹${Number(stock.fiveYHigh).toLocaleString()}` },
+                                  { label: "EMA 63", value: `₹${Math.round(Number(stock.dEma63))}` },
+                                  { label: "EMA 200", value: `₹${Math.round(Number(stock.dEma200))}` },
+                                ].map((item, i) => (
+                                  <div key={i} className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05]">
+                                    <p className="text-xs text-muted-foreground font-medium mb-1">{item.label}</p>
+                                    <p className="font-semibold tabular-nums">{item.value}</p>
+                                  </div>
+                                ))}
+
+                                <div className="col-span-2 p-3 rounded-lg bg-primary/5 border border-primary/20 flex items-center justify-between">
+                                  <div>
+                                    <p className="text-xs text-primary font-medium mb-1">200-EMA Status</p>
+                                    <p className={`font-semibold ${stock.dEma200Status === 'ABOVE' ? 'text-success' : 'text-destructive'}`}>
+                                      {stock.dEma200Status || 'N/A'}
+                                    </p>
+                                  </div>
+                                  <div className={`p-2 rounded-lg ${stock.dEma200Status === 'ABOVE' ? 'bg-success/20' : 'bg-destructive/20'}`}>
+                                    <ArrowUpRight className={`w-5 h-5 ${stock.dEma200Status === 'ABOVE' ? 'text-success' : 'text-destructive'}`} />
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button
+                                className="w-full mt-4 py-3 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                                onClick={() => handleStockClick(stock)}
+                              >
+                                Open Analytics
+                                <ArrowUpRight className="w-4 h-4" />
+                              </button>
+                            </DialogContent>
+                          </Dialog>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStockClick(stock);
+                            }}
+                            className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+                          >
+                            <ArrowUpRight className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </GlassCard>
-                </motion.div>
-              ))}
+                    </GlassCard>
+                  </motion.div>
+                ))}
+              </PremiumProtector>
             </motion.div>
           )}
         </AnimatePresence>

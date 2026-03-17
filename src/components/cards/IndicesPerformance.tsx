@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { InfoModal, InfoModalTrigger, useInfoModal } from "@/components/ui/InfoModal";
+import { PremiumProtector } from "@/components/ui/PremiumProtector";
 
 interface IndexStock {
   id: string;
@@ -284,21 +285,22 @@ export function IndicesPerformance() {
             );
           })()}
           <div className="overflow-y-auto max-h-[55vh] pr-2 space-y-2">
+            <PremiumProtector requiredTier="pro" blurLevel="sm">
+              {selectedIndex?.stocks
+                .slice()
+                .sort((a, b) => {
+                  const statusA = getDynamicStatus(a.price, a.lowerRange, a.upperRange);
+                  const statusB = getDynamicStatus(b.price, b.lowerRange, b.upperRange);
+                  const order = { BULLISH: 0, BEARISH: 1, NEUTRAL: 2 };
+                  const aOrder = order[statusA] ?? 2;
+                  const bOrder = order[statusB] ?? 2;
+                  return aOrder - bOrder;
+                })
+                .map((stock) => (
 
-            {selectedIndex?.stocks
-              .slice()
-              .sort((a, b) => {
-                const statusA = getDynamicStatus(a.price, a.lowerRange, a.upperRange);
-                const statusB = getDynamicStatus(b.price, b.lowerRange, b.upperRange);
-                const order = { BULLISH: 0, BEARISH: 1, NEUTRAL: 2 };
-                const aOrder = order[statusA] ?? 2;
-                const bOrder = order[statusB] ?? 2;
-                return aOrder - bOrder;
-              })
-              .map((stock) => (
-
-                <StockCard key={stock.id} stock={stock} />
-              ))}
+                  <StockCard key={stock.id} stock={stock} />
+                ))}
+            </PremiumProtector>
             {(!selectedIndex?.stocks || selectedIndex.stocks.length === 0) && (
               <div className="text-center py-8 text-muted-foreground">
                 No stocks found in this index

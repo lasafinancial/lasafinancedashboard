@@ -14,6 +14,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
 import { NearResistanceStock } from "@/lib/googleSheetsService";
+import { PremiumProtector } from "@/components/ui/PremiumProtector";
+import { useAuth } from "@/context/AuthContext";
 
 type SortField = keyof NearResistanceStock;
 type SortDirection = "asc" | "desc";
@@ -21,6 +23,7 @@ type SortDirection = "asc" | "desc";
 export function ReactionZone() {
     const navigate = useNavigate();
     const { reactionZone: stocks, isLoading } = useLiveData();
+    const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [sortField, setSortField] = useState<SortField>("mlTargetPercent");
     const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -246,48 +249,50 @@ export function ReactionZone() {
 
                                 {/* Rows */}
                                 <div className="flex flex-col gap-2 p-2">
-                                    {processedStocks.map((stock) => (
-                                        <motion.div
-                                            layout
-                                            initial={{ opacity: 0, scale: 0.98 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            key={stock.id}
-                                            className="group"
-                                        >
-                                            <GlassCard className="p-0 border-white/5 hover:border-primary/30 transition-all duration-300 group-hover:bg-white/[0.03]">
-                                                <div className="flex items-center w-full px-3 py-3 md:px-4 md:py-4">
-                                                    <div className="flex-1">
-                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stock.dEma200Status === 'ABOVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
-                                                            {stock.dEma200Status}
-                                                        </span>
+                                    <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium Feature" description="Upgrade to view all Reaction Zone data.">
+                                        {(isFree ? processedStocks.slice(0, 8) : processedStocks).map((stock) => (
+                                            <motion.div
+                                                layout
+                                                initial={{ opacity: 0, scale: 0.98 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                key={stock.id}
+                                                className="group"
+                                            >
+                                                <GlassCard className="p-0 border-white/5 hover:border-primary/30 transition-all duration-300 group-hover:bg-white/[0.03]">
+                                                    <div className="flex items-center w-full px-3 py-3 md:px-4 md:py-4">
+                                                        <div className="flex-1">
+                                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stock.dEma200Status === 'ABOVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                                                {stock.dEma200Status}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex-1 font-bold text-primary tabular-nums">{formatPercent(stock.mlTargetPercent)}</div>
+                                                        <div className="flex-1 flex items-center gap-2">
+                                                            <span className="font-bold tracking-tight text-sm md:text-base">
+                                                                {stock.id.replace(/\D/g, '') || stock.id.replace(/[\[\]\(\):-]/g, '')}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex-1 font-semibold tabular-nums text-sm md:text-base">₹{formatNumber(stock.closePrice)}</div>
+                                                        <div className="flex-1 text-red-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.resistance)}</div>
+                                                        <div className="flex-1 text-emerald-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.support)}</div>
+                                                        <div className={`flex-1 font-medium tabular-nums text-sm md:text-base ${(stock.changePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                            {formatPercent(stock.changePercent ?? 0)}
+                                                        </div>
+                                                        <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">{formatNumber(stock.algoFG)}</div>
+                                                        <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.algoM)}</div>
+                                                        <div className="flex-1 text-right font-medium tabular-nums text-muted-foreground text-sm md:text-base pr-4">₹{formatNumber(stock.algoW)}</div>
+                                                        <div className="flex-[0.5] flex justify-end">
+                                                            <button
+                                                                onClick={() => handleStockClick(stock.id)}
+                                                                className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all group-hover:scale-110"
+                                                            >
+                                                                <ArrowUpRight className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-1 font-bold text-primary tabular-nums">{formatPercent(stock.mlTargetPercent)}</div>
-                                                    <div className="flex-1 flex items-center gap-2">
-                                                        <span className="font-bold tracking-tight text-sm md:text-base">
-                                                            {stock.id.replace(/\D/g, '') || stock.id.replace(/[\[\]\(\):-]/g, '')}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex-1 font-semibold tabular-nums text-sm md:text-base">₹{formatNumber(stock.closePrice)}</div>
-                                                    <div className="flex-1 text-red-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.resistance)}</div>
-                                                    <div className="flex-1 text-emerald-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.support)}</div>
-                                                    <div className={`flex-1 font-medium tabular-nums text-sm md:text-base ${(stock.changePercent ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                        {formatPercent(stock.changePercent ?? 0)}
-                                                    </div>
-                                                    <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">{formatNumber(stock.algoFG)}</div>
-                                                    <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.algoM)}</div>
-                                                    <div className="flex-1 text-right font-medium tabular-nums text-muted-foreground text-sm md:text-base pr-4">₹{formatNumber(stock.algoW)}</div>
-                                                    <div className="flex-[0.5] flex justify-end">
-                                                        <button
-                                                            onClick={() => handleStockClick(stock.id)}
-                                                            className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all group-hover:scale-110"
-                                                        >
-                                                            <ArrowUpRight className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </GlassCard>
-                                        </motion.div>
-                                    ))}
+                                                </GlassCard>
+                                            </motion.div>
+                                        ))}
+                                    </PremiumProtector>
                                 </div>
                             </div>
                         </div>

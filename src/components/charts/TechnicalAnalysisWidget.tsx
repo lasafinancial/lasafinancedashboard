@@ -34,7 +34,9 @@ function TechnicalAnalysisWidget({
             "displayMode": "multiple",
             "disableInterval": false,
             "locale": "en",
-            "colorTheme": "dark"
+            "colorTheme": "dark",
+            "backgroundColor": "#020316ff"
+
         });
 
         currentContainer.appendChild(script);

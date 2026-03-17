@@ -13,6 +13,8 @@ import { useLiveData } from "@/hooks/useLiveData";
 import { getStockNarration } from "@/lib/gemini";
 import TrendlyneWidget from "@/components/charts/TrendlyneWidget";
 import TechnicalAnalysisWidget from "@/components/charts/TechnicalAnalysisWidget";
+import { PremiumProtector } from "@/components/ui/PremiumProtector";
+import { useAuth } from "@/context/AuthContext";
 
 interface HoveredData {
   date: string;
@@ -28,6 +30,7 @@ const StockAnalysis = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const symbolFromUrl = searchParams.get("symbol");
   const { stockData: stocksData, isLoading, lastUpdate, nearResistance: nrData } = useLiveData();
+  const { isFree, isPro, isElite, userData } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStock, setSelectedStock] = useState<string>("");
@@ -40,6 +43,36 @@ const StockAnalysis = () => {
   const [isNarrationLoading, setIsNarrationLoading] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Usage Limit Logic
+  const [usageCount, setUsageCount] = useState(0);
+  const [isDailyLimitReached, setIsDailyLimitReached] = useState(false);
+
+  useEffect(() => {
+    if (!isFree) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const stored = localStorage.getItem(`usage_limit_${userData?.uid || 'guest'}_${today}`);
+    const count = stored ? parseInt(stored) : 0;
+    setUsageCount(count);
+
+    if (count >= 3) {
+      setIsDailyLimitReached(true);
+    }
+  }, [isFree, userData?.uid]);
+
+  const incrementUsage = () => {
+    if (!isFree) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const newCount = usageCount + 1;
+    setUsageCount(newCount);
+    localStorage.setItem(`usage_limit_${userData?.uid || 'guest'}_${today}`, newCount.toString());
+
+    if (newCount >= 3) {
+      setIsDailyLimitReached(true);
+    }
+  };
 
   useEffect(() => {
     const hasSeen = localStorage.getItem("hasSeenStockDisclaimer");
@@ -196,6 +229,9 @@ const StockAnalysis = () => {
   const handleSelectSuggestion = (symbol: string) => {
     setSearchParams({ symbol });
     setShowSuggestions(false);
+    if (symbol !== selectedStock) {
+      incrementUsage();
+    }
   };
 
   const currentStock = stocksData.find((s) =>
@@ -769,62 +805,68 @@ const StockAnalysis = () => {
             {/* Smart Analysis Summary - Premium Strategist Box */}
             {analysisResult && (
               <div className="flex-1 animate-fade-in flex flex-col justify-center">
-                <div className="relative overflow-hidden group rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-background shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
-                  {/* Subtle Background Accent */}
-                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
+                <PremiumProtector
+                  isLocked={isDailyLimitReached}
+                  title="Daily Limit Reached"
+                  description="Free users are limited to 3 stock analyses per day. Please upgrade to PRO for unlimited access."
+                >
+                  <div className="relative overflow-hidden group rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-background shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+                    {/* Subtle Background Accent */}
+                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
 
-                  <div className="p-5 md:p-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1 px-2 rounded-md bg-primary/20 border border-primary/30 flex items-center gap-1.5">
-                          <Activity className="w-3 h-3 text-primary" />
-                          <span className="text-[10px] font-black tracking-tighter text-primary uppercase">Strategist Report</span>
-                        </div>
-                        <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${analysisResult.bias === 'BULLISH' ? 'bg-success' :
-                          analysisResult.bias === 'BEARISH' ? 'bg-destructive' :
-                            'bg-warning'
-                          }`} />
-                      </div>
-                      <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
-                        LASA Intel
-                      </div>
-                    </div>
-
-                    <div className="relative">
-                      {isNarrationLoading ? (
-                        <div className="space-y-3 py-2">
-                          <div className="h-3 bg-primary/10 rounded-full w-full animate-shimmer" />
-                          <div className="h-3 bg-primary/10 rounded-full w-[92%] animate-shimmer delay-100" />
-                          <div className="h-3 bg-primary/10 rounded-full w-[88%] animate-shimmer delay-200" />
-                          <div className="h-3 bg-primary/10 rounded-full w-[95%] animate-shimmer delay-300" />
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <p className="text-sm md:text-[15px] font-medium leading-relaxed text-foreground/95 whitespace-pre-wrap italic">
-                            {narration || analysisResult.bottomLine}
-                          </p>
-
-                          {/* Minimalist Footnote for Action */}
-                          <div className="flex items-center gap-3 pt-2 border-t border-white/5">
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Action:</span>
-                            <span className={`text-xs font-bold ${analysisResult.action.includes('BUY') ? 'text-success' :
-                              analysisResult.action.includes('SELL') ? 'text-destructive' :
-                                'text-warning'
-                              }`}>
-                              {analysisResult.action}
-                            </span>
+                    <div className="p-5 md:p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1 px-2 rounded-md bg-primary/20 border border-primary/30 flex items-center gap-1.5">
+                            <Activity className="w-3 h-3 text-primary" />
+                            <span className="text-[10px] font-black tracking-tighter text-primary uppercase">Strategist Report</span>
                           </div>
+                          <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${analysisResult.bias === 'BULLISH' ? 'bg-success' :
+                            analysisResult.bias === 'BEARISH' ? 'bg-destructive' :
+                              'bg-warning'
+                            }`} />
                         </div>
-                      )}
-                    </div>
-                  </div>
+                        <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+                          LASA Intel
+                        </div>
+                      </div>
 
-                  {/* Bottom decorative bar */}
-                  <div className={`h-1 w-full ${analysisResult.bias === 'BULLISH' ? 'bg-success/50' :
-                    analysisResult.bias === 'BEARISH' ? 'bg-destructive/50' :
-                      'bg-warning/50'
-                    }`} />
-                </div>
+                      <div className="relative">
+                        {isNarrationLoading ? (
+                          <div className="space-y-3 py-2">
+                            <div className="h-3 bg-primary/10 rounded-full w-full animate-shimmer" />
+                            <div className="h-3 bg-primary/10 rounded-full w-[92%] animate-shimmer delay-100" />
+                            <div className="h-3 bg-primary/10 rounded-full w-[88%] animate-shimmer delay-200" />
+                            <div className="h-3 bg-primary/10 rounded-full w-[95%] animate-shimmer delay-300" />
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <p className="text-sm md:text-[15px] font-medium leading-relaxed text-foreground/95 whitespace-pre-wrap italic">
+                              {narration || analysisResult.bottomLine}
+                            </p>
+
+                            {/* Minimalist Footnote for Action */}
+                            <div className="flex items-center gap-3 pt-2 border-t border-white/5">
+                              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Action:</span>
+                              <span className={`text-xs font-bold ${analysisResult.action.includes('BUY') ? 'text-success' :
+                                analysisResult.action.includes('SELL') ? 'text-destructive' :
+                                  'text-warning'
+                                }`}>
+                                {analysisResult.action}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom decorative bar */}
+                    <div className={`h-1 w-full ${analysisResult.bias === 'BULLISH' ? 'bg-success/50' :
+                      analysisResult.bias === 'BEARISH' ? 'bg-destructive/50' :
+                        'bg-warning/50'
+                      }`} />
+                  </div>
+                </PremiumProtector>
               </div>
             )}
           </div>
@@ -836,81 +878,82 @@ const StockAnalysis = () => {
         </div>
 
         {/* TradingView Technical Analysis Widget */}
-        <div className="mb-6 animate-fade-in-up-delay-2">
-          <TechnicalAnalysisWidget symbol={`NSE:${currentStock?.symbol}`} height={450} />
+        <div className="mb-6 animate-fade-in-up-delay-2 rounded-xl overflow-hidden border-none TV-widget-wrapper">
+          <PremiumProtector requiredTier="pro">
+            <TechnicalAnalysisWidget symbol={`NSE:${currentStock?.symbol}`} height={600} />
+          </PremiumProtector>
         </div>
 
         {/* Data Table */}
         <div className="animate-fade-in-up-delay-3">
           <StockStrengthZone data={chartData} />
         </div>
-      </div >
+      </div>
 
       {/* Info Modal */}
-      {
-        showInfoModal && (
+      {showInfoModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowInfoModal(false)}
+        >
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-            onClick={() => setShowInfoModal(false)}
+            className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="sticky top-0 flex items-center justify-between p-4 border-b border-white/10 bg-background/95 backdrop-blur-xl">
-                <h3 className="text-lg font-semibold text-foreground">Price Structure & Zone Analysis</h3>
-                <button
-                  onClick={() => setShowInfoModal(false)}
-                  className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-5 h-5 text-muted-foreground" />
-                </button>
+            <div className="sticky top-0 flex items-center justify-between p-4 border-b border-white/10 bg-background/95 backdrop-blur-xl">
+              <h3 className="text-lg font-semibold text-foreground">Price Structure & Zone Analysis</h3>
+              <button
+                onClick={() => setShowInfoModal(false)}
+                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Overview</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  This section is designed to give traders a deeper understanding of price structure using our proprietary algorithms. It helps users clearly identify whether a stock is trading in a strong zone, weak zone, or a range-bound structure, along with possible reference price levels.
+                </p>
               </div>
 
-              <div className="p-6 space-y-6">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Overview</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    This section is designed to give traders a deeper understanding of price structure using our proprietary algorithms. It helps users clearly identify whether a stock is trading in a strong zone, weak zone, or a range-bound structure, along with possible reference price levels.
-                  </p>
-                </div>
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Algorithm Insights</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Every day, our multimodal algorithms scan the top 500 stocks and generate price references using different analytical approaches:
+                </p>
+                <ul className="text-sm text-muted-foreground leading-relaxed list-disc list-inside ml-2 space-y-1">
+                  <li><span className="text-primary font-medium">Model</span> – derived from machine-learning models</li>
+                  <li><span className="text-primary font-medium">Balance</span> – based on market balance and price equilibrium</li>
+                  <li><span className="text-primary font-medium">Patterns</span> – identified using chart-pattern recognition</li>
+                </ul>
+              </div>
 
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Algorithm Insights</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Every day, our multimodal algorithms scan the top 500 stocks and generate price references using different analytical approaches:
-                  </p>
-                  <ul className="text-sm text-muted-foreground leading-relaxed list-disc list-inside ml-2 space-y-1">
-                    <li><span className="text-primary font-medium">Model</span> – derived from machine-learning models</li>
-                    <li><span className="text-primary font-medium">Balance</span> – based on market balance and price equilibrium</li>
-                    <li><span className="text-primary font-medium">Patterns</span> – identified using chart-pattern recognition</li>
-                  </ul>
-                </div>
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Important Considerations</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Markets are dynamic, so these levels should be used only as reference points, not as fixed predictions. Traders should remain cautious:
+                </p>
+                <ul className="text-sm text-muted-foreground leading-relaxed list-disc list-inside ml-2 space-y-1">
+                  <li>A close below the weak zone may lead to a breakdown</li>
+                  <li>A close above strong zone may indicate a Breakout</li>
+                </ul>
+                <p className="text-sm text-muted-foreground leading-relaxed mt-3">
+                  Our algorithms perform best when stocks are range-bound or moving within a controlled trend. They are not designed to predict stocks in very strong or runaway uptrends or downtrends.
+                </p>
+              </div>
 
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Important Considerations</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Markets are dynamic, so these levels should be used only as reference points, not as fixed predictions. Traders should remain cautious:
-                  </p>
-                  <ul className="text-sm text-muted-foreground leading-relaxed list-disc list-inside ml-2 space-y-1">
-                    <li>A close below the weak zone may lead to a breakdown</li>
-                    <li>A close above strong zone may indicate a Breakout</li>
-                  </ul>
-                  <p className="text-sm text-muted-foreground leading-relaxed mt-3">
-                    Our algorithms perform best when stocks are range-bound or moving within a controlled trend. They are not designed to predict stocks in very strong or runaway uptrends or downtrends.
-                  </p>
-                </div>
-
-                <div className="space-y-2 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
-                  <h4 className="text-sm font-semibold text-destructive uppercase tracking-wide">Disclaimer</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    All price projections are for informational purposes only. This tool does not provide trading or investment advice. Please consult your financial advisor before making any trading decisions.
-                  </p>
-                </div>
+              <div className="space-y-2 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+                <h4 className="text-sm font-semibold text-destructive uppercase tracking-wide">Disclaimer</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  All price projections are for informational purposes only. This tool does not provide trading or investment advice. Please consult your financial advisor before making any trading decisions.
+                </p>
               </div>
             </div>
           </div>
-        )
+        </div>
+      )
       }
 
       {/* Video Modal */}
