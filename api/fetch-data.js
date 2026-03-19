@@ -437,6 +437,7 @@ async function fetchData() {
   let dailyNews = [];
   let nifty50Stocks = [];
   let intradayBreakout = [];
+  let intradayDev = [];
   let niftyAnalysis = { summary: {}, scenarios: [], actionPlan: [] };
   try {
     const currentRes = await sheets.spreadsheets.values.get({
@@ -970,6 +971,53 @@ async function fetchData() {
     }
     // --- End Intraday Breakout Screener ---
 
+    // --- Start Intraday Dev (Commentary) Screener ---
+    try {
+      const devRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: EOD_SHEET_ID,
+        range: "'intraday-commentry'!A1:T5000",
+      });
+      const devRows = devRes.data.values;
+      if (devRows && devRows.length > 1) {
+        const rawDevData = rowsToObjects(devRows);
+        const groupedRows = {};
+        rawDevData.forEach(row => {
+          const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
+          if (!symbol || symbol === 'N/A' || symbol === 'Symbol' || symbol === 'Date') return;
+          if (!groupedRows[symbol]) groupedRows[symbol] = [];
+          groupedRows[symbol].push(row);
+        });
+
+        intradayDev = Object.values(groupedRows).map(symbolRows => {
+          const latest = symbolRows[symbolRows.length - 1];
+          return {
+            symbol: (latest['Symbol'] || latest[0] || 'N/A').toString(),
+            date: (latest['Date'] || latest[1] || 'N/A').toString(),
+            time: (latest['Time'] || latest[2] || 'N/A').toString(),
+            open: getNum(latest['Open'] || latest[4]),
+            high: getNum(latest['High'] || latest[5]),
+            low: getNum(latest['Low'] || latest[6]),
+            close: getNum(latest['Close'] || latest[7]),
+            volume: getNum(latest['Volume'] || latest[8]),
+            volMult: getNum(latest['VolMult'] || latest[9]),
+            isGreen: (latest['IsGreen'] || latest[10] || '').toString(),
+            tier: (latest['Tier'] || latest[12] || '').toString(),
+            state: (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase(),
+            event: (latest['Event'] || latest[14] || '').toString(),
+            note: (latest['Note'] || latest[15] || '').toString(),
+            entry: getNum(latest['Entry'] || latest[16]),
+            stop: getNum(latest['Stop'] || latest[17]),
+            target: getNum(latest['Target'] || latest[18]),
+            rr: getNum(latest['RR'] || latest[19]),
+            allSignals: symbolRows.length
+          };
+        });
+      }
+    } catch (err) {
+      console.warn('Could not fetch intraday dev data:', err.message);
+    }
+    // --- End Intraday Dev Screener ---
+
   } catch (err) {
     console.warn('Could not fetch top movers from current tab:', err.message);
   }
@@ -1019,6 +1067,7 @@ async function fetchData() {
     supportReversal,
     reactionZone,
     intradayBreakout,
+    intradayDev,
     dailyNews,
     niftyAnalysis,
     lastUpdated: new Date().toISOString()

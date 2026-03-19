@@ -28,6 +28,7 @@ export function useLiveData() {
   const [supportReversal, setSupportReversal] = useState<any[]>(cached ? cached.supportReversal || [] : []);
   const [reactionZone, setReactionZone] = useState<any[]>(cached ? cached.reactionZone || [] : []);
   const [intradayBreakout, setIntradayBreakout] = useState<any[]>(cached ? cached.intradayBreakout || [] : []);
+  const [intradayDev, setIntradayDev] = useState<any[]>(cached ? cached.intradayDev || [] : []);
   const [dailyNews, setDailyNews] = useState<any[]>(cached ? (cached as any).dailyNews || [] : []);
   const [niftyAnalysis, setNiftyAnalysis] = useState<any | null>(cached ? (cached as any).niftyAnalysis || null : null);
   const [isLoading, setIsLoading] = useState(!cached);
@@ -46,6 +47,7 @@ export function useLiveData() {
       setSupportReversal(data.supportReversal || []);
       setReactionZone(data.reactionZone || []);
       setIntradayBreakout(data.intradayBreakout || []);
+      setIntradayDev(data.intradayDev || []);
       setDailyNews((data as any).dailyNews || []);
       setNiftyAnalysis((data as any).niftyAnalysis || null);
       setLastUpdate(new Date().toLocaleTimeString());
@@ -73,6 +75,7 @@ export function useLiveData() {
     supportReversal,
     reactionZone,
     intradayBreakout,
+    intradayDev,
     dailyNews,
     niftyAnalysis,
     isLoading,

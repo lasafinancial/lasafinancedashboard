@@ -30,7 +30,7 @@ const StockAnalysis = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const symbolFromUrl = searchParams.get("symbol");
   const { stockData: stocksData, isLoading, lastUpdate, nearResistance: nrData } = useLiveData();
-  const { isFree, isPro, isElite, userData } = useAuth();
+  const { isFree, isPro, isElite, userData, user } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStock, setSelectedStock] = useState<string>("");
@@ -52,14 +52,14 @@ const StockAnalysis = () => {
     if (!isFree) return;
 
     const today = new Date().toISOString().split('T')[0];
-    const stored = localStorage.getItem(`usage_limit_${userData?.uid || 'guest'}_${today}`);
+    const stored = localStorage.getItem(`usage_limit_${user?.uid || 'guest'}_${today}`);
     const count = stored ? parseInt(stored) : 0;
     setUsageCount(count);
 
     if (count >= 3) {
       setIsDailyLimitReached(true);
     }
-  }, [isFree, userData?.uid]);
+  }, [isFree, user?.uid]);
 
   const incrementUsage = () => {
     if (!isFree) return;
@@ -67,7 +67,7 @@ const StockAnalysis = () => {
     const today = new Date().toISOString().split('T')[0];
     const newCount = usageCount + 1;
     setUsageCount(newCount);
-    localStorage.setItem(`usage_limit_${userData?.uid || 'guest'}_${today}`, newCount.toString());
+    localStorage.setItem(`usage_limit_${user?.uid || 'guest'}_${today}`, newCount.toString());
 
     if (newCount >= 3) {
       setIsDailyLimitReached(true);

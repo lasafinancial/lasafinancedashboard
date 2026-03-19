@@ -135,6 +135,15 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Breakout Momentum</span>
                         </div>
                       </Link>
+                      <Link
+                        to="/screeners/intraday-dev"
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold">Intraday Dev</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Status Based</span>
+                        </div>
+                      </Link>
                       {user?.email === 'lasafinancial@gmail.com' ? (
                         <Link
                           to="/multibagger"
@@ -337,6 +346,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                               <Link to="/screeners/support-reversal" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reversal</Link>
                               <Link to="/screeners/reaction-zone" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reaction Zone</Link>
                               <Link to="/screeners/intraday-breakout" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Breakout</Link>
+                              <Link to="/screeners/intraday-dev" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Dev</Link>
                               {user?.email === 'lasafinancial@gmail.com' ? (
                                 <Link to="/multibagger" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Dev-MB</Link>
                               ) : (

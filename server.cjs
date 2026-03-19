@@ -318,6 +318,7 @@ async function fetchData() {
   let reactionZone = [];
   let dailyNews = [];
   let intradayBreakout = [];
+  let intradayDev = [];
   let niftyAnalysis = { summary: {}, scenarios: [], actionPlan: [] };
 
   console.log('Fetching live data from Google Sheets...');
@@ -1091,6 +1092,62 @@ async function fetchData() {
     }
     // --- End Intraday Breakout Screener ---
 
+    // --- Start Intraday Dev (Commentary) Screener ---
+    intradayDev = [];
+    try {
+      const devRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: EOD_SHEET_ID,
+        range: "'intraday-commentry'!A1:T5000",
+      });
+      const devRows = devRes.data.values;
+      console.log(`[INTRADAY-DEV] Fetched ${devRows ? devRows.length : 0} rows from "intraday commentery" sheet`);
+      if (devRows && devRows.length > 1) {
+        const rawDevData = rowsToObjects(devRows);
+
+        // Logic: Group by symbol, then the LAST row for each symbol is the "latest"
+        const groupedRows = {};
+        rawDevData.forEach(row => {
+          const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
+          if (!symbol || symbol === 'N/A' || symbol === 'Symbol' || symbol === 'Date') return;
+          if (!groupedRows[symbol]) groupedRows[symbol] = [];
+          groupedRows[symbol].push(row);
+        });
+
+        intradayDev = Object.values(groupedRows).map(symbolRows => {
+          // The latest time is recorded at last (bottom of sheet)
+          const latest = symbolRows[symbolRows.length - 1];
+
+          return {
+            symbol: (latest['Symbol'] || latest[0] || 'N/A').toString(),
+            date: (latest['Date'] || latest[1] || 'N/A').toString(),
+            time: (latest['Time'] || latest[2] || 'N/A').toString(),
+            open: getNum(latest['Open'] || latest[4]),
+            high: getNum(latest['High'] || latest[5]),
+            low: getNum(latest['Low'] || latest[6]),
+            close: getNum(latest['Close'] || latest[7]),
+            volume: getNum(latest['Volume'] || latest[8]),
+            volMult: getNum(latest['VolMult'] || latest[9]),
+            isGreen: (latest['IsGreen'] || latest[10] || '').toString(),
+            tier: (latest['Tier'] || latest[12] || '').toString(),
+            state: (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase(),
+            event: (latest['Event'] || latest[14] || '').toString(),
+            note: (latest['Note'] || latest[15] || '').toString(),
+            entry: getNum(latest['Entry'] || latest[16]),
+            stop: getNum(latest['Stop'] || latest[17]),
+            target: getNum(latest['Target'] || latest[18]),
+            rr: getNum(latest['RR'] || latest[19]),
+            allSignals: symbolRows.length // Total signals for this stock today
+          };
+        });
+        console.log(`[INTRADAY-DEV] Categorized ${intradayDev.length} unique symbols.`);
+      } else {
+        console.warn(`[INTRADAY-DEV] No rows or only header row found in "intraday commentery"`);
+      }
+    } catch (err) {
+      console.error('[INTRADAY-DEV] Error fetching or processing intraday commentary:', err.stack);
+    }
+    // --- End Intraday Dev Screener ---
+
   } catch (err) {
     console.warn('Major fetch error in fetchData:', err.message);
   }
@@ -1106,7 +1163,8 @@ async function fetchData() {
     nearResistance,
     supportReversal,
     reactionZone,
-    intradayBreakout, // Added here
+    intradayBreakout,
+    intradayDev,
     dailyNews,
     niftyAnalysis,
     lastUpdated: new Date().toISOString()
@@ -1590,7 +1648,7 @@ app.listen(PORT, () => {
         console.log(`Memory Usage: RSS=${Math.round(mem.rss / 1024 / 1024)}MB, Heap=${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
       })
       .catch(err => console.error('Scheduled refresh failed:', err));
-  }, 5 * 60 * 1000);
+  }, 1 * 60 * 1000);
 
-  console.log('Background refresh loop scheduled (5 minute interval)');
+  console.log('Background refresh loop scheduled (1 minute interval)');
 });

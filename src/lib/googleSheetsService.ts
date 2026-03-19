@@ -118,9 +118,10 @@ export interface GoogleSheetsData {
   indexPerformance: any[];
   nearResistance?: any[];
   supportReversal?: any[];
-  reactionZone?: any[];
-  intradayBreakout?: any[];
-  dailyNews?: DailyNewsItem[];
+  reactionZone: any[];
+  intradayBreakout: any[];
+  intradayDev: any[];
+  dailyNews: DailyNewsItem[];
   niftyAnalysis?: NiftyAnalysisData;
   lastUpdated: string;
 }

@@ -32,11 +32,9 @@ function TechnicalAnalysisWidget({
             "symbol": symbol,
             "showIntervalTabs": true,
             "displayMode": "multiple",
-            "disableInterval": false,
             "locale": "en",
             "colorTheme": "dark",
             "backgroundColor": "#020316ff"
-
         });
 
         currentContainer.appendChild(script);
