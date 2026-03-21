@@ -29,6 +29,19 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
   const { user, userData, logout } = useAuth();
   const { isEnabled, isLoading, isSupported, toggleNotifications } = useNotifications();
   const [isSending, setIsSending] = useState(false);
+  const [isScreenersOpen, setIsScreenersOpen] = useState(false);
+  let closeTimeout: NodeJS.Timeout;
+
+  const handleMouseEnter = () => {
+    clearTimeout(closeTimeout);
+    setIsScreenersOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    closeTimeout = setTimeout(() => {
+      setIsScreenersOpen(false);
+    }, 300);
+  };
 
   // Admin: Manual trigger for market mood notification
   const sendMarketMoodNotification = async () => {
@@ -89,16 +102,22 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
 
               if (item.path === "/screeners") {
                 return (
-                  <div key={item.path} className="relative group/dropdown">
+                  <div
+                    key={item.path}
+                    className="relative"
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                  >
                     <button
                       className={`nav-link flex items-center gap-2 ${isActive ? "active" : ""}`}
                     >
                       <Icon className="h-4 w-4" />
                       <span className="hidden sm:inline">{item.label}</span>
-                      <ChevronDown className="h-3 w-3 opacity-50" />
+                      <ChevronDown className={`h-3 w-3 opacity-50 transition-transform ${isScreenersOpen ? 'rotate-180' : ''}`} />
                     </button>
 
-                    <div className="absolute top-[calc(100%+5px)] left-0 min-w-[200px] p-2 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover/dropdown:opacity-100 group-hover/dropdown:translate-y-0 group-hover/dropdown:pointer-events-auto transition-all duration-200">
+                    <div className={`absolute top-[calc(100%+2px)] left-0 min-w-[220px] p-2 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl transition-all duration-200 z-[150] ${isScreenersOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+                      <div className="absolute -top-2 left-0 w-full h-2 bg-transparent" /> { /* Bridge the gap */}
                       <Link
                         to="/screeners/near-resistance"
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item text-left"

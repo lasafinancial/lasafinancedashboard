@@ -53,7 +53,7 @@ function parseSwingDate(dateStr) {
   };
   const parts = dateStr.trim().split(/\s+/);
   if (parts.length < 2) return null;
-  
+
   let day, monthStr, year;
   if (!isNaN(parseInt(parts[0]))) {
     day = parseInt(parts[0]);
@@ -64,7 +64,7 @@ function parseSwingDate(dateStr) {
     day = parseInt(parts[1]);
     year = parts[2] ? parseInt(parts[2]) : new Date().getFullYear();
   }
-  
+
   const month = monthMap[monthStr];
   if (month === undefined || isNaN(day)) return null;
   const date = new Date(year, month, day);
@@ -111,7 +111,7 @@ function rowsToObjects(rows) {
 
 async function fetchData() {
   console.log('Authenticating with Google Sheets API...');
-  
+
   let auth;
   if (process.env.GOOGLE_CREDENTIALS) {
     console.log('Using credentials from environment variable...');
@@ -129,85 +129,99 @@ async function fetchData() {
   } else {
     throw new Error('No Google credentials found (neither GOOGLE_CREDENTIALS env var nor key-partition-*.json file)');
   }
-  
+
   const sheets = google.sheets({ version: 'v4', auth });
-  
+
   console.log('Fetching EOD sheet metadata...');
   const eodMeta = await sheets.spreadsheets.get({ spreadsheetId: EOD_SHEET_ID });
   const allSheets = eodMeta.data.sheets.map(s => s.properties.title);
-  
-    console.log('Fetching all data from lasa-master...');
-    const lasaMasterRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: EOD_SHEET_ID,
-      range: 'lasa-master!A:FJ',
-    });
-    const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
-    
-    // Get latest date for Market Mood and latest status
-    const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
-    const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
-    const latestDate = sortedDates[0];
-    console.log(`Latest date in lasa-master: ${latestDate}`);
 
-    console.log('Fetching Top Movers and Market Mood from current tab...');
-    try {
-      const currentRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: "'current'!A1:FJ",
-      });
-      const currentData = rowsToObjects(currentRes.data.values);
-      
-      // Calculate Market Mood based on new logic: top 470 rows, Large/Mid cap, Status BG (STATUS)
-      const moodStocks = currentData.slice(0, 470).filter(row => {
+  console.log('Fetching all data from lasa-master...');
+  const lasaMasterRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: EOD_SHEET_ID,
+    range: 'lasa-master!A:FJ',
+  });
+
+  // Filter rows BEFORE converting to large object array to save memory
+  const rawValues = lasaMasterRes.data.values || [];
+  const filteredRows = rawValues.filter((row, i) => {
+    if (i === 0) return true; // Keep headers
+    const group = (row[18] || '').toString().toUpperCase(); // Column S is index 18
+    return group === 'LARGECAP' || group === 'MIDCAP' || group === 'INDEX';
+  });
+
+  const lasaMasterData = rowsToObjects(filteredRows);
+  console.log(`Total rows kept (LARGECAP/MIDCAP/INDEX): ${lasaMasterData.length} (from ${rawValues.length} total)`);
+
+  // Explicitly nullify large raw arrays to free memory
+  rawValues.length = 0;
+  filteredRows.length = 0;
+
+  // Get latest date for Market Mood and latest status
+  const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
+  const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
+  const latestDate = sortedDates[0];
+  console.log(`Latest date in lasa-master: ${latestDate}`);
+
+  console.log('Fetching Top Movers and Market Mood from current tab...');
+  try {
+    const currentRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: EOD_SHEET_ID,
+      range: "'current'!A1:FJ",
+    });
+    const currentData = rowsToObjects(currentRes.data.values);
+
+    // Calculate Market Mood based on new logic: top 470 rows, Large/Mid cap, Status BG (STATUS)
+    const moodStocks = currentData.slice(0, 470).filter(row => {
+      const group = (row['GROUP'] || '').toString().toUpperCase();
+      return group === 'LARGECAP' || group === 'MIDCAP';
+    });
+
+    let bullCount = 0, bearCount = 0, neutCount = 0;
+    moodStocks.forEach(row => {
+      const status = (row['STATUS'] || '').toString().toUpperCase();
+      if (status === 'BULLISH') bullCount++;
+      else if (status === 'BEARISH') bearCount++;
+      else neutCount++;
+    });
+
+    const totalMoodStocks = moodStocks.length;
+    const marketMood = {
+      bullish: totalMoodStocks > 0 ? (bullCount / totalMoodStocks) * 100 : 0,
+      bearish: totalMoodStocks > 0 ? (bearCount / totalMoodStocks) * 100 : 0,
+      neutral: totalMoodStocks > 0 ? (neutCount / totalMoodStocks) * 100 : 0,
+      date: formatDate(new Date(latestDate))
+    };
+
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'market_mood.json'), JSON.stringify(marketMood, null, 2));
+    console.log(`Market Mood saved: ${marketMood.bullish.toFixed(1)}% Bullish (calculated from ${totalMoodStocks} stocks)`);
+
+    const stocks = currentData
+      .filter(row => {
+        if (!row['STOCK_NAME'] || row['CHANGE_PERCENT'] === undefined || row['CHANGE_PERCENT'] === '') return false;
         const group = (row['GROUP'] || '').toString().toUpperCase();
         return group === 'LARGECAP' || group === 'MIDCAP';
-      });
+      })
+      .map(row => ({
+        id: row['ID'] || row['STOCK_NAME'],
+        stockName: row['STOCK_NAME'],
+        changePercent: parseFloat((row['CHANGE_PERCENT'] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
+        closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0
+      }))
+      .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
 
-      let bullCount = 0, bearCount = 0, neutCount = 0;
-      moodStocks.forEach(row => {
-        const status = (row['STATUS'] || '').toString().toUpperCase();
-        if (status === 'BULLISH') bullCount++;
-        else if (status === 'BEARISH') bearCount++;
-        else neutCount++;
-      });
+    const sortedByChange = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
 
-      const totalMoodStocks = moodStocks.length;
-      const marketMood = {
-        bullish: totalMoodStocks > 0 ? (bullCount / totalMoodStocks) * 100 : 0,
-        bearish: totalMoodStocks > 0 ? (bearCount / totalMoodStocks) * 100 : 0,
-        neutral: totalMoodStocks > 0 ? (neutCount / totalMoodStocks) * 100 : 0,
-        date: formatDate(new Date(latestDate))
-      };
-      
-      fs.writeFileSync(path.join(OUTPUT_DIR, 'market_mood.json'), JSON.stringify(marketMood, null, 2));
-      console.log(`Market Mood saved: ${marketMood.bullish.toFixed(1)}% Bullish (calculated from ${totalMoodStocks} stocks)`);
+    const topGainers = sortedByChange.filter(s => s.changePercent > 0).slice(0, 10);
+    const topLosers = sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse();
 
-      const stocks = currentData
-        .filter(row => {
-          if (!row['STOCK_NAME'] || row['CHANGE_PERCENT'] === undefined || row['CHANGE_PERCENT'] === '') return false;
-          const group = (row['GROUP'] || '').toString().toUpperCase();
-          return group === 'LARGECAP' || group === 'MIDCAP';
-        })
-        .map(row => ({
-          id: row['ID'] || row['STOCK_NAME'],
-          stockName: row['STOCK_NAME'],
-          changePercent: parseFloat((row['CHANGE_PERCENT'] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
-          closePrice: parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0
-        }))
-        .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
-      
-      const sortedByChange = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
-      
-      const topGainers = sortedByChange.filter(s => s.changePercent > 0).slice(0, 10);
-      const topLosers = sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse();
-      
-      const topMovers = { topGainers, topLosers };
-      fs.writeFileSync(path.join(OUTPUT_DIR, 'top_movers.json'), JSON.stringify(topMovers, null, 2));
-      console.log(`Top Movers saved. ${topGainers.length} gainers, ${topLosers.length} losers.`);
-    } catch (err) {
-      console.warn('Could not fetch top movers or market mood from current tab:', err.message);
-    }
-  
+    const topMovers = { topGainers, topLosers };
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'top_movers.json'), JSON.stringify(topMovers, null, 2));
+    console.log(`Top Movers saved. ${topGainers.length} gainers, ${topLosers.length} losers.`);
+  } catch (err) {
+    console.warn('Could not fetch top movers or market mood from current tab:', err.message);
+  }
+
   console.log('\n=== Data fetch complete! ===');
 }
 

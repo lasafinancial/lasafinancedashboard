@@ -27,6 +27,7 @@ interface UserData {
     disclaimerVersion?: string;
     acceptanceIP?: string;
     hasCompletedProfile?: boolean;
+    watchlist?: string[];
 }
 
 interface AuthContextType {

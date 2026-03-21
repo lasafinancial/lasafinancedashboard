@@ -101,6 +101,7 @@ app.use(express.json());
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
 const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';
+let globalIntradayChanges = [];
 
 function getCredentials() {
   let credentials;
@@ -283,17 +284,14 @@ function rowsToObjects(rows) {
   const headers = rows[0].map(h => (h || '').toString().trim());
   return rows.slice(1).map(row => {
     const obj = {};
-    row.forEach((val, i) => {
-      obj[i] = val !== undefined ? val : null; // Numeric index access
-    });
     headers.forEach((header, i) => {
       if (header) {
         obj[header] = row[i] !== undefined ? row[i] : null;
       }
     });
     // Normalize commonly used fields with fallback indexes
-    if (obj[colToIdx('BG')] !== undefined && !obj['STATUS']) obj['STATUS'] = obj[colToIdx('BG')];
-    if (obj[colToIdx('S')] !== undefined && !obj['GROUP']) obj['GROUP'] = obj[colToIdx('S')];
+    if (!obj['STATUS']) obj['STATUS'] = row[colToIdx('BG')] || null;
+    if (!obj['GROUP']) obj['GROUP'] = row[colToIdx('S')] || null;
     return obj;
   });
 }
@@ -319,6 +317,7 @@ async function fetchData() {
   let dailyNews = [];
   let intradayBreakout = [];
   let intradayDev = [];
+  let playbackSnapshots = [];
   let niftyAnalysis = { summary: {}, scenarios: [], actionPlan: [] };
 
   console.log('Fetching live data from Google Sheets...');
@@ -337,8 +336,23 @@ async function fetchData() {
       spreadsheetId: EOD_SHEET_ID,
       range: 'lasa-master!A:FJ',
     });
-    const lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
-    console.log(`Total rows fetched from lasa-master: ${lasaMasterData.length}`);
+
+    // Filter rows BEFORE converting to large object array to save memory
+    const rawValues = lasaMasterRes.data.values || [];
+    const groupIdx = colToIdx('S');
+    const filteredRows = rawValues.filter((row, i) => {
+      if (i === 0) return true; // Keep headers
+      const g = (row[groupIdx] || '').toString().toUpperCase();
+      return g === 'LARGECAP' || g === 'MIDCAP' || g === 'INDEX';
+    });
+
+    const lasaMasterData = rowsToObjects(filteredRows);
+    console.log(`Total rows kept (LARGECAP/MIDCAP/INDEX): ${lasaMasterData.length} (from ${rawValues.length} total)`);
+
+    // Explicitly nullify large raw arrays to free memory
+    const totalRawRows = rawValues.length;
+    rawValues.length = 0;
+    filteredRows.length = 0;
 
     const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
     const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
@@ -1104,7 +1118,37 @@ async function fetchData() {
       if (devRows && devRows.length > 1) {
         const rawDevData = rowsToObjects(devRows);
 
-        // Logic: Group by symbol, then the LAST row for each symbol is the "latest"
+        const symbolStates = {};
+        const symbolNotes = {};
+        const recentChanges = [];
+
+        // Record a change only if the state OR the note/commentary changes
+        rawDevData.forEach(row => {
+          const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
+          if (!symbol || symbol === 'N/A' || symbol === 'Symbol' || symbol === 'Date') return;
+
+          const currentState = (row['State'] || row['N (State)'] || row[13] || 'STRONG').toString().toUpperCase();
+          const time = (row['Time'] || row[2] || 'N/A').toString();
+          const note = (row['Note'] || row[15] || row['Event'] || row[14] || '').toString();
+
+          const hasStateChange = !symbolStates[symbol] || symbolStates[symbol] !== currentState;
+          const hasNoteChange = symbolNotes[symbol] !== note;
+
+          if (hasStateChange || hasNoteChange) {
+            recentChanges.push({
+              symbol,
+              fromState: symbolStates[symbol] || 'NONE',
+              toState: currentState,
+              time,
+              note,
+              price: getNum(row['Close'] || row[7])
+            });
+            symbolStates[symbol] = currentState;
+            symbolNotes[symbol] = note;
+          }
+        });
+
+        // Grouping for the latest status columns (Strong, Pullback, Exit)
         const groupedRows = {};
         rawDevData.forEach(row => {
           const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
@@ -1114,8 +1158,8 @@ async function fetchData() {
         });
 
         intradayDev = Object.values(groupedRows).map(symbolRows => {
-          // The latest time is recorded at last (bottom of sheet)
           const latest = symbolRows[symbolRows.length - 1];
+          const latestState = (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase();
 
           return {
             symbol: (latest['Symbol'] || latest[0] || 'N/A').toString(),
@@ -1129,17 +1173,83 @@ async function fetchData() {
             volMult: getNum(latest['VolMult'] || latest[9]),
             isGreen: (latest['IsGreen'] || latest[10] || '').toString(),
             tier: (latest['Tier'] || latest[12] || '').toString(),
-            state: (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase(),
+            state: latestState,
             event: (latest['Event'] || latest[14] || '').toString(),
             note: (latest['Note'] || latest[15] || '').toString(),
             entry: getNum(latest['Entry'] || latest[16]),
             stop: getNum(latest['Stop'] || latest[17]),
             target: getNum(latest['Target'] || latest[18]),
             rr: getNum(latest['RR'] || latest[19]),
-            allSignals: symbolRows.length // Total signals for this stock today
+            allSignals: symbolRows.length,
+            recentChanges: recentChanges.filter(c => c.symbol === (latest['Symbol'] || latest[0] || 'N/A').toString())
           };
         });
-        console.log(`[INTRADAY-DEV] Categorized ${intradayDev.length} unique symbols.`);
+
+        // Sort all changes by time descending so the latest signals from ANY stock appear at top
+        const parseTime = (t) => {
+          try {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+          } catch { return 0; }
+        };
+        globalIntradayChanges = [...recentChanges]
+          .sort((a, b) => parseTime(b.time) - parseTime(a.time))
+          .slice(0, 50);
+
+        // --- NEW: Playback Snapshots Builder ---
+        // 1. Get unique timestamps from all data
+        const uniqueTimes = [...new Set(rawDevData.map(row => (row['Time'] || row[2] || 'N/A').toString()))]
+          .filter(t => t !== 'N/A')
+          .sort((a, b) => parseTime(a) - parseTime(b));
+
+        // 2. Take the last 20 timestamps for the 5-minute history (assuming 1-5 min intervals)
+        const playbackTimes = uniqueTimes.slice(-20);
+
+        playbackSnapshots = playbackTimes.map(timePoint => {
+          const snapshotState = {};
+          // Find the latest record for each symbol up to this time point
+          rawDevData.forEach(row => {
+            const rowTime = (row['Time'] || row[2] || 'N/A').toString();
+            if (parseTime(rowTime) <= parseTime(timePoint)) {
+              const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
+              if (!symbol || symbol === 'N/A') return;
+              snapshotState[symbol] = row;
+            }
+          });
+
+          const stocksAtTime = Object.values(snapshotState).map(latest => {
+            return {
+              symbol: (latest['Symbol'] || latest[0] || 'N/A').toString(),
+              time: (latest['Time'] || latest[2] || 'N/A').toString(),
+              close: getNum(latest['Close'] || latest[7]),
+              state: (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase(),
+              tier: (latest['Tier'] || latest[12] || '').toString(),
+              event: (latest['Event'] || latest[14] || '').toString(),
+              note: (latest['Note'] || latest[15] || '').toString(),
+              entry: getNum(latest['Entry'] || latest[16]),
+              stop: getNum(latest['Stop'] || latest[17]),
+              target: getNum(latest['Target'] || latest[18]),
+              rr: getNum(latest['RR'] || latest[19]),
+              ema9: getNum(latest['EMA9'] || latest[20] || 0),
+              ema63: getNum(latest['EMA63'] || latest[21] || 0)
+            };
+          });
+
+          const timePointParsed = parseTime(timePoint);
+          const changesAtTime = [...recentChanges]
+            .filter(c => parseTime(c.time) <= timePointParsed)
+            .sort((a, b) => parseTime(b.time) - parseTime(a.time))
+            .slice(0, 50);
+
+          return {
+            time: timePoint,
+            stocks: stocksAtTime,
+            changes: changesAtTime
+          };
+        });
+
+        console.log(`[INTRADAY-DEV] Generated ${playbackSnapshots.length} playback snapshots.`);
+        console.log(`[INTRADAY-DEV] Categorized ${intradayDev.length} unique symbols. Detected ${recentChanges.length} transitions.`);
       } else {
         console.warn(`[INTRADAY-DEV] No rows or only header row found in "intraday commentery"`);
       }
@@ -1165,6 +1275,8 @@ async function fetchData() {
     reactionZone,
     intradayBreakout,
     intradayDev,
+    intradayDevChanges: globalIntradayChanges,
+    playbackSnapshots,
     dailyNews,
     niftyAnalysis,
     lastUpdated: new Date().toISOString()
@@ -1173,7 +1285,7 @@ async function fetchData() {
 
 let cachedData = null;
 let lastFetchTime = 0;
-const CACHE_DURATION = 1 * 60 * 1000;
+const CACHE_DURATION = 30 * 1000; // 30 seconds — keeps data near-live
 
 app.get('/api/fetch-data', async (req, res) => {
   try {
@@ -1638,17 +1750,24 @@ app.listen(PORT, () => {
     })
     .catch(err => console.error('Initial fetch failed:', err));
 
-  // Background refresh every 5 minutes
-  setInterval(() => {
-    console.log('--- Scheduled Background Refresh Started ---');
-    fetchData()
-      .then(() => {
-        console.log('--- Scheduled Background Refresh Complete ---');
-        const mem = process.memoryUsage();
-        console.log(`Memory Usage: RSS=${Math.round(mem.rss / 1024 / 1024)}MB, Heap=${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
-      })
-      .catch(err => console.error('Scheduled refresh failed:', err));
-  }, 1 * 60 * 1000);
+  // Background refresh every 1 minute (handled via recursive timeout to prevent overlap OOM)
+  const scheduleNextRefresh = () => {
+    setTimeout(() => {
+      console.log('--- Scheduled Background Refresh Started ---');
+      fetchData()
+        .then(() => {
+          console.log('--- Scheduled Background Refresh Complete ---');
+          const mem = process.memoryUsage();
+          console.log(`Memory Usage: RSS=${Math.round(mem.rss / 1024 / 1024)}MB, Heap=${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
+        })
+        .catch(err => console.error('Scheduled refresh failed:', err))
+        .finally(() => {
+          // ensure the next fetch waits for current one to finish before ticking the clock
+          scheduleNextRefresh();
+        });
+    }, 1 * 60 * 1000);
+  };
 
-  console.log('Background refresh loop scheduled (1 minute interval)');
+  console.log('Background refresh loop scheduled (1 minute interval, overlap-safe)');
+  scheduleNextRefresh();
 });

@@ -172,17 +172,14 @@ function rowsToObjects(rows) {
   const headers = rows[0].map(h => (h || '').toString().trim());
   return rows.slice(1).map(row => {
     const obj = {};
-    row.forEach((val, i) => {
-      obj[i] = val !== undefined ? val : null; // Numeric index access
-    });
     headers.forEach((header, i) => {
       if (header) {
         obj[header] = row[i] !== undefined ? row[i] : null;
       }
     });
     // Normalize commonly used fields with fallback indexes
-    if (obj[colToIdx('BG')] !== undefined && !obj['STATUS']) obj['STATUS'] = obj[colToIdx('BG')];
-    if (obj[colToIdx('S')] !== undefined && !obj['GROUP']) obj['GROUP'] = obj[colToIdx('S')];
+    if (!obj['STATUS']) obj['STATUS'] = row[colToIdx('BG')] || null;
+    if (!obj['GROUP']) obj['GROUP'] = row[colToIdx('S')] || null;
     return obj;
   });
 }
@@ -209,16 +206,31 @@ async function fetchData() {
 
   const sheets = google.sheets({ version: 'v4', auth });
 
-  console.log('Fetching all data from lasa-master...');
+  let lasaMasterData = [];
   try {
     const lasaMasterRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
       range: 'lasa-master!A:FJ',
     });
-    var lasaMasterData = rowsToObjects(lasaMasterRes.data.values);
+
+    // Filter rows BEFORE converting to large object array to save memory
+    const rawValues = lasaMasterRes.data.values || [];
+    const groupIdx = colToIdx('S');
+    const filteredRows = rawValues.filter((row, i) => {
+      if (i === 0) return true; // Keep headers
+      const g = (row[groupIdx] || '').toString().toUpperCase();
+      return g === 'LARGECAP' || g === 'MIDCAP' || g === 'INDEX';
+    });
+
+    lasaMasterData = rowsToObjects(filteredRows);
+    console.log(`Total rows kept (LARGECAP/MIDCAP/INDEX): ${lasaMasterData.length} (from ${rawValues.length} total)`);
+
+    // Explicitly nullify large raw arrays to free memory
+    rawValues.length = 0;
+    filteredRows.length = 0;
   } catch (err) {
     console.warn('Failed to fetch from lasa-master, using fallback or empty:', err.message);
-    var lasaMasterData = [];
+    lasaMasterData = [];
   }
 
   console.log(`Total rows fetched from lasa-master: ${lasaMasterData.length}`);
@@ -438,6 +450,8 @@ async function fetchData() {
   let nifty50Stocks = [];
   let intradayBreakout = [];
   let intradayDev = [];
+  let intradayDevChanges = [];
+  let playbackSnapshots = [];
   let niftyAnalysis = { summary: {}, scenarios: [], actionPlan: [] };
   try {
     const currentRes = await sheets.spreadsheets.values.get({
@@ -980,6 +994,37 @@ async function fetchData() {
       const devRows = devRes.data.values;
       if (devRows && devRows.length > 1) {
         const rawDevData = rowsToObjects(devRows);
+        const symbolStates = {};
+        const symbolNotes = {};
+        const recentChanges = [];
+
+        // Record a change only if the state OR the note/commentary changes
+        rawDevData.forEach(row => {
+          const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
+          if (!symbol || symbol === 'N/A' || symbol === 'Symbol' || symbol === 'Date') return;
+
+          const currentState = (row['State'] || row['N (State)'] || row[13] || 'STRONG').toString().toUpperCase();
+          const time = (row['Time'] || row[2] || 'N/A').toString();
+          const note = (row['Note'] || row[15] || row['Event'] || row[14] || '').toString();
+
+          const hasStateChange = !symbolStates[symbol] || symbolStates[symbol] !== currentState;
+          const hasNoteChange = symbolNotes[symbol] !== note;
+
+          if (hasStateChange || hasNoteChange) {
+            recentChanges.push({
+              symbol,
+              fromState: symbolStates[symbol] || 'NONE',
+              toState: currentState,
+              time,
+              note,
+              price: getNum(row['Close'] || row[7])
+            });
+            symbolStates[symbol] = currentState;
+            symbolNotes[symbol] = note;
+          }
+        });
+
+        // Grouping for the latest status columns (Strong, Pullback, Exit)
         const groupedRows = {};
         rawDevData.forEach(row => {
           const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
@@ -990,6 +1035,8 @@ async function fetchData() {
 
         intradayDev = Object.values(groupedRows).map(symbolRows => {
           const latest = symbolRows[symbolRows.length - 1];
+          const latestState = (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase();
+
           return {
             symbol: (latest['Symbol'] || latest[0] || 'N/A').toString(),
             date: (latest['Date'] || latest[1] || 'N/A').toString(),
@@ -1002,14 +1049,77 @@ async function fetchData() {
             volMult: getNum(latest['VolMult'] || latest[9]),
             isGreen: (latest['IsGreen'] || latest[10] || '').toString(),
             tier: (latest['Tier'] || latest[12] || '').toString(),
-            state: (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase(),
+            state: latestState,
             event: (latest['Event'] || latest[14] || '').toString(),
             note: (latest['Note'] || latest[15] || '').toString(),
             entry: getNum(latest['Entry'] || latest[16]),
             stop: getNum(latest['Stop'] || latest[17]),
             target: getNum(latest['Target'] || latest[18]),
             rr: getNum(latest['RR'] || latest[19]),
-            allSignals: symbolRows.length
+            allSignals: symbolRows.length,
+            recentChanges: recentChanges.filter(c => c.symbol === (latest['Symbol'] || latest[0] || 'N/A').toString())
+          };
+        });
+        // Sort all changes by time descending so the latest signals from ANY stock appear at top
+        const parseTime = (t) => {
+          try {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+          } catch { return 0; }
+        };
+        intradayDevChanges = [...recentChanges]
+          .sort((a, b) => parseTime(b.time) - parseTime(a.time))
+          .slice(0, 50);
+
+        // --- NEW: Playback Snapshots Builder ---
+        // 1. Get unique timestamps from all data
+        const uniqueTimes = [...new Set(rawDevData.map(row => (row['Time'] || row[2] || 'N/A').toString()))]
+          .filter(t => t !== 'N/A')
+          .sort((a, b) => parseTime(a) - parseTime(b));
+
+        // 2. Take the last 20 timestamps for the 5-minute history (assuming 1-5 min intervals)
+        const playbackTimes = uniqueTimes.slice(-20);
+
+        playbackSnapshots = playbackTimes.map(timePoint => {
+          const snapshotState = {};
+          // Find the latest record for each symbol up to this time point
+          rawDevData.forEach(row => {
+            const rowTime = (row['Time'] || row[2] || 'N/A').toString();
+            if (parseTime(rowTime) <= parseTime(timePoint)) {
+              const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
+              if (!symbol || symbol === 'N/A') return;
+              snapshotState[symbol] = row;
+            }
+          });
+
+          const stocksAtTime = Object.values(snapshotState).map(latest => {
+            return {
+              symbol: (latest['Symbol'] || latest[0] || 'N/A').toString(),
+              time: (latest['Time'] || latest[2] || 'N/A').toString(),
+              close: getNum(latest['Close'] || latest[7]),
+              state: (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase(),
+              tier: (latest['Tier'] || latest[12] || '').toString(),
+              event: (latest['Event'] || latest[14] || '').toString(),
+              note: (latest['Note'] || latest[15] || '').toString(),
+              entry: getNum(latest['Entry'] || latest[16]),
+              stop: getNum(latest['Stop'] || latest[17]),
+              target: getNum(latest['Target'] || latest[18]),
+              rr: getNum(latest['RR'] || latest[19]),
+              ema9: getNum(latest['EMA9'] || latest[20] || 0),
+              ema63: getNum(latest['EMA63'] || latest[21] || 0)
+            };
+          });
+
+          const timePointParsed = parseTime(timePoint);
+          const changesAtTime = [...recentChanges]
+            .filter(c => parseTime(c.time) <= timePointParsed)
+            .sort((a, b) => parseTime(b.time) - parseTime(a.time))
+            .slice(0, 50);
+
+          return {
+            time: timePoint,
+            stocks: stocksAtTime,
+            changes: changesAtTime
           };
         });
       }
@@ -1068,6 +1178,8 @@ async function fetchData() {
     reactionZone,
     intradayBreakout,
     intradayDev,
+    intradayDevChanges,
+    playbackSnapshots,
     dailyNews,
     niftyAnalysis,
     lastUpdated: new Date().toISOString()

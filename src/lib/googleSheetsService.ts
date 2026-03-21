@@ -121,6 +121,8 @@ export interface GoogleSheetsData {
   reactionZone: any[];
   intradayBreakout: any[];
   intradayDev: any[];
+  intradayDevChanges?: any[];
+  playbackSnapshots?: any[];
   dailyNews: DailyNewsItem[];
   niftyAnalysis?: NiftyAnalysisData;
   lastUpdated: string;
@@ -128,7 +130,7 @@ export interface GoogleSheetsData {
 
 let cachedData: GoogleSheetsData | null = null;
 let lastFetchTime: number = 0;
-const CACHE_DURATION = 60 * 1000;
+const CACHE_DURATION = 45 * 1000; // 45 seconds
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
 const dataListeners: Set<(data: GoogleSheetsData) => void> = new Set();
@@ -176,7 +178,7 @@ export async function refreshAllData(): Promise<GoogleSheetsData | null> {
   }
 }
 
-export function startAutoRefresh(intervalMs: number = 5 * 60 * 1000): void {
+export function startAutoRefresh(intervalMs: number = 90 * 1000): void {
   if (refreshInterval) {
     clearInterval(refreshInterval);
   }
