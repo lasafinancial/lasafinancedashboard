@@ -265,7 +265,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                   <ChevronDown className="h-3 w-3 opacity-50 group-hover:opacity-100 transition-opacity" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 mt-2 bg-background/95 backdrop-blur-xl border-white/10" align="end" forceMount>
+              <DropdownMenuContent className="w-56 mt-2 bg-[#0a0a0a] border-white/10" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{userData?.name || "User"}</p>
@@ -343,7 +343,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-background/95 backdrop-blur-xl overflow-y-auto">
+              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-[#0a0a0a] backdrop-blur-xl overflow-y-auto">
                 <div className="flex flex-col min-h-full gap-6 pb-8">
                   {/* Mobile Nav Links */}
                   <div className="flex flex-col gap-2">
