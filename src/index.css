@@ -433,7 +433,14 @@
 
 spline-viewer {
   --spline-viewer-logo-display: none !important;
+  background: transparent !important;
 }
+
+/* Prevent Spline canvas from painting white behind overlays/menus */
+spline-viewer canvas {
+  background: transparent !important;
+}
+
 
 /* Trendlyne Widget Styling Fixes */
 /* Trendlyne Widget Styling Fixes */

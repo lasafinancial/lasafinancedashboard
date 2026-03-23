@@ -116,7 +116,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                       <ChevronDown className={`h-3 w-3 opacity-50 transition-transform ${isScreenersOpen ? 'rotate-180' : ''}`} />
                     </button>
 
-                    <div className={`absolute top-[calc(100%+2px)] left-0 min-w-[220px] p-2 !bg-[#050505] !opacity-100 border border-border/50 rounded-xl shadow-2xl transition-all duration-200 z-[150] ${isScreenersOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+                    <div className={`absolute top-[calc(100%+2px)] left-0 min-w-[220px] p-2 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl transition-all duration-200 z-[150] ${isScreenersOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
                       <div className="absolute -top-2 left-0 w-full h-2 bg-transparent" /> { /* Bridge the gap */}
                       <Link
                         to="/screeners/near-resistance"
@@ -265,7 +265,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                   <ChevronDown className="h-3 w-3 opacity-50 group-hover:opacity-100 transition-opacity" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 mt-2 !bg-[#050505] !opacity-100 border-white/10 z-[1001]" align="end" forceMount>
+              <DropdownMenuContent className="w-56 mt-2 bg-background/95 backdrop-blur-xl border-white/10" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{userData?.name || "User"}</p>
@@ -343,7 +343,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 !bg-[#050505] !opacity-100 overflow-y-auto z-[1001]">
+              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-[#060606] overflow-y-auto">
                 <div className="flex flex-col min-h-full gap-6 pb-8">
                   {/* Mobile Nav Links */}
                   <div className="flex flex-col gap-2">
