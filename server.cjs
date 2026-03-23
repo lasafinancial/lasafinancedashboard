@@ -1106,6 +1106,40 @@ async function fetchData() {
     }
     // --- End Intraday Breakout Screener ---
 
+    // --- Start Intraday Summary (Stars & Tiers) ---
+    let intradaySummaryMap = {};
+    try {
+      const summaryRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: EOD_SHEET_ID,
+        range: "'intraday-summary'!A1:Z500",
+      });
+      const summaryRows = summaryRes.data.values;
+      if (summaryRows && summaryRows.length > 1) {
+        const headers = summaryRows[0];
+        const sData = summaryRows.slice(1).map(row => {
+          const obj = {};
+          headers.forEach((h, i) => { obj[h.trim()] = row[i]; });
+          return obj;
+        });
+
+        sData.forEach(row => {
+          const symbol = (row['Symbol'] || row['ID'] || '').toString().trim().toUpperCase();
+          if (!symbol) return;
+          intradaySummaryMap[symbol] = {
+            stars: (row['Stars'] || '').toString().trim(),
+            tier: (row['Tier'] || 'DEVELOPING').toString().trim().toUpperCase(),
+            target: (row['Target'] || '').toString().trim(),
+            targetPrice: parseFloat((row['TargetPrice'] || '0').toString().replace(/,/g, '')) || 0,
+            resistance: parseFloat((row['Resistance'] || '0').toString().replace(/,/g, '')) || 0
+          };
+        });
+        console.log(`[INTRADAY-SUMMARY] Loaded ${Object.keys(intradaySummaryMap).length} symbols from summary sheet.`);
+        console.log(`[INTRADAY-SUMMARY] Sample keys: ${Object.keys(intradaySummaryMap).slice(0, 5).join(', ')}`);
+      }
+    } catch (err) {
+      console.warn('Could not fetch intraday-summary data:', err.message);
+    }
+
     // --- Start Intraday Dev (Commentary) Screener ---
     intradayDev = [];
     try {
@@ -1159,10 +1193,12 @@ async function fetchData() {
 
         intradayDev = Object.values(groupedRows).map(symbolRows => {
           const latest = symbolRows[symbolRows.length - 1];
+          const sym = (latest['Symbol'] || latest[0] || 'N/A').toString().trim().toUpperCase();
           const latestState = (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase();
+          const summary = intradaySummaryMap[sym] || {};
 
           return {
-            symbol: (latest['Symbol'] || latest[0] || 'N/A').toString(),
+            symbol: sym,
             date: (latest['Date'] || latest[1] || 'N/A').toString(),
             time: (latest['Time'] || latest[2] || 'N/A').toString(),
             open: getNum(latest['Open'] || latest[4]),
@@ -1172,7 +1208,10 @@ async function fetchData() {
             volume: getNum(latest['Volume'] || latest[8]),
             volMult: getNum(latest['VolMult'] || latest[9]),
             isGreen: (latest['IsGreen'] || latest[10] || '').toString(),
-            tier: (latest['Tier'] || latest[12] || '').toString(),
+            tier: summary.tier || (latest['Tier'] || latest[12] || 'DEVELOPING').toString().toUpperCase(),
+            stars: summary.stars || '',
+            targetPrice: summary.targetPrice || 0,
+            summaryTarget: summary.target || '',
             state: latestState,
             event: (latest['Event'] || latest[14] || '').toString(),
             note: (latest['Note'] || latest[15] || '').toString(),
@@ -1181,8 +1220,13 @@ async function fetchData() {
             target: getNum(latest['Target'] || latest[18]),
             rr: getNum(latest['RR'] || latest[19]),
             allSignals: symbolRows.length,
-            recentChanges: recentChanges.filter(c => c.symbol === (latest['Symbol'] || latest[0] || 'N/A').toString())
+            recentChanges: recentChanges.filter(c => c.symbol === sym)
           };
+        });
+
+        // Debug: Log first 3 stocks in intradayDev to see if tier/stars are present
+        intradayDev.slice(0, 3).forEach(s => {
+          console.log(`[INTRADAY-DEV-DEBUG] ${s.symbol}: Tier=${s.tier}, Stars=${s.stars}`);
         });
 
         // Sort all changes by time descending so the latest signals from ANY stock appear at top
@@ -1218,12 +1262,17 @@ async function fetchData() {
           });
 
           const stocksAtTime = Object.values(snapshotState).map(latest => {
+            const sym = (latest['Symbol'] || latest[0] || 'N/A').toString().trim().toUpperCase();
+            const summary = intradaySummaryMap[sym] || {};
             return {
-              symbol: (latest['Symbol'] || latest[0] || 'N/A').toString(),
+              symbol: sym,
               time: (latest['Time'] || latest[2] || 'N/A').toString(),
               close: getNum(latest['Close'] || latest[7]),
               state: (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase(),
-              tier: (latest['Tier'] || latest[12] || '').toString(),
+              tier: summary.tier || (latest['Tier'] || latest[12] || 'DEVELOPING').toString().toUpperCase(),
+              stars: summary.stars || '',
+              targetPrice: summary.targetPrice || 0,
+              summaryTarget: summary.target || '',
               event: (latest['Event'] || latest[14] || '').toString(),
               note: (latest['Note'] || latest[15] || '').toString(),
               entry: getNum(latest['Entry'] || latest[16]),

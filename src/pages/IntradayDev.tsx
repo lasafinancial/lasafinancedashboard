@@ -28,6 +28,21 @@ export function IntradayDev() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [playbackSpeed, setPlaybackSpeed] = useState<1 | 2 | 5>(5);
 
+    // Mobile Accordion State
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+        strong: true,
+        pullback: false,
+        exit: false,
+        changes: false
+    });
+
+    const toggleSection = (section: string) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [section]: !prev[section]
+        }));
+    };
+
     // Auto-advance playback timer
     useEffect(() => {
         if (!isPlaying || !isPlayback || !playbackSnapshots || playbackSnapshots.length === 0) return;
@@ -92,10 +107,21 @@ export function IntradayDev() {
             data = data.filter(s => s.tier === "UPTREND");
         }
 
-        // Sort: Pinned first, then by time DESC
+        // Sort: Golden > Uptrend > Pinned > Time
         return data.sort((a, b) => {
+            // Priority 1: Golden Tier
+            if (a.tier === "GOLDEN" && b.tier !== "GOLDEN") return -1;
+            if (a.tier !== "GOLDEN" && b.tier === "GOLDEN") return 1;
+
+            // Priority 2: Uptrend Tier
+            if (a.tier === "UPTREND" && b.tier !== "UPTREND") return -1;
+            if (a.tier !== "UPTREND" && b.tier === "UPTREND") return 1;
+
+            // Priority 3: Pinned
             if (a.isPinned && !b.isPinned) return -1;
             if (!a.isPinned && b.isPinned) return 1;
+
+            // Priority 4: Time (latest first)
             return b.time.localeCompare(a.time);
         });
     }, [stocks, searchTerm, activeFilter, pinnedSymbols, isPlayback, playbackSnapshots, playbackIndex]);
@@ -126,7 +152,7 @@ export function IntradayDev() {
     type StockCardProps = { stock: any; color: 'green' | 'yellow' | 'red' };
     const StockCard = forwardRef<HTMLDivElement, StockCardProps>(({ stock, color }, ref) => {
         const isPullback = stock.state === "PULLBACK";
-        const starRating = stock.tier === "GOLDEN" ? "★★★" : stock.tier === "UPTREND" ? "★★" : "★";
+        const starRating = stock.stars || (stock.tier === "GOLDEN" ? "★★★" : stock.tier === "UPTREND" ? "★★" : "★");
 
         return (
             <motion.div
@@ -144,13 +170,18 @@ export function IntradayDev() {
                     className="p-3 bg-black hover:bg-[#0a0a0a] border-b border-white/5 cursor-pointer transition-all duration-200"
                 >
                     <div className="flex justify-between items-start mb-1.5">
-                        <div className="flex items-start gap-2">
-                            {/* Left: Stars and Symbol */}
-                            <div className="flex flex-col">
-                                <div className={`text-[10px] font-black tracking-widest leading-none mb-1 ${stock.tier === 'GOLDEN' ? 'text-yellow-500' : 'text-blue-400'}`}>
-                                    {starRating}
-                                </div>
+                        {/* Left: Stars and Symbol */}
+                        <div className="flex flex-col">
+                            <div className={`text-[10px] font-black tracking-widest leading-none mb-1 ${stock.tier === 'GOLDEN' ? 'text-yellow-500' : 'text-blue-400'}`}>
+                                {starRating}
+                            </div>
+                            <div className="flex items-center gap-2">
                                 <h4 className="text-[13px] font-semibold tracking-[0.5px] text-white leading-none font-sans">{stock.symbol}</h4>
+                                {(stock.tier === 'GOLDEN' || stock.tier === 'UPTREND') && (
+                                    <span className={`text-[8px] font-black px-1 py-0.5 rounded-[2px] tracking-tighter ${stock.tier === 'GOLDEN' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
+                                        {stock.tier}
+                                    </span>
+                                )}
                             </div>
                         </div>
 
@@ -167,16 +198,16 @@ export function IntradayDev() {
                                 {stock.isPinned ? 'PINNED' : ''}
                             </button>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[20px] font-semibold text-white font-mono tabular-nums tracking-tight">₹{formatNumber(stock.close)}</span>
+                                <span className="text-[13px] font-semibold text-white font-mono tabular-nums tracking-tight">₹{formatNumber(stock.close)}</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="space-y-1.5">
                         {/* EMA Line (New Feature) */}
-                        <div className="text-[12px] font-medium text-muted-foreground/70 flex items-center gap-1.5 tracking-wider uppercase">
+                        <div className="text-[12px] font-medium text-cyan-400/80 flex items-center gap-1.5 tracking-wider uppercase">
                             <span>EMA9 ₹{formatNumber(stock.ema9 || stock.close * 0.98)}</span>
-                            <span className="opacity-40">|</span>
+                            <span className="opacity-40 text-cyan-400/30">|</span>
                             <span>EMA63 ₹{formatNumber(stock.ema63 || stock.close * 0.95)}</span>
                         </div>
 
@@ -192,19 +223,19 @@ export function IntradayDev() {
                             <div className="mt-2 mb-1 p-2 bg-[#0a0a0a] rounded-sm border border-white/5 relative">
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                                     <div className="flex justify-between items-center text-[10px] font-medium border-b border-white/5 pb-0.5">
-                                        <span className="text-muted-foreground uppercase opacity-50 tracking-widest text-[8px]">ENTRY</span>
+                                        <span className="text-cyan-400/50 uppercase tracking-widest text-[8px]">ENTRY</span>
                                         <span className="text-yellow-500 font-bold tabular-nums">₹{formatNumber(stock.entry || stock.close)}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-[10px] font-medium border-b border-white/5 pb-0.5">
-                                        <span className="text-muted-foreground uppercase opacity-50 tracking-widest text-[8px]">TARGET</span>
+                                        <span className="text-cyan-400/50 uppercase tracking-widest text-[8px]">TARGET</span>
                                         <span className="text-emerald-500 font-bold tabular-nums">₹{formatNumber(stock.target || stock.close * 1.05)}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-[10px] font-medium pt-0.5 border-b border-white/5 pb-0.5 md:border-b-0 md:pb-0">
-                                        <span className="text-muted-foreground uppercase opacity-50 tracking-widest text-[8px]">STOP</span>
+                                        <span className="text-cyan-400/50 uppercase tracking-widest text-[8px]">STOP</span>
                                         <span className="text-red-500 font-bold tabular-nums">₹{formatNumber(stock.stop || stock.close * 0.97)}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-[10px] font-medium pt-0.5">
-                                        <span className="text-muted-foreground uppercase opacity-50 tracking-widest text-[8px]">R:R</span>
+                                        <span className="text-cyan-400/50 uppercase tracking-widest text-[8px]">R:R</span>
                                         <span className="text-white font-bold tabular-nums">{stock.rr ? stock.rr.toFixed(1) : "1:1"}</span>
                                     </div>
                                 </div>
@@ -212,15 +243,15 @@ export function IntradayDev() {
                         )}
                         {/* Status Note */}
                         {stock.note && !isPullback && (
-                            <div className="text-[10px] text-muted-foreground/50 font-medium leading-relaxed bg-white/5 px-2 py-1 rounded-sm border border-white/5">
+                            <div className="text-[10px] text-cyan-400/60 font-medium leading-relaxed bg-cyan-400/5 px-2 py-1 rounded-sm border border-cyan-400/10">
                                 {stock.note}
                             </div>
                         )}
 
                         <div className="flex items-center justify-between pt-1">
-                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-white/30 uppercase tracking-widest">
-                                <div className="w-1.5 h-1.5 rounded-sm bg-blue-500/50" />
-                                {stock.allSignals || 1} SIGS <span className="text-white/20 mx-1">•</span> {stock.time}
+                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-cyan-400/60 uppercase tracking-widest">
+                                <div className="w-1.5 h-1.5 rounded-sm bg-cyan-500/50" />
+                                {stock.allSignals || 1} SIGS <span className="text-cyan-400/20 mx-1">•</span> {stock.time}
                             </div>
                         </div>
                     </div>
@@ -264,24 +295,26 @@ export function IntradayDev() {
     });
 
     return (
-        <div className="min-h-screen bg-[#050505] text-foreground selection:bg-primary/30 font-sans tracking-tight">
+        <div className="min-h-screen bg-[#050505] text-foreground selection:bg-primary/30 font-sans tracking-tight overflow-x-hidden">
             <div className="container mx-auto px-4 py-4 max-w-[1400px]">
 
                 {/* NEW PLAYBACK & HEADER BAR */}
                 <div className="flex flex-col md:flex-row items-center justify-between bg-[#0a0a0a] border border-white/5 rounded-sm px-4 py-2 mb-4 gap-4">
                     {/* Left: Branding */}
                     <div className="flex items-center gap-4">
-                        <div className="flex items-baseline gap-2">
+                        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
                             <h1 className="text-[13px] font-black tracking-widest text-[#e8e8e8] font-sans">BREAKOUT BOARD</h1>
-                            <span className="text-[10px] font-bold tracking-widest text-emerald-500/70 bg-emerald-500/10 px-1.5 py-0.5 rounded-sm">EMA9 / EMA63 6-MIN</span>
-                            <span className="text-[11px] font-bold text-yellow-500/70 tracking-widest">{new Date().toISOString().split('T')[0]}</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-emerald-500/70 bg-emerald-500/10 px-1.5 py-0.5 rounded-sm whitespace-nowrap">EMA9 / EMA63 6-MIN</span>
+                                <span className="text-[10px] sm:text-[11px] font-bold text-yellow-500/70 tracking-widest whitespace-nowrap">{new Date().toISOString().split('T')[0]}</span>
+                            </div>
                         </div>
                     </div>
 
                     {/* Middle: Controls */}
-                    <div className="flex items-center gap-4 flex-1 justify-center max-w-2xl bg-black/50 px-4 py-1.5 rounded-sm border border-white/5 shadow-inner">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-1 justify-center w-full max-w-2xl bg-black/50 px-2 sm:px-4 py-1.5 rounded-sm border border-white/5 shadow-inner">
                         {/* Clock */}
-                        <div className="text-[30px] font-semibold text-yellow-500 font-mono tracking-tighter w-auto min-w-[100px] text-center leading-none">
+                        <div className="text-[24px] sm:text-[30px] font-semibold text-yellow-500 font-mono tracking-tighter w-auto min-w-[80px] sm:min-w-[100px] text-center leading-none">
                             {isPlayback && playbackSnapshots && playbackSnapshots[playbackIndex]
                                 ? playbackSnapshots[playbackIndex].time
                                 : (lastUpdate ? lastUpdate.split(' ')[0] : '...')}
@@ -336,18 +369,19 @@ export function IntradayDev() {
                             {isPlaying ? 'PAUSE' : 'PLAY'}
                         </button>
 
-                        <div className="w-[1px] h-6 bg-white/10 mx-2" />
+                        <div className="hidden xs:flex items-center gap-2">
+                            <div className="w-[1px] h-6 bg-white/10 mx-1 sm:mx-2" />
+                            {/* Speed Toggle */}
+                            <button
+                                onClick={() => setPlaybackSpeed(s => s === 1 ? 2 : s === 2 ? 5 : 1)}
+                                className="text-[10px] font-black text-white/50 hover:text-white w-6 text-center"
+                            >
+                                {playbackSpeed}x
+                            </button>
+                        </div>
 
-                        {/* Speed Toggle */}
-                        <button
-                            onClick={() => setPlaybackSpeed(s => s === 1 ? 2 : s === 2 ? 5 : 1)}
-                            className="text-[10px] font-black text-white/50 hover:text-white w-6 text-center"
-                        >
-                            {playbackSpeed}x
-                        </button>
-
-                        {/* Scrubber Bar */}
-                        <div className="flex-1 mx-4 max-w-[200px] flex items-center">
+                        {/* Scrubber Bar - Hidden on small mobile to prevent overlap */}
+                        <div className="hidden sm:flex flex-1 mx-4 max-w-[200px] items-center">
                             <input
                                 type="range"
                                 min={0}
@@ -404,56 +438,69 @@ export function IntradayDev() {
 
                 {/* NEW COMPACT STATS & TABS ROW */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4 px-2">
-                    {/* Left: Stats */}
-                    <div className="flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[1px]">
+                    {/* Left: Stats - Grid on mobile for alignment */}
+                    <div className="grid grid-cols-2 md:flex md:items-center gap-x-8 gap-y-3 md:gap-4 text-[11px] font-semibold uppercase tracking-[1px] w-full md:w-auto">
                         <div className="flex items-center gap-1.5 text-emerald-500">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                            STRONG {stats.strong}
+                            <div className="flex flex-col md:flex-row md:gap-1">
+                                <span>STRONG</span>
+                                <span className="font-black text-[12px] opacity-80">{stats.strong}</span>
+                            </div>
                         </div>
                         <div className="flex items-center gap-1.5 text-yellow-500">
                             <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]" />
-                            PULLBACK {stats.pullback}
+                            <div className="flex flex-col md:flex-row md:gap-1">
+                                <span>PULLBACK</span>
+                                <span className="font-black text-[12px] opacity-80">{stats.pullback}</span>
+                            </div>
                         </div>
                         <div className="flex items-center gap-1.5 text-red-500">
                             <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-                            EXIT {stats.exit}
+                            <div className="flex flex-col md:flex-row md:gap-1">
+                                <span>EXIT</span>
+                                <span className="font-black text-[12px] opacity-80">{stats.exit}</span>
+                            </div>
                         </div>
-                        <div className="w-[1px] h-3 bg-white/10 mx-1" />
                         <div className="flex items-center gap-1.5 text-blue-400">
-                            ★★★ GOLDEN {(stocks || []).filter(s => s.tier === 'GOLDEN').length}
+                            <div className="flex flex-col md:flex-row md:gap-1">
+                                <span className="whitespace-nowrap">★★★ GOLDEN</span>
+                                <span className="font-black text-[12px] opacity-80">{(stocks || []).filter(s => s.tier === 'GOLDEN').length}</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Right: Filter Tabs */}
-                    <div className="flex items-center gap-1 bg-[#111] p-0.5 rounded-sm border border-white/5 shadow-inner">
-                        <button
-                            onClick={() => setActiveFilter("ALL")}
-                            className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all ${activeFilter === "ALL" ? 'bg-[#1b2c1b] text-emerald-500 border border-emerald-500/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
-                        >
-                            ALL
-                        </button>
-                        <button
-                            onClick={() => setActiveFilter("GOLDEN")} // Treat as WATCHLIST for now
-                            className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all gap-1 flex items-center ${activeFilter === "GOLDEN" ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
-                        >
-                            <Sparkles className="w-2.5 h-2.5" /> WATCHLIST
-                        </button>
-                        <button
-                            onClick={() => setActiveFilter("UPTREND")}
-                            className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all ${activeFilter === "UPTREND" ? 'bg-blue-400/10 text-blue-400 border border-blue-400/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
-                        >
-                            ★★★
-                        </button>
-                        <button className="px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5">
-                            ★★
-                        </button>
-                        <div className="w-[1px] h-3 bg-white/10 mx-1" />
-                        <button className="px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5">
-                            ENTRY READY
-                        </button>
-                        <button className="px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5">
-                            EXIT
-                        </button>
+                    {/* Right: Filter Tabs - Horizontal Scroll on small mobile */}
+                    <div className="w-full md:w-auto overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+                        <div className="flex items-center gap-1 bg-[#111] p-0.5 rounded-sm border border-white/5 shadow-inner min-w-max md:min-w-0">
+                            <button
+                                onClick={() => setActiveFilter("ALL")}
+                                className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all ${activeFilter === "ALL" ? 'bg-[#1b2c1b] text-emerald-500 border border-emerald-500/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
+                            >
+                                ALL
+                            </button>
+                            <button
+                                onClick={() => setActiveFilter("GOLDEN")} // Treat as WATCHLIST for now
+                                className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all gap-1 flex items-center ${activeFilter === "GOLDEN" ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
+                            >
+                                <Sparkles className="w-2.5 h-2.5" /> WATCHLIST
+                            </button>
+                            <button
+                                onClick={() => setActiveFilter("UPTREND")}
+                                className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all ${activeFilter === "UPTREND" ? 'bg-blue-400/10 text-blue-400 border border-blue-400/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
+                            >
+                                ★★★
+                            </button>
+                            <button className="px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5">
+                                ★★
+                            </button>
+                            <div className="w-[1px] h-3 bg-white/10 mx-1" />
+                            <button className="px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5">
+                                ENTRY READY
+                            </button>
+                            <button className="px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5">
+                                EXIT
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {
@@ -469,15 +516,39 @@ export function IntradayDev() {
                             <p className="text-[10px] text-muted-foreground uppercase font-medium">Waiting for fresh breakout commentary from the system.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-white/5 border border-white/5 overflow-hidden rounded-sm">
+                        <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-4 gap-[2px] bg-white/5 border border-white/5 overflow-hidden rounded-sm">
                             <LayoutGroup>
                                 {/* STRONG COLUMN */}
-                                <div className="bg-[#050505] min-h-[calc(100vh-350px)]">
-                                    <div className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-emerald-500/20 flex justify-between items-center">
-                                        <h2 className="text-[11px] font-semibold text-emerald-500 uppercase tracking-[1px]">Strong</h2>
+                                <div className="bg-[#050505] md:min-h-[calc(100vh-350px)]">
+                                    <div
+                                        onClick={() => toggleSection('strong')}
+                                        className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-emerald-500/20 flex justify-between items-center cursor-pointer md:cursor-default"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <h2 className="text-[11px] font-semibold text-emerald-500 uppercase tracking-[1px]">Strong</h2>
+                                            <div className="md:hidden">
+                                                {expandedSections.strong ? <ChevronUp className="w-3 h-3 text-emerald-500/50" /> : <ChevronDown className="w-3 h-3 text-emerald-500/50" />}
+                                            </div>
+                                        </div>
                                         <span className="text-[13px] font-black text-emerald-500/50 font-mono">{categorized.strong.length}</span>
                                     </div>
-                                    <div className="p-2 flex flex-col gap-[1px]">
+                                    <AnimatePresence>
+                                        {expandedSections.strong && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="p-2 flex flex-col gap-[1px] overflow-hidden md:hidden"
+                                            >
+                                                <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium" description="Upgrade to view live Strong stocks.">
+                                                    <AnimatePresence mode="popLayout">
+                                                        {categorized.strong.map(s => <StockCard key={s.symbol} stock={s} color="green" />)}
+                                                    </AnimatePresence>
+                                                </PremiumProtector>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                    <div className="hidden md:flex p-2 flex-col gap-[1px]">
                                         <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium" description="Upgrade to view live Strong stocks.">
                                             <AnimatePresence mode="popLayout">
                                                 {categorized.strong.map(s => <StockCard key={s.symbol} stock={s} color="green" />)}
@@ -487,12 +558,36 @@ export function IntradayDev() {
                                 </div>
 
                                 {/* PULLBACK COLUMN */}
-                                <div className="bg-[#050505] min-h-[calc(100vh-350px)]">
-                                    <div className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-yellow-500/20 flex justify-between items-center text-center">
-                                        <h2 className="text-[11px] font-semibold text-yellow-500 uppercase tracking-[1px] flex-1">Pullback Entry ▲</h2>
+                                <div className="bg-[#050505] md:min-h-[calc(100vh-350px)]">
+                                    <div
+                                        onClick={() => toggleSection('pullback')}
+                                        className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-yellow-500/20 flex justify-between items-center cursor-pointer md:cursor-default"
+                                    >
+                                        <div className="flex items-center gap-2 flex-1 justify-center md:justify-start">
+                                            <h2 className="text-[11px] font-semibold text-yellow-500 uppercase tracking-[1px] ml-6 md:ml-0">Pullback Entry ▲</h2>
+                                            <div className="md:hidden">
+                                                {expandedSections.pullback ? <ChevronUp className="w-3 h-3 text-yellow-500/50" /> : <ChevronDown className="w-3 h-3 text-yellow-500/50" />}
+                                            </div>
+                                        </div>
                                         <span className="text-[13px] font-black text-yellow-500/50 font-mono absolute right-3">{categorized.pullback.length}</span>
                                     </div>
-                                    <div className="p-2 flex flex-col gap-[1px]">
+                                    <AnimatePresence>
+                                        {expandedSections.pullback && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="p-2 flex flex-col gap-[1px] overflow-hidden md:hidden"
+                                            >
+                                                <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium" description="Upgrade to view live Pullback entries.">
+                                                    <AnimatePresence mode="popLayout">
+                                                        {categorized.pullback.map(s => <StockCard key={s.symbol} stock={s} color="yellow" />)}
+                                                    </AnimatePresence>
+                                                </PremiumProtector>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                    <div className="hidden md:flex p-2 flex-col gap-[1px]">
                                         <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium" description="Upgrade to view live Pullback entries.">
                                             <AnimatePresence mode="popLayout">
                                                 {categorized.pullback.map(s => <StockCard key={s.symbol} stock={s} color="yellow" />)}
@@ -502,12 +597,36 @@ export function IntradayDev() {
                                 </div>
 
                                 {/* EXIT COLUMN */}
-                                <div className="bg-[#050505] min-h-[calc(100vh-350px)]">
-                                    <div className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-red-500/20 flex justify-between items-center text-center">
-                                        <h2 className="text-[11px] font-semibold text-red-500 uppercase tracking-[1px] flex-1">Exit / Trap</h2>
+                                <div className="bg-[#050505] md:min-h-[calc(100vh-350px)]">
+                                    <div
+                                        onClick={() => toggleSection('exit')}
+                                        className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-red-500/20 flex justify-between items-center cursor-pointer md:cursor-default"
+                                    >
+                                        <div className="flex items-center gap-2 flex-1 justify-center md:justify-start">
+                                            <h2 className="text-[11px] font-semibold text-red-500 uppercase tracking-[1px] ml-6 md:ml-0">Exit / Trap</h2>
+                                            <div className="md:hidden">
+                                                {expandedSections.exit ? <ChevronUp className="w-3 h-3 text-red-500/50" /> : <ChevronDown className="w-3 h-3 text-red-500/50" />}
+                                            </div>
+                                        </div>
                                         <span className="text-[13px] font-black text-red-500/50 font-mono absolute right-3">{categorized.exit.length}</span>
                                     </div>
-                                    <div className="p-2 flex flex-col gap-[1px]">
+                                    <AnimatePresence>
+                                        {expandedSections.exit && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="p-2 flex flex-col gap-[1px] overflow-hidden md:hidden"
+                                            >
+                                                <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium" description="Upgrade to view live Exits and Traps.">
+                                                    <AnimatePresence mode="popLayout">
+                                                        {categorized.exit.map(s => <StockCard key={s.symbol} stock={s} color="red" />)}
+                                                    </AnimatePresence>
+                                                </PremiumProtector>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                    <div className="hidden md:flex p-2 flex-col gap-[1px]">
                                         <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium" description="Upgrade to view live Exits and Traps.">
                                             <AnimatePresence mode="popLayout">
                                                 {categorized.exit.map(s => <StockCard key={s.symbol} stock={s} color="red" />)}
@@ -516,15 +635,44 @@ export function IntradayDev() {
                                     </div>
                                 </div>
 
-                                <div className="bg-[#050505] min-h-[calc(100vh-350px)]">
-                                    <div className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-blue-500/10 flex justify-between items-center text-center">
+                                {/* CHANGES COLUMN */}
+                                <div className="bg-[#050505] md:min-h-[calc(100vh-350px)] border-t md:border-t-0 border-white/5">
+                                    <div
+                                        onClick={() => toggleSection('changes')}
+                                        className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-blue-500/10 flex justify-between items-center cursor-pointer md:cursor-default"
+                                    >
                                         <div className="flex items-center gap-2">
                                             <div className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-blue-400/40 border-b-[4px] border-b-transparent ml-1" />
                                             <h2 className="text-[11px] font-black text-blue-400/60 uppercase tracking-[0.2em] font-mono">Changes</h2>
+                                            <div className="md:hidden">
+                                                {expandedSections.changes ? <ChevronUp className="w-3 h-3 text-blue-500/50" /> : <ChevronDown className="w-3 h-3 text-blue-500/50" />}
+                                            </div>
                                         </div>
                                         <span className="text-[12px] font-black text-blue-500/30 font-mono absolute right-3">{categorized.changes.length}</span>
                                     </div>
-                                    <div className="flex flex-col">
+                                    <AnimatePresence>
+                                        {expandedSections.changes && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="flex flex-col overflow-hidden md:hidden"
+                                            >
+                                                <AnimatePresence mode="popLayout">
+                                                    {(categorized.changes || [])
+                                                        .map((c, i) => <ChangeCard key={`${c.symbol}-${c.time}-${i}`} change={c} />)
+                                                    }
+                                                    {(categorized.changes || []).length === 0 && (
+                                                        <div className="py-20 text-center px-4">
+                                                            <div className="text-[9px] font-black text-white/5 uppercase tracking-[0.3em] mb-1">Live Feed</div>
+                                                            <div className="text-[8px] font-medium text-white/5 lowercase">Waiting for movements...</div>
+                                                        </div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                    <div className="hidden md:flex flex-col">
                                         <AnimatePresence mode="popLayout">
                                             {(categorized.changes || [])
                                                 .map((c, i) => <ChangeCard key={`${c.symbol}-${c.time}-${i}`} change={c} />)
