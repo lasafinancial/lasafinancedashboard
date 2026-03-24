@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, forwardRef } from "react";
-import { Search, ArrowUpRight, Loader2, Sparkles, TrendingUp, ChevronDown, ChevronUp, Info, Clock, Calendar, AlertCircle, BarChart2, Filter, RefreshCw, Pin, ArrowRight, Play, Pause, SkipBack, SkipForward, FastForward, Rewind } from "lucide-react";
+import { Search, ArrowUpRight, Loader2, Sparkles, TrendingUp, ChevronDown, ChevronUp, Info, Clock, Calendar, AlertCircle, BarChart2, Filter, RefreshCw, Pin, ArrowRight, Play, Pause, SkipBack, SkipForward, FastForward, Rewind, Star } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 
 type StateType = "STRONG" | "PULLBACK" | "EXIT";
-type FilterType = "ALL" | "GOLDEN" | "UPTREND";
+type FilterType = "ALL" | "WATCHLIST" | "STAR3" | "STAR2" | "ENTRY_READY" | "EXIT";
 
 export function IntradayDev() {
     const navigate = useNavigate();
@@ -31,8 +31,8 @@ export function IntradayDev() {
     // Mobile Accordion State
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
         strong: true,
-        pullback: false,
-        exit: false,
+        pullback: true,
+        exit: true,
         changes: false
     });
 
@@ -101,25 +101,31 @@ export function IntradayDev() {
             data = data.filter(s => s.symbol.toLowerCase().includes(searchTerm.toLowerCase()));
         }
 
-        if (activeFilter === "GOLDEN") {
-            data = data.filter(s => s.tier === "GOLDEN");
-        } else if (activeFilter === "UPTREND") {
-            data = data.filter(s => s.tier === "UPTREND");
+        if (activeFilter === "WATCHLIST") {
+            data = data.filter(s => s.isPinned);
+        } else if (activeFilter === "STAR3") {
+            data = data.filter(s => s.tier === "GOLDEN" || s.stars === "★★★");
+        } else if (activeFilter === "STAR2") {
+            data = data.filter(s => s.tier === "UPTREND" || s.stars === "★★");
+        } else if (activeFilter === "ENTRY_READY") {
+            data = data.filter(s => s.state === "PULLBACK");
+        } else if (activeFilter === "EXIT") {
+            data = data.filter(s => s.state === "EXIT" || s.state === "TRAP");
         }
 
-        // Sort: Golden > Uptrend > Pinned > Time
+        // Sort: Pinned > Golden > Uptrend > Time
         return data.sort((a, b) => {
-            // Priority 1: Golden Tier
+            // Priority 1: Pinned (Always on top)
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+
+            // Priority 2: Golden Tier
             if (a.tier === "GOLDEN" && b.tier !== "GOLDEN") return -1;
             if (a.tier !== "GOLDEN" && b.tier === "GOLDEN") return 1;
 
-            // Priority 2: Uptrend Tier
+            // Priority 3: Uptrend Tier
             if (a.tier === "UPTREND" && b.tier !== "UPTREND") return -1;
             if (a.tier !== "UPTREND" && b.tier === "UPTREND") return 1;
-
-            // Priority 3: Pinned
-            if (a.isPinned && !b.isPinned) return -1;
-            if (!a.isPinned && b.isPinned) return 1;
 
             // Priority 4: Time (latest first)
             return b.time.localeCompare(a.time);
@@ -136,7 +142,7 @@ export function IntradayDev() {
         return {
             strong: filteredStocks.filter(s => s.state === "STRONG"),
             pullback: filteredStocks.filter(s => s.state === "PULLBACK"),
-            exit: filteredStocks.filter(s => s.state === "EXIT"),
+            exit: filteredStocks.filter(s => s.state === "EXIT" || s.state === "TRAP"),
             changes: currentChanges
         };
     }, [filteredStocks, intradayDevChanges, isPlayback, playbackSnapshots, playbackIndex]);
@@ -144,7 +150,7 @@ export function IntradayDev() {
     const stats = useMemo(() => ({
         strong: (stocks || []).filter(s => s.state === "STRONG").length,
         pullback: (stocks || []).filter(s => s.state === "PULLBACK").length,
-        exit: (stocks || []).filter(s => s.state === "EXIT").length,
+        exit: (stocks || []).filter(s => s.state === "EXIT" || s.state === "TRAP").length,
         changes: (intradayDevChanges || []).length,
         total: (stocks || []).length
     }), [stocks, intradayDevChanges]);
@@ -152,7 +158,19 @@ export function IntradayDev() {
     type StockCardProps = { stock: any; color: 'green' | 'yellow' | 'red' };
     const StockCard = forwardRef<HTMLDivElement, StockCardProps>(({ stock, color }, ref) => {
         const isPullback = stock.state === "PULLBACK";
-        const starRating = stock.stars || (stock.tier === "GOLDEN" ? "★★★" : stock.tier === "UPTREND" ? "★★" : "★");
+
+        const renderStars = (stars: string) => {
+            if (!stars) return null;
+            const count = (stars.match(/★/g) || []).length || parseInt(stars) || 0;
+            if (count === 0) return null;
+            return (
+                <div className="flex gap-0.5 text-green-500 mr-2">
+                    {Array.from({ length: Math.min(count, 5) }).map((_, i) => (
+                        <Star key={i} className="w-3 h-3 fill-current" />
+                    ))}
+                </div>
+            );
+        };
 
         return (
             <motion.div
@@ -167,93 +185,90 @@ export function IntradayDev() {
             >
                 <div
                     onClick={() => handleStockClick(stock.symbol)}
-                    className="p-3 bg-black hover:bg-[#0a0a0a] border-b border-white/5 cursor-pointer transition-all duration-200"
+                    className="p-3 bg-black border border-white/5 rounded-lg mb-2 cursor-pointer transition-all duration-200 hover:border-white/20 group relative overflow-hidden"
                 >
-                    <div className="flex justify-between items-start mb-1.5">
-                        {/* Left: Stars and Symbol */}
-                        <div className="flex flex-col">
-                            <div className={`text-[10px] font-black tracking-widest leading-none mb-1 ${stock.tier === 'GOLDEN' ? 'text-yellow-500' : 'text-blue-400'}`}>
-                                {starRating}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <h4 className="text-[13px] font-semibold tracking-[0.5px] text-white leading-none font-sans">{stock.symbol}</h4>
-                                {(stock.tier === 'GOLDEN' || stock.tier === 'UPTREND') && (
-                                    <span className={`text-[8px] font-black px-1 py-0.5 rounded-[2px] tracking-tighter ${stock.tier === 'GOLDEN' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
-                                        {stock.tier}
-                                    </span>
-                                )}
-                            </div>
+                    {/* Header Row: Stars + Name + Tier Overlay */}
+                    <div className="flex justify-between items-center mb-1">
+                        <div className="flex items-center">
+                            {renderStars(stock.stars)}
+                            <h4 className="text-[15px] font-bold tracking-wider text-white font-sans uppercase">
+                                {stock.symbol}
+                            </h4>
                         </div>
-
-                        {/* Right: Pinned & Price */}
-                        <div className="flex flex-col items-end gap-1">
-                            <button
-                                onClick={(e) => handleTogglePin(e, stock.symbol)}
-                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-black tracking-wider transition-all border ${stock.isPinned
-                                    ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
-                                    : 'bg-transparent text-white/30 border-transparent hover:text-white/60'
-                                    }`}
-                            >
-                                <Pin className={`w-3 h-3 ${stock.isPinned ? 'fill-current' : ''}`} />
-                                {stock.isPinned ? 'PINNED' : ''}
-                            </button>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[13px] font-semibold text-white font-mono tabular-nums tracking-tight">₹{formatNumber(stock.close)}</span>
+                        {stock.tier && (
+                            <div className={`px-2 py-0.5 rounded text-[9px] font-black tracking-widest border ${stock.tier === 'GOLDEN'
+                                ? 'bg-yellow-500/5 text-yellow-500/80 border-yellow-500/20'
+                                : 'bg-green-500/5 text-green-500/80 border-green-500/20'
+                                } uppercase`}>
+                                {stock.stars && stock.stars.includes('★') ? stock.stars : (stock.tier === 'GOLDEN' ? '★★★' : '★★')} {stock.tier}
                             </div>
-                        </div>
+                        )}
                     </div>
 
-                    <div className="space-y-1.5">
-                        {/* EMA Line (New Feature) */}
-                        <div className="text-[12px] font-medium text-cyan-400/80 flex items-center gap-1.5 tracking-wider uppercase">
-                            <span>EMA9 ₹{formatNumber(stock.ema9 || stock.close * 0.98)}</span>
-                            <span className="opacity-40 text-cyan-400/30">|</span>
-                            <span>EMA63 ₹{formatNumber(stock.ema63 || stock.close * 0.95)}</span>
+                    {/* Price & Change Row */}
+                    <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-[13px] font-bold text-white font-mono tabular-nums">
+                            ₹{formatNumber(stock.close)}
+                        </span>
+                        <span className={`text-[11px] font-bold ${stock.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {stock.changePercent >= 0 ? '+' : ''}{formatNumber(stock.changePercent)}%
+                        </span>
+                    </div>
+
+                    {/* EMA Row */}
+                    <div className="flex items-center gap-3 text-[11px] font-medium tracking-tight mb-1.5 opacity-80">
+                        <div className="flex items-center gap-1">
+                            <span className="text-white/80 uppercase">EMA9:</span>
+                            <span className="text-cyan-400 font-bold font-mono">₹{formatNumber(stock.ema9)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span className="text-white/80 uppercase">EMA63:</span>
+                            <span className="text-cyan-400 font-bold font-mono">₹{formatNumber(stock.ema63)}</span>
+                        </div>
+                        {stock.emaCrossover && (
+                            <div className={`flex items-center gap-0.5 font-bold text-[10px] ${color === 'red' ? 'text-red-500' : 'text-emerald-400'}`}>
+                                <ArrowUpRight className="w-3 h-3" />
+                                <span className="uppercase tracking-tighter">
+                                    {stock.emaCrossover === 'Y' || stock.emaCrossover === 'YES' ? 'EMA9>63' : stock.emaCrossover}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Target Row */}
+                    {stock.targetStr && (
+                        <div className="flex items-center gap-1.5 text-[13px] font-bold text-orange-400/90 mb-2">
+                            <ArrowRight className="w-3.5 h-3.5" />
+                            <span>{stock.targetStr}</span>
+                        </div>
+                    )}
+
+                    {/* Reasons Block */}
+                    {stock.reasons && (
+                        <div className={`${color === 'red' ? 'bg-red-950/20 border-red-500/40' : 'bg-green-950/20 border-green-500/40'} border-l-2 py-1.5 px-3 -mx-3 mb-2`}>
+                            <p className={`text-[11px] font-medium leading-relaxed italic ${color === 'red' ? 'text-red-400' : 'text-green-400'}`}>
+                                {stock.reasons}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Bottom Row */}
+                    <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-2 text-white/50 text-[10px] font-bold">
+                            <Clock className="w-3 h-3 opacity-50" />
+                            <span>{stock.time}</span>
                         </div>
 
-                        {/* Event Note */}
-                        {stock.event && (
-                            <div className={`text-[10px] font-bold italic tracking-wide ${color === 'red' ? 'text-red-400' : color === 'yellow' ? 'text-yellow-500' : 'text-emerald-500'}`}>
-                                {stock.event}
-                            </div>
-                        )}
-
-                        {/* Pullback Trade Levels Table - Exact UI match */}
-                        {isPullback && (
-                            <div className="mt-2 mb-1 p-2 bg-[#0a0a0a] rounded-sm border border-white/5 relative">
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                                    <div className="flex justify-between items-center text-[10px] font-medium border-b border-white/5 pb-0.5">
-                                        <span className="text-cyan-400/50 uppercase tracking-widest text-[8px]">ENTRY</span>
-                                        <span className="text-yellow-500 font-bold tabular-nums">₹{formatNumber(stock.entry || stock.close)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-[10px] font-medium border-b border-white/5 pb-0.5">
-                                        <span className="text-cyan-400/50 uppercase tracking-widest text-[8px]">TARGET</span>
-                                        <span className="text-emerald-500 font-bold tabular-nums">₹{formatNumber(stock.target || stock.close * 1.05)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-[10px] font-medium pt-0.5 border-b border-white/5 pb-0.5 md:border-b-0 md:pb-0">
-                                        <span className="text-cyan-400/50 uppercase tracking-widest text-[8px]">STOP</span>
-                                        <span className="text-red-500 font-bold tabular-nums">₹{formatNumber(stock.stop || stock.close * 0.97)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-[10px] font-medium pt-0.5">
-                                        <span className="text-cyan-400/50 uppercase tracking-widest text-[8px]">R:R</span>
-                                        <span className="text-white font-bold tabular-nums">{stock.rr ? stock.rr.toFixed(1) : "1:1"}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {/* Status Note */}
-                        {stock.note && !isPullback && (
-                            <div className="text-[10px] text-cyan-400/60 font-medium leading-relaxed bg-cyan-400/5 px-2 py-1 rounded-sm border border-cyan-400/10">
-                                {stock.note}
-                            </div>
-                        )}
-
-                        <div className="flex items-center justify-between pt-1">
-                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-cyan-400/60 uppercase tracking-widest">
-                                <div className="w-1.5 h-1.5 rounded-sm bg-cyan-500/50" />
-                                {stock.allSignals || 1} SIGS <span className="text-cyan-400/20 mx-1">•</span> {stock.time}
-                            </div>
-                        </div>
+                        <button
+                            onClick={(e) => handleTogglePin(e, stock.symbol)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[9px] font-black tracking-widest transition-all ${stock.isPinned
+                                ? 'bg-yellow-500 text-black shadow-[0_0_10px_rgba(234,179,8,0.2)]'
+                                : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white'
+                                }`}
+                        >
+                            <Pin className={`w-2.5 h-2.5 ${stock.isPinned ? 'fill-current' : ''}`} />
+                            {stock.isPinned ? 'PINNED' : 'PIN'}
+                        </button>
                     </div>
                 </div>
             </motion.div>
@@ -461,12 +476,26 @@ export function IntradayDev() {
                                 <span className="font-black text-[12px] opacity-80">{stats.exit}</span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-1.5 text-blue-400">
+                        <div className="flex items-center gap-1.5 text-yellow-500">
                             <div className="flex flex-col md:flex-row md:gap-1">
                                 <span className="whitespace-nowrap">★★★ GOLDEN</span>
                                 <span className="font-black text-[12px] opacity-80">{(stocks || []).filter(s => s.tier === 'GOLDEN').length}</span>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Search Bar - Responsive */}
+                    <div className="relative w-full md:max-w-[220px] group mx-0 md:mx-2 my-2 md:my-0 order-last md:order-none">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none transition-colors group-focus-within:text-emerald-500">
+                            <Search className="h-3.5 w-3.5 text-white/30 group-focus-within:text-emerald-500/70" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="SEARCH STOCKS..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full h-9 bg-[#0f0f0f] border border-white/20 rounded-sm pl-9 pr-3 text-[10px] font-bold tracking-widest text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-500/50 focus:bg-[#111] transition-all outline-none shadow-sm"
+                        />
                     </div>
 
                     {/* Right: Filter Tabs - Horizontal Scroll on small mobile */}
@@ -479,25 +508,34 @@ export function IntradayDev() {
                                 ALL
                             </button>
                             <button
-                                onClick={() => setActiveFilter("GOLDEN")} // Treat as WATCHLIST for now
-                                className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all gap-1 flex items-center ${activeFilter === "GOLDEN" ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
+                                onClick={() => setActiveFilter("WATCHLIST")}
+                                className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all gap-1 flex items-center ${activeFilter === "WATCHLIST" ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
                             >
                                 <Sparkles className="w-2.5 h-2.5" /> WATCHLIST
                             </button>
                             <button
-                                onClick={() => setActiveFilter("UPTREND")}
-                                className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all ${activeFilter === "UPTREND" ? 'bg-blue-400/10 text-blue-400 border border-blue-400/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
+                                onClick={() => setActiveFilter("STAR3")}
+                                className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all ${activeFilter === "STAR3" ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
                             >
                                 ★★★
                             </button>
-                            <button className="px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5">
+                            <button
+                                onClick={() => setActiveFilter("STAR2")}
+                                className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all ${activeFilter === "STAR2" ? 'bg-blue-400/10 text-blue-400 border border-blue-400/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
+                            >
                                 ★★
                             </button>
                             <div className="w-[1px] h-3 bg-white/10 mx-1" />
-                            <button className="px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5">
+                            <button
+                                onClick={() => setActiveFilter("ENTRY_READY")}
+                                className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all ${activeFilter === "ENTRY_READY" ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
+                            >
                                 ENTRY READY
                             </button>
-                            <button className="px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5">
+                            <button
+                                onClick={() => setActiveFilter("EXIT")}
+                                className={`px-3 py-1 text-[9px] font-black uppercase rounded-[2px] tracking-widest transition-all ${activeFilter === "EXIT" ? 'bg-red-500/10 text-red-500 border border-red-500/30 shadow-sm' : 'text-muted-foreground/60 border border-transparent hover:text-white/80 hover:bg-white/5'}`}
+                            >
                                 EXIT
                             </button>
                         </div>
@@ -534,18 +572,13 @@ export function IntradayDev() {
                                     </div>
                                     <AnimatePresence>
                                         {expandedSections.strong && (
-                                            <motion.div
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: "auto", opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                className="p-2 flex flex-col gap-[1px] overflow-hidden md:hidden"
-                                            >
+                                            <div className="p-2 flex flex-col gap-[1px] md:hidden">
                                                 <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium" description="Upgrade to view live Strong stocks.">
-                                                    <AnimatePresence mode="popLayout">
+                                                    <div className="flex flex-col gap-[1px]">
                                                         {categorized.strong.map(s => <StockCard key={s.symbol} stock={s} color="green" />)}
-                                                    </AnimatePresence>
+                                                    </div>
                                                 </PremiumProtector>
-                                            </motion.div>
+                                            </div>
                                         )}
                                     </AnimatePresence>
                                     <div className="hidden md:flex p-2 flex-col gap-[1px]">
@@ -573,18 +606,13 @@ export function IntradayDev() {
                                     </div>
                                     <AnimatePresence>
                                         {expandedSections.pullback && (
-                                            <motion.div
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: "auto", opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                className="p-2 flex flex-col gap-[1px] overflow-hidden md:hidden"
-                                            >
+                                            <div className="p-2 flex flex-col gap-[1px] md:hidden">
                                                 <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium" description="Upgrade to view live Pullback entries.">
-                                                    <AnimatePresence mode="popLayout">
+                                                    <div className="flex flex-col gap-[1px]">
                                                         {categorized.pullback.map(s => <StockCard key={s.symbol} stock={s} color="yellow" />)}
-                                                    </AnimatePresence>
+                                                    </div>
                                                 </PremiumProtector>
-                                            </motion.div>
+                                            </div>
                                         )}
                                     </AnimatePresence>
                                     <div className="hidden md:flex p-2 flex-col gap-[1px]">
@@ -612,18 +640,13 @@ export function IntradayDev() {
                                     </div>
                                     <AnimatePresence>
                                         {expandedSections.exit && (
-                                            <motion.div
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: "auto", opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                className="p-2 flex flex-col gap-[1px] overflow-hidden md:hidden"
-                                            >
+                                            <div className="p-2 flex flex-col gap-[1px] md:hidden">
                                                 <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium" description="Upgrade to view live Exits and Traps.">
-                                                    <AnimatePresence mode="popLayout">
+                                                    <div className="flex flex-col gap-[1px]">
                                                         {categorized.exit.map(s => <StockCard key={s.symbol} stock={s} color="red" />)}
-                                                    </AnimatePresence>
+                                                    </div>
                                                 </PremiumProtector>
-                                            </motion.div>
+                                            </div>
                                         )}
                                     </AnimatePresence>
                                     <div className="hidden md:flex p-2 flex-col gap-[1px]">

@@ -30,6 +30,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
   const { isEnabled, isLoading, isSupported, toggleNotifications } = useNotifications();
   const [isSending, setIsSending] = useState(false);
   const [isScreenersOpen, setIsScreenersOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   let closeTimeout: NodeJS.Timeout;
 
   const handleMouseEnter = () => {
@@ -119,8 +120,19 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                     <div className={`absolute top-[calc(100%+2px)] left-0 min-w-[220px] p-2 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl transition-all duration-200 z-[150] ${isScreenersOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
                       <div className="absolute -top-2 left-0 w-full h-2 bg-transparent" /> { /* Bridge the gap */}
                       <Link
-                        to="/screeners/near-resistance"
+                        to="/screeners/intraday-dev"
+                        onClick={() => setIsScreenersOpen(false)}
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item text-left"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold">Breakout Board</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Status Based</span>
+                        </div>
+                      </Link>
+                      <Link
+                        to="/screeners/near-resistance"
+                        onClick={() => setIsScreenersOpen(false)}
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold">Breakout</span>
@@ -129,6 +141,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                       </Link>
                       <Link
                         to="/screeners/support-reversal"
+                        onClick={() => setIsScreenersOpen(false)}
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
@@ -138,6 +151,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                       </Link>
                       <Link
                         to="/screeners/reaction-zone"
+                        onClick={() => setIsScreenersOpen(false)}
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
@@ -147,20 +161,12 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                       </Link>
                       <Link
                         to="/screeners/intraday-breakout"
+                        onClick={() => setIsScreenersOpen(false)}
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Intraday</span>
+                          <span className="text-sm font-semibold">Intraday Breakout</span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Breakout Momentum</span>
-                        </div>
-                      </Link>
-                      <Link
-                        to="/screeners/intraday-dev"
-                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Intraday Dev</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Status Based</span>
                         </div>
                       </Link>
                       {user?.email === 'lasafinancial@gmail.com' ? (
@@ -317,13 +323,13 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
           <div className="md:hidden flex items-center gap-2">
             {/* Mobile Quick Links */}
             <div className="flex items-center gap-1 mr-1">
-              <Link to="/" className={`p-2 rounded-xl transition-colors ${location.pathname === "/" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+              <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname === "/" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
                 <BarChart3 className="h-5 w-5" />
               </Link>
-              <Link to="/stocks" className={`p-2 rounded-xl transition-colors ${location.pathname === "/stocks" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+              <Link to="/stocks" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname === "/stocks" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
                 <Search className="h-5 w-5" />
               </Link>
-              <Link to="/screeners" className={`p-2 rounded-xl transition-colors ${location.pathname.startsWith("/screeners") ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+              <Link to="/screeners" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname.startsWith("/screeners") ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
                 <Filter className="h-5 w-5" />
               </Link>
             </div>
@@ -337,13 +343,13 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
               <span className="text-[10px] font-medium text-success uppercase tracking-wider">Live</span>
             </div>
 
-            <Sheet>
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="hover:bg-white/5">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-[#060606] overflow-y-auto">
+              <SheetContent side="right" className="w-[55vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-[#060606] overflow-y-auto">
                 <div className="flex flex-col min-h-full gap-6 pb-8">
                   {/* Mobile Nav Links */}
                   <div className="flex flex-col gap-2">
@@ -356,21 +362,28 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                       if (item.path === "/screeners") {
                         return (
                           <div key={item.path} className="space-y-1">
-                            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"}`}>
+                            <Link
+                              to="/screeners"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"}`}
+                            >
                               <Icon className="h-5 w-5" />
                               <span className="font-medium">Screeners</span>
-                            </div>
+                            </Link>
                             <div className="pl-12 space-y-1 border-l border-white/5 ml-6">
-                              <Link to="/screeners/near-resistance" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout</Link>
-                              <Link to="/screeners/support-reversal" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reversal</Link>
-                              <Link to="/screeners/reaction-zone" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reaction Zone</Link>
-                              <Link to="/screeners/intraday-breakout" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Breakout</Link>
-                              <Link to="/screeners/intraday-dev" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Dev</Link>
+                              <Link to="/screeners/intraday-dev" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout Board</Link>
+                              <Link to="/screeners/near-resistance" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout</Link>
+                              <Link to="/screeners/support-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reversal</Link>
+                              <Link to="/screeners/reaction-zone" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reaction Zone</Link>
+                              <Link to="/screeners/intraday-breakout" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Breakout</Link>
                               {user?.email === 'lasafinancial@gmail.com' ? (
-                                <Link to="/multibagger" className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Dev-MB</Link>
+                                <Link to="/multibagger" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Dev-MB</Link>
                               ) : (
                                 <button
-                                  onClick={() => toast({ title: "Coming Soon", description: "Dev-MB section is under active development!" })}
+                                  onClick={() => {
+                                    setIsMobileMenuOpen(false);
+                                    toast({ title: "Coming Soon", description: "Dev-MB section is under active development!" });
+                                  }}
                                   className="w-full block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors text-left"
                                 >
                                   Dev-MB
@@ -385,6 +398,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         <Link
                           key={item.path}
                           to={item.path}
+                          onClick={() => setIsMobileMenuOpen(false)}
                           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-white/5 hover:text-foreground"}`}
                         >
                           <Icon className="h-5 w-5" />

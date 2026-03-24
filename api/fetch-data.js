@@ -994,22 +994,21 @@ async function fetchData() {
       });
       const summaryRows = summaryRes.data.values;
       if (summaryRows && summaryRows.length > 1) {
-        const headers = summaryRows[0];
-        const sData = summaryRows.slice(1).map(row => {
-          const obj = {};
-          headers.forEach((h, i) => { obj[h.trim()] = row[i]; });
-          return obj;
-        });
-
-        sData.forEach(row => {
-          const symbol = (row['Symbol'] || row['ID'] || '').toString().trim().toUpperCase();
+        summaryRows.slice(1).forEach(row => {
+          const symbol = (row[1] || '').toString().trim().toUpperCase(); // Column B
           if (!symbol) return;
           intradaySummaryMap[symbol] = {
-            stars: (row['Stars'] || '').toString().trim(),
-            tier: (row['Tier'] || 'DEVELOPING').toString().trim().toUpperCase(),
-            target: (row['Target'] || '').toString().trim(),
-            targetPrice: parseFloat((row['TargetPrice'] || '0').toString().replace(/,/g, '')) || 0,
-            resistance: parseFloat((row['Resistance'] || '0').toString().replace(/,/g, '')) || 0
+            stars: (row[0] || '').toString().trim(),      // Column A
+            tier: (row[3] || 'DEVELOPING').toString().trim().toUpperCase(), // Column D
+            target: (row[9] || '').toString().trim(),     // Column J
+            targetPrice: parseFloat((row[10] || '0').toString().replace(/[^0-9.]/g, '')) || 0, // Column K
+            resistance: parseFloat((row[12] || '0').toString().replace(/[^0-9.]/g, '')) || 0, // Column M
+            ema9: getNum(row[7]),  // Column H
+            ema63: getNum(row[8]), // Column I
+            changePercent: parseFloat((row[5] || '0').toString().replace('%', '').replace(/,/g, '')) || 0, // Column F
+            targetStr: (row[9] || '').toString().trim(), // Column J
+            emaCrossover: (row[8] || '').toString().trim(), // Column I
+            reasons: (row[15] || '').toString().trim()      // Column P
           };
         });
         console.log(`[INTRADAY-SUMMARY] Loaded ${Object.keys(intradaySummaryMap).length} symbols from summary sheet.`);
@@ -1059,8 +1058,8 @@ async function fetchData() {
 
         // Grouping for the latest status columns (Strong, Pullback, Exit)
         const groupedRows = {};
-        rawDevData.forEach(row => {
-          const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
+        devRows.slice(1).forEach(row => {
+          const symbol = (row[0] || '').toString().trim();
           if (!symbol || symbol === 'N/A' || symbol === 'Symbol' || symbol === 'Date') return;
           if (!groupedRows[symbol]) groupedRows[symbol] = [];
           groupedRows[symbol].push(row);
@@ -1069,31 +1068,42 @@ async function fetchData() {
         intradayDev = Object.values(groupedRows).map(symbolRows => {
           const latest = symbolRows[symbolRows.length - 1];
           const sym = (latest['Symbol'] || latest[0] || 'N/A').toString().trim().toUpperCase();
-          const latestState = (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase();
+          const latestState = (latest['State'] || latest['N (State)'] || latest[12] || 'STRONG').toString().toUpperCase();
           const summary = intradaySummaryMap[sym] || {};
+
+          // Find the LATEST non-empty value for each field (in case of truncated rows)
+          const findLatest = (idx) => {
+            for (let i = symbolRows.length - 1; i >= 0; i--) {
+              const val = (symbolRows[i][idx] || '').toString().trim();
+              if (val) return val;
+            }
+            return '';
+          };
 
           return {
             symbol: sym,
-            date: (latest['Date'] || latest[1] || 'N/A').toString(),
-            time: (latest['Time'] || latest[2] || 'N/A').toString(),
-            open: getNum(latest['Open'] || latest[4]),
-            high: getNum(latest['High'] || latest[5]),
-            low: getNum(latest['Low'] || latest[6]),
-            close: getNum(latest['Close'] || latest[7]),
-            volume: getNum(latest['Volume'] || latest[8]),
-            volMult: getNum(latest['VolMult'] || latest[9]),
-            isGreen: (latest['IsGreen'] || latest[10] || '').toString(),
-            tier: summary.tier || (latest['Tier'] || latest[12] || 'DEVELOPING').toString().toUpperCase(),
+            date: (latest[1] || 'N/A').toString(),
+            time: (latest[1] || 'N/A').toString(),
+            open: getNum(findLatest(2)),
+            high: getNum(findLatest(3)),
+            low: getNum(findLatest(4)),
+            close: getNum(findLatest(5)),
+            volume: getNum(findLatest(6)),
+            volMult: getNum(findLatest(8)),
+            changePercent: summary.changePercent || 0,
+            isGreen: (findLatest(7) || '').toString(),
+            tier: summary.tier || (findLatest(12) ? 'MODERN' : 'DEVELOPING'),
             stars: summary.stars || '',
             targetPrice: summary.targetPrice || 0,
             summaryTarget: summary.target || '',
             state: latestState,
-            event: (latest['Event'] || latest[14] || '').toString(),
-            note: (latest['Note'] || latest[15] || '').toString(),
-            entry: getNum(latest['Entry'] || latest[16]),
-            stop: getNum(latest['Stop'] || latest[17]),
-            target: getNum(latest['Target'] || latest[18]),
-            rr: getNum(latest['RR'] || latest[19]),
+            event: (findLatest(13) || '').toString(),
+            note: (findLatest(15) || '').toString(),
+            ema9: getNum(findLatest(9)),
+            ema63: getNum(findLatest(10)),
+            emaCrossover: findLatest(11),
+            targetStr: findLatest(17),
+            reasons: findLatest(14),
             allSignals: symbolRows.length,
             recentChanges: recentChanges.filter(c => c.symbol === sym)
           };
@@ -1120,36 +1130,41 @@ async function fetchData() {
 
         playbackSnapshots = playbackTimes.map(timePoint => {
           const snapshotState = {};
-          // Find the latest record for each symbol up to this time point
-          rawDevData.forEach(row => {
-            const rowTime = (row['Time'] || row[2] || 'N/A').toString();
+          // Find the latest record for each symbol up to this time point using RAW ARRAYS
+          devRows.slice(1).forEach(row => {
+            const rowTime = (row[1] || 'N/A').toString();
             if (parseTime(rowTime) <= parseTime(timePoint)) {
-              const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
+              const symbol = (row[0] || '').toString().trim().toUpperCase();
               if (!symbol || symbol === 'N/A') return;
               snapshotState[symbol] = row;
             }
           });
 
           const stocksAtTime = Object.values(snapshotState).map(latest => {
-            const sym = (latest['Symbol'] || latest[0] || 'N/A').toString().trim().toUpperCase();
+            const sym = (latest[0] || 'N/A').toString().trim().toUpperCase();
             const summary = intradaySummaryMap[sym] || {};
+            // Indices: 0:Sym, 1:Time, 5:Close, 9:EMA9, 10:EMA63, 11:Crossover, 12:State, 14:Reason, 17:Target
             return {
               symbol: sym,
-              time: (latest['Time'] || latest[2] || 'N/A').toString(),
-              close: getNum(latest['Close'] || latest[7]),
-              state: (latest['State'] || latest['N (State)'] || latest[13] || 'STRONG').toString().toUpperCase(),
-              tier: summary.tier || (latest['Tier'] || latest[12] || 'DEVELOPING').toString().toUpperCase(),
+              time: (latest[1] || 'N/A').toString(),
+              close: getNum(latest[5]),
+              changePercent: summary.changePercent || 0,
+              state: (latest[12] || 'STRONG').toString().toUpperCase(),
+              tier: summary.tier || 'DEVELOPING',
               stars: summary.stars || '',
               targetPrice: summary.targetPrice || 0,
               summaryTarget: summary.target || '',
-              event: (latest['Event'] || latest[14] || '').toString(),
-              note: (latest['Note'] || latest[15] || '').toString(),
-              entry: getNum(latest['Entry'] || latest[16]),
-              stop: getNum(latest['Stop'] || latest[17]),
-              target: getNum(latest['Target'] || latest[18]),
-              rr: getNum(latest['RR'] || latest[19]),
-              ema9: getNum(latest['EMA9'] || latest[20] || 0),
-              ema63: getNum(latest['EMA63'] || latest[21] || 0)
+              event: (latest[13] || '').toString(),
+              note: (latest[15] || '').toString(),
+              entry: getNum(latest[15]),
+              stop: getNum(latest[16]),
+              target: getNum(latest[17]),
+              rr: getNum(latest[18]),
+              ema9: getNum(latest[9] || 0),
+              ema63: getNum(latest[10] || 0),
+              emaCrossover: (latest[11] || '').toString().trim(),
+              targetStr: (latest[17] || '').toString().trim(),
+              reasons: (latest[14] || '').toString().trim()
             };
           });
 

@@ -12,6 +12,16 @@ import {
 
 const screenerOptions = [
     {
+        path: "/screeners/intraday-dev",
+        label: "Breakout Board",
+        description: "Intraday status-based signals with real-time probability tracking and multi-tier analysis.",
+        icon: BarChart2,
+        color: "text-primary",
+        bgColor: "bg-primary/10",
+        borderColor: "group-hover:border-primary/50",
+        gradient: "from-primary/20 to-transparent"
+    },
+    {
         path: "/screeners/near-resistance",
         label: "Near Resistance",
         description: "An algorithmic filter that highlights stocks approaching predefined algorithmic resistance levels in real time.",
