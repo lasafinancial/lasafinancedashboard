@@ -214,10 +214,10 @@ const Dashboard = () => {
                 <ChevronDown className={`w-4 h-4 opacity-70 transition-transform ${isWatchlistOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              <div className={`fixed sm:absolute top-[200px] sm:top-[calc(100%+12px)] left-4 right-4 sm:left-auto sm:right-0 w-auto sm:w-[600px] md:w-[800px] lg:w-[1050px] xl:w-[1250px] max-w-none sm:max-w-[92vw] lg:max-w-[90vw] max-h-[70vh] sm:max-h-[85vh] overflow-y-auto overflow-x-hidden bg-[#0f172a]/95 backdrop-blur-xl border border-primary/20 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] transition-all duration-300 custom-scrollbar z-[300] ${isWatchlistOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
+              <div className={`absolute top-[calc(100%+8px)] left-0 md:left-auto md:right-0 w-[95vw] md:w-[800px] lg:w-[1050px] xl:w-[1250px] max-w-[95vw] sm:max-w-[92vw] lg:max-w-[90vw] max-h-[80vh] overflow-y-auto overflow-x-hidden bg-[#0f172a]/95 backdrop-blur-xl border border-primary/20 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] transition-all duration-300 custom-scrollbar z-[250] ${isWatchlistOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
                 }`}>
                 <div className="p-0">
-                  <Walkthrough isInDropdown={true} />
+                  <Walkthrough isInDropdown={true} onClose={() => setIsWatchlistOpen(false)} />
                 </div>
               </div>
             </div>

@@ -396,6 +396,16 @@
   }
 }
 
+@keyframes shrink {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.5s ease-out forwards;
 }
@@ -410,6 +420,10 @@
 
 .animate-move-bg {
   animation: move-bg 2s linear infinite;
+}
+
+.animate-shrink {
+  animation: shrink 0.8s linear forwards;
 }
 
 .delay-1000 {

@@ -427,7 +427,7 @@ export function IntradayDev() {
                             onClick={() => {
                                 if (!isPlayback) {
                                     setIsPlayback(true);
-                                    setPlaybackIndex(playbackSnapshots ? Math.max(0, playbackSnapshots.length - 1) : 0);
+                                    setPlaybackIndex(0);
                                 } else {
                                     setIsPlayback(false);
                                     setIsPlaying(false);
@@ -562,13 +562,13 @@ export function IntradayDev() {
                                         onClick={() => toggleSection('strong')}
                                         className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-emerald-500/20 flex justify-between items-center cursor-pointer md:cursor-default"
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <h2 className="text-[11px] font-semibold text-emerald-500 uppercase tracking-[1px]">Strong</h2>
+                                        <div className="flex items-center gap-2 flex-1 justify-center md:justify-start">
+                                            <h2 className="text-[11px] font-semibold text-emerald-500 uppercase tracking-[1px] ml-6 md:ml-0">Strong</h2>
                                             <div className="md:hidden">
                                                 {expandedSections.strong ? <ChevronUp className="w-3 h-3 text-emerald-500/50" /> : <ChevronDown className="w-3 h-3 text-emerald-500/50" />}
                                             </div>
                                         </div>
-                                        <span className="text-[13px] font-black text-emerald-500/50 font-mono">{categorized.strong.length}</span>
+                                        <span className="text-[13px] font-black text-emerald-500/50 font-mono absolute right-3">{categorized.strong.length}</span>
                                     </div>
                                     <AnimatePresence>
                                         {expandedSections.strong && (
@@ -664,9 +664,9 @@ export function IntradayDev() {
                                         onClick={() => toggleSection('changes')}
                                         className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-blue-500/10 flex justify-between items-center cursor-pointer md:cursor-default"
                                     >
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-1 justify-center md:justify-start">
                                             <div className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-blue-400/40 border-b-[4px] border-b-transparent ml-1" />
-                                            <h2 className="text-[11px] font-black text-blue-400/60 uppercase tracking-[0.2em] font-mono">Changes</h2>
+                                            <h2 className="text-[11px] font-black text-blue-400/60 uppercase tracking-[0.2em] font-mono ml-6 md:ml-0">Changes</h2>
                                             <div className="md:hidden">
                                                 {expandedSections.changes ? <ChevronUp className="w-3 h-3 text-blue-500/50" /> : <ChevronDown className="w-3 h-3 text-blue-500/50" />}
                                             </div>

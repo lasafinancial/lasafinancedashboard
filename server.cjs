@@ -1261,7 +1261,7 @@ async function fetchData() {
           .sort((a, b) => parseTime(a) - parseTime(b));
 
         // 2. Take the last 20 timestamps for the 5-minute history (assuming 1-5 min intervals)
-        const playbackTimes = uniqueTimes.slice(-20);
+        const playbackTimes = uniqueTimes; // Include all timestamps from 9:15 AM onwards
 
         playbackSnapshots = playbackTimes.map(timePoint => {
           const snapshotState = {};
