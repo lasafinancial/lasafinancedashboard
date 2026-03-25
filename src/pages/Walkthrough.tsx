@@ -43,7 +43,6 @@ const Walkthrough = ({ isInDropdown = false, onClose }: WalkthroughProps) => {
         }
         setDuplicateWarning(null);
         await updateUserData({ watchlist: [...watchlist, symbol] });
-        toast({ title: "Added", description: `${symbol} added to Watchlist.` });
         setIsAdding(false);
         setSearchQuery("");
     };
@@ -58,12 +57,6 @@ const Walkthrough = ({ isInDropdown = false, onClose }: WalkthroughProps) => {
             await updateUserData({ watchlist: updated });
             setRemovingSymbol(null);
             setStockToDelete(null);
-            // Also keep the toast for global confirmation if they miss the local one
-            toast({
-                title: "Removed",
-                description: `${symbol} removed from Watchlist.`,
-                duration: 2000
-            });
         }, 800);
     };
 
