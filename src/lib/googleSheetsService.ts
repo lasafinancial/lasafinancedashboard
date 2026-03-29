@@ -135,6 +135,8 @@ let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
 const dataListeners: Set<(data: GoogleSheetsData) => void> = new Set();
 
+import { getApiUrl } from '@/config/api';
+
 export function subscribeToData(callback: (data: GoogleSheetsData) => void): () => void {
   dataListeners.add(callback);
   if (cachedData) {
@@ -157,7 +159,7 @@ export async function refreshAllData(): Promise<GoogleSheetsData | null> {
   }
 
   try {
-    const response = await fetch('/api/fetch-data');
+    const response = await fetch(getApiUrl('/api/fetch-data'));
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

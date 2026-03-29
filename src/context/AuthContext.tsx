@@ -14,6 +14,7 @@ import {
 import { auth, db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc, getDoc, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
+import { getApiUrl, isNative, PRODUCTION_URL } from '@/config/api';
 
 interface UserData {
     name?: string;
@@ -231,8 +232,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const sendMagicLink = async (email: string) => {
+        const origin = isNative ? PRODUCTION_URL : window.location.origin;
         const actionCodeSettings = {
-            url: window.location.origin + '/login',
+            url: origin + '/login',
             handleCodeInApp: true,
         };
         await sendSignInLinkToEmail(auth, email, actionCodeSettings);
@@ -241,7 +243,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Twilio OTP Methods
     const twilioSendOtp = async (phoneNumber: string) => {
-        const response = await fetch('/api/send-otp', {
+        const response = await fetch(getApiUrl('/api/send-otp'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phoneNumber }),
@@ -252,7 +254,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const twilioVerifyOtp = async (phoneNumber: string, code: string) => {
-        const response = await fetch('/api/verify-otp', {
+        const response = await fetch(getApiUrl('/api/verify-otp'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phoneNumber, code }),
