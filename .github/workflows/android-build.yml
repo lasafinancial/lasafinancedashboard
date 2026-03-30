@@ -28,9 +28,6 @@ jobs:
         # Using --no-scripts to bypass esbuild binary mapping issues just like on local
         run: bun install --no-scripts
 
-      - name: Build Web App
-        run: bun run build
-
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
