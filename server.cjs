@@ -296,6 +296,53 @@ function rowsToObjects(rows) {
   });
 }
 
+async function syncIntradaySummaryToFirestore(sheets) {
+  console.log('--- Syncing intraday-summary to Firestore ---');
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: EOD_SHEET_ID,
+      range: "'intraday-summary'!A1:U100", // Fetch up to 100 rows
+    });
+
+    const rows = res.data.values;
+    if (!rows || rows.length < 2) {
+      console.warn('[FIREBASE-SYNC] No data found in intraday-summary sheet');
+      return;
+    }
+
+    const headers = rows[0].map(h => (h || '').toString().trim());
+    const dataRows = rows.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((header, i) => {
+        if (header) {
+          obj[header] = row[i] !== undefined ? row[i] : null;
+        }
+      });
+      return obj;
+    });
+
+    const db = admin.firestore();
+    const batch = db.batch();
+    const collectionRef = db.collection('intraday-summary');
+
+    dataRows.forEach(data => {
+      const symbol = data['Symbol'] || data['ID'];
+      if (!symbol) return;
+
+      const docRef = collectionRef.doc(symbol.toString());
+      batch.set(docRef, {
+        ...data,
+        UpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    });
+
+    await batch.commit();
+    console.log(`[FIREBASE-SYNC] Successfully synced ${dataRows.length} rows to "intraday-summary" collection.`);
+  } catch (err) {
+    console.error('[FIREBASE-SYNC] Error syncing to Firestore:', err.message);
+  }
+}
+
 async function fetchData() {
   const getNum = (val) => {
     if (val === undefined || val === null || val === '') return 0;
@@ -317,8 +364,10 @@ async function fetchData() {
   let dailyNews = [];
   let intradayBreakout = [];
   let intradayDev = [];
+  let goldenAlerts = [];
   let playbackSnapshots = [];
   let niftyAnalysis = { summary: {}, scenarios: [], actionPlan: [] };
+  let currentPriceMap = new Map();
 
   console.log('Fetching live data from Google Sheets...');
   const credentials = getCredentials();
@@ -329,6 +378,59 @@ async function fetchData() {
   });
 
   const sheets = google.sheets({ version: 'v4', auth });
+
+  // --- Golden Alerts Fetch (Moved to top for reliability) ---
+  goldenAlerts = [];
+  try {
+    const goldenRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: EOD_SHEET_ID,
+      range: "'golden'!A1:T200",
+    });
+    const goldenRows = goldenRes.data.values;
+    console.log(`[GOLDEN] Raw fetch result: ${goldenRows ? goldenRows.length : 0} rows`);
+    if (goldenRows && goldenRows.length > 0) {
+      console.log('[GOLDEN-DEBUG] Row 0:', JSON.stringify(goldenRows[0]));
+      const firstVal = (goldenRows[0][0] || '').toString().toLowerCase();
+      const isHeader = firstVal.includes('symbol') || firstVal.includes('id') || firstVal.includes('date');
+      const rowsToProcess = isHeader ? goldenRows.slice(1) : goldenRows;
+      const headers = isHeader ? goldenRows[0] : null;
+
+      const deduplicated = new Map();
+      rowsToProcess.forEach((row) => {
+        const sym = (row[0] || '').toString().trim().toUpperCase();
+        if (!sym || sym.length < 2 || sym === 'SYMBOL') return;
+
+        const timeStr = (row[2] || '').toString().trim();
+        const alert = {
+          symbol: sym,
+          time: timeStr,
+          stars: (row[13] || '').toString(),
+          note: (row[10] || '').toString(), // Column K: SIGNAL TYPE
+          recommendedPrice: getNum(row[3]), // Column D: LTP (Recommended Price)
+          change: getNum(row[5]), // Column F: PRICE PERCENT
+          volumeMultiplier: getNum(row[4]), // Column E: VOL MULT
+          resGap: getNum(row[8]), // Column I: RES GAP
+          target: getNum(row[9]), // Column J: TARGET
+          ema9: getNum(row[6]), // Column G: EMA9
+          ema63: getNum(row[7]) // Column H: EMA63
+        };
+
+        if (!deduplicated.has(sym)) {
+          deduplicated.set(sym, alert);
+        } else {
+          // Keep only the EARLIEST alert for each stock
+          const existing = deduplicated.get(sym);
+          if (timeStr && existing.time && timeStr < existing.time) {
+            deduplicated.set(sym, alert);
+          }
+        }
+      });
+      goldenAlerts = Array.from(deduplicated.values());
+      console.log(`[GOLDEN] Successfully processed ${goldenAlerts.length} alerts with 9 metrics`);
+    }
+  } catch (err) {
+    console.warn('[GOLDEN] Early fetch error:', err.message);
+  }
 
   try {
     console.log('Fetching all data from lasa-master...');
@@ -343,11 +445,11 @@ async function fetchData() {
     const filteredRows = rawValues.filter((row, i) => {
       if (i === 0) return true; // Keep headers
       const g = (row[groupIdx] || '').toString().toUpperCase();
-      return g === 'LARGECAP' || g === 'MIDCAP' || g === 'INDEX';
+      return g === 'LARGECAP' || g === 'MIDCAP' || g === 'SMALLCAP' || g === 'INDEX';
     });
 
     const lasaMasterData = rowsToObjects(filteredRows);
-    console.log(`Total rows kept (LARGECAP/MIDCAP/INDEX): ${lasaMasterData.length} (from ${rawValues.length} total)`);
+    console.log(`Total rows kept (LARGECAP/MIDCAP/SMALLCAP/INDEX): ${lasaMasterData.length} (from ${rawValues.length} total)`);
 
     // Explicitly nullify large raw arrays to free memory
     const totalRawRows = rawValues.length;
@@ -362,7 +464,7 @@ async function fetchData() {
     const calculateSentiment = (rows) => {
       const moodStocks = rows.filter(row => {
         const g = (row['GROUP'] || '').toString().toUpperCase();
-        return g === 'LARGECAP' || g === 'MIDCAP';
+        return g === 'LARGECAP' || g === 'MIDCAP' || g === 'SMALLCAP';
       });
       let bull = 0, bear = 0, neut = 0;
       moodStocks.forEach(row => {
@@ -476,7 +578,7 @@ async function fetchData() {
       if (!dateStr) return;
 
       const group = (row['GROUP'] || '').toString().toUpperCase();
-      if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX') {
+      if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'SMALLCAP' && group !== 'INDEX') {
         return;
       }
 
@@ -564,11 +666,21 @@ async function fetchData() {
         spreadsheetId: EOD_SHEET_ID,
         range: "'current'!A1:FJ",
       });
-      const currentData = rowsToObjects(currentRes.data.values);
+      const currentRows = currentRes.data.values || [];
+      const currentData = rowsToObjects(currentRows);
 
-      const moodStocks = currentData.slice(0, 470).filter(row => {
+      // Build currentPriceMap for later enrichment
+      currentData.forEach(row => {
+        const sym = (row['ID'] || row['C'] || '').toString().trim().toUpperCase();
+        if (sym) {
+          const cp = getNum(row['CLOSE_PRICE'] || row[colToIdx('E')]);
+          currentPriceMap.set(sym, cp);
+        }
+      });
+
+      const moodStocks = currentData.slice(0, 1000).filter(row => {
         const group = (row['GROUP'] || '').toString().toUpperCase();
-        return group === 'LARGECAP' || group === 'MIDCAP';
+        return group === 'LARGECAP' || group === 'MIDCAP' || group === 'SMALLCAP';
       });
 
       let bullCount = 0, bearCount = 0, neutCount = 0;
@@ -646,7 +758,7 @@ async function fetchData() {
       nearResistance = currentData.filter(row => {
         const status = (row['STATUS'] || '').toString().toUpperCase();
         const group = (row['GROUP'] || '').toString().toUpperCase();
-        return status === 'BULLISH' && (group === 'LARGECAP' || group === 'MIDCAP');
+        return status === 'BULLISH' && (group === 'LARGECAP' || group === 'MIDCAP' || group === 'SMALLCAP');
       }).map(mapStock).sort((a, b) => {
         if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
         if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
@@ -659,7 +771,7 @@ async function fetchData() {
         const cp = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
         const sup = getNum(row['SUPPORT'] || row[nearResistanceIdx.support]);
         const brk = getNum(row['D_BREAKOUT_PRICE'] || row[nearResistanceIdx.breakout]);
-        return (group === 'LARGECAP' || group === 'MIDCAP') && cp > sup && brk < sup;
+        return (group === 'LARGECAP' || group === 'MIDCAP' || group === 'SMALLCAP') && cp > sup && brk < sup;
       }).map(mapStock).sort((a, b) => {
         if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
         if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
@@ -675,7 +787,7 @@ async function fetchData() {
         const algoM = getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]);
         const algoW = getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW]);
 
-        if (group !== 'LARGECAP' && group !== 'MIDCAP') return false;
+        if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'SMALLCAP') return false;
 
         const nearFG = algoFG > 0 && Math.abs(cp - algoFG) <= (algoFG * 0.01);
         const nearM = algoM > 0 && Math.abs(cp - algoM) <= (algoM * 0.01);
@@ -987,11 +1099,11 @@ async function fetchData() {
         };
       }).filter(idx => idx.stocksCount > 0).sort((a, b) => b.strengthScore - a.strengthScore);
 
-      const stocks = currentData
+      const stocks = currentData.slice(0, 1000)
         .filter(row => {
           if (!row['STOCK_NAME'] || row['CHANGE_PERCENT'] === undefined || row['CHANGE_PERCENT'] === '') return false;
           const group = (row['GROUP'] || '').toString().toUpperCase();
-          return group === 'LARGECAP' || group === 'MIDCAP';
+          return group === 'LARGECAP' || group === 'MIDCAP' || group === 'SMALLCAP';
         })
         .map(row => ({
           id: row['ID'] || row[colToIdx('C')] || row['STOCK_NAME'] || row[colToIdx('D')],
@@ -1324,7 +1436,27 @@ async function fetchData() {
     } catch (err) {
       console.error('[INTRADAY-DEV] Error fetching or processing intraday commentary:', err.stack);
     }
-    // --- End Intraday Dev Screener ---
+    // --- Final Golden Alerts Enrichment with Live Prices ---
+    if (goldenAlerts && goldenAlerts.length > 0) {
+      goldenAlerts = goldenAlerts.map(alert => {
+        let livePrice = alert.recommendedPrice;
+        
+        // Priority 1: 'current' sheet (TRULY LIVE)
+        if (currentPriceMap.has(alert.symbol)) {
+          livePrice = currentPriceMap.get(alert.symbol);
+        } 
+        // Priority 2: stockData (Historical/Master fallback)
+        else if (stockData && stockData.length > 0) {
+          const matched = stockData.find(s => s.symbol.toUpperCase() === alert.symbol);
+          if (matched) livePrice = matched.price;
+        }
+
+        return {
+          ...alert,
+          livePrice
+        };
+      });
+    }
 
   } catch (err) {
     console.warn('Major fetch error in fetchData:', err.message);
@@ -1344,6 +1476,7 @@ async function fetchData() {
     intradayBreakout,
     intradayDev,
     intradayDevChanges: globalIntradayChanges,
+    goldenAlerts,
     playbackSnapshots,
     dailyNews,
     niftyAnalysis,
@@ -1367,7 +1500,19 @@ app.get('/api/fetch-data', async (req, res) => {
     const data = await fetchData();
     cachedData = data;
     lastFetchTime = now;
-
+    console.log(`[API] Returning data to frontend. Golden Alerts: ${data.goldenAlerts?.length || 0}`);
+    
+    // TEST ALERT: If 0, add one to see if frontend picks it up
+    if (!data.goldenAlerts || data.goldenAlerts.length === 0) {
+      data.goldenAlerts = [{
+        symbol: 'API-OK',
+        time: new Date().toLocaleTimeString(),
+        stars: '★★★',
+        note: 'IF YOU SEE THIS, THE API IS WORKING. CHECK DATA FETCH.',
+        price: 0
+      }];
+    }
+    
     res.json(data);
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -1508,9 +1653,9 @@ app.all('/api/send-market-mood', async (req, res) => {
     }
 
     const dataRows = rowsToObjects(rows);
-    const moodStocks = dataRows.slice(0, 470).filter(row => {
+    const moodStocks = dataRows.slice(0, 1000).filter(row => {
       const group = (row['GROUP'] || '').toString().toUpperCase();
-      return group === 'LARGECAP' || group === 'MIDCAP';
+      return group === 'LARGECAP' || group === 'MIDCAP' || group === 'SMALLCAP';
     });
 
     let bullCount = 0, bearCount = 0, neutCount = 0;
@@ -1811,10 +1956,19 @@ app.listen(PORT, () => {
   // Initial fetch
   console.log('Performing initial data fetch...');
   fetchData()
-    .then(() => {
+    .then(async () => {
       console.log('Initial fetch complete. Server is ready.');
       const mem = process.memoryUsage();
       console.log(`Memory Usage: RSS=${Math.round(mem.rss / 1024 / 1024)}MB, Heap=${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
+
+      // Sync to Firestore once after initial fetch
+      const credentials = getCredentials();
+      const auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+      });
+      const sheets = google.sheets({ version: 'v4', auth });
+      await syncIntradaySummaryToFirestore(sheets);
     })
     .catch(err => console.error('Initial fetch failed:', err));
 
@@ -1823,10 +1977,19 @@ app.listen(PORT, () => {
     setTimeout(() => {
       console.log('--- Scheduled Background Refresh Started ---');
       fetchData()
-        .then(() => {
+        .then(async () => {
           console.log('--- Scheduled Background Refresh Complete ---');
           const mem = process.memoryUsage();
           console.log(`Memory Usage: RSS=${Math.round(mem.rss / 1024 / 1024)}MB, Heap=${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
+
+          // Sync to Firestore after successful sheet fetch
+          const credentials = getCredentials();
+          const auth = new google.auth.GoogleAuth({
+            credentials,
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+          });
+          const sheets = google.sheets({ version: 'v4', auth });
+          await syncIntradaySummaryToFirestore(sheets);
         })
         .catch(err => console.error('Scheduled refresh failed:', err))
         .finally(() => {

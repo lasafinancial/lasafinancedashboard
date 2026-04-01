@@ -452,13 +452,25 @@ async function fetchData() {
   let intradayDev = [];
   let intradayDevChanges = [];
   let playbackSnapshots = [];
+  let goldenAlerts = [];
+  let currentPriceMap = new Map();
   let niftyAnalysis = { summary: {}, scenarios: [], actionPlan: [] };
   try {
     const currentRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
       range: "'current'!A1:FJ",
     });
-    currentData = rowsToObjects(currentRes.data.values);
+    const currentRows = currentRes.data.values || [];
+    currentData = rowsToObjects(currentRows);
+
+    // Build currentPriceMap for enrichment
+    currentData.forEach(row => {
+      const sym = (row['ID'] || row['C'] || '').toString().trim().toUpperCase();
+      if (sym) {
+        const cp = getNum(row['CLOSE_PRICE'] || row[colToIdx('E')]);
+        currentPriceMap.set(sym, cp);
+      }
+    });
 
     const moodStocks = currentData.slice(0, 470).filter(row => {
       const group = (row['GROUP'] || '').toString().toUpperCase();
@@ -1017,6 +1029,54 @@ async function fetchData() {
       console.warn('Could not fetch intraday-summary data:', err.message);
     }
 
+    // --- Start Golden Alerts Fetch ---
+    try {
+      const goldenRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: EOD_SHEET_ID,
+        range: 'golden!A1:T2000',
+      });
+      const gRows = goldenRes.data.values || [];
+      if (gRows.length > 1) {
+        const earliestAlerts = new Map();
+        
+        gRows.slice(1).forEach(row => {
+          const sym = (row[0] || '').toString().trim().toUpperCase();
+          const time = (row[2] || '').toString().trim();
+          if (!sym || !time) return;
+
+          const alertData = {
+            symbol: sym,
+            time: time,
+            recommendedPrice: getNum(row[3]),
+            volumeMultiplier: getNum(row[4]),
+            change: getNum(row[5]),
+            ema9: getNum(row[6]),
+            ema63: getNum(row[7]),
+            resGap: getNum(row[8]),
+            target: getNum(row[9]),
+            stars: '★★★'
+          };
+
+          const parseTimeLocal = (t) => {
+            try {
+              const parts = t.split(':').map(Number);
+              return parts[0] * 60 + (parts[1] || 0);
+            } catch { return 9999; }
+          };
+
+          const existing = earliestAlerts.get(sym);
+          if (!existing || parseTimeLocal(time) < parseTimeLocal(existing.time)) {
+            earliestAlerts.set(sym, alertData);
+          }
+        });
+        goldenAlerts = Array.from(earliestAlerts.values());
+        console.log(`[GOLDEN] Fetched and deduplicated ${goldenAlerts.length} golden alerts.`);
+      }
+    } catch (err) {
+      console.warn('Could not fetch golden alerts:', err.message);
+    }
+    // --- End Golden Alerts Fetch ---
+
     // --- Start Intraday Dev (Commentary) Screener ---
     try {
       const devRes = await sheets.spreadsheets.values.get({
@@ -1184,6 +1244,28 @@ async function fetchData() {
     } catch (err) {
       console.warn('Could not fetch intraday dev data:', err.message);
     }
+
+    // --- Final Golden Alerts Enrichment with Live Prices ---
+    if (goldenAlerts && goldenAlerts.length > 0) {
+      goldenAlerts = goldenAlerts.map(alert => {
+        let livePrice = alert.recommendedPrice;
+        
+        // Priority 1: 'current' sheet (TRULY LIVE)
+        if (currentPriceMap.has(alert.symbol)) {
+          livePrice = currentPriceMap.get(alert.symbol);
+        } 
+        // Priority 2: stockData (Historical/Master fallback)
+        else if (stockData && stockData.length > 0) {
+          const matched = stockData.find(s => s.symbol.toUpperCase() === alert.symbol);
+          if (matched) livePrice = matched.price;
+        }
+
+        return {
+          ...alert,
+          livePrice
+        };
+      });
+    }
     // --- End Intraday Dev Screener ---
 
   } catch (err) {
@@ -1237,6 +1319,7 @@ async function fetchData() {
     intradayBreakout,
     intradayDev,
     intradayDevChanges,
+    goldenAlerts,
     playbackSnapshots,
     dailyNews,
     niftyAnalysis,

@@ -30,6 +30,7 @@ export function useLiveData() {
   const [intradayBreakout, setIntradayBreakout] = useState<any[]>(cached ? cached.intradayBreakout || [] : []);
   const [intradayDev, setIntradayDev] = useState<any[]>(cached ? cached.intradayDev || [] : []);
   const [intradayDevChanges, setIntradayDevChanges] = useState<any[]>(cached ? cached.intradayDevChanges || [] : []);
+  const [goldenAlerts, setGoldenAlerts] = useState<any[]>(cached ? (cached as any).goldenAlerts || [] : []);
   const [playbackSnapshots, setPlaybackSnapshots] = useState<any[]>(cached ? cached.playbackSnapshots || [] : []);
   const [dailyNews, setDailyNews] = useState<any[]>(cached ? (cached as any).dailyNews || [] : []);
   const [niftyAnalysis, setNiftyAnalysis] = useState<any | null>(cached ? (cached as any).niftyAnalysis || null : null);
@@ -51,6 +52,7 @@ export function useLiveData() {
       setIntradayBreakout(data.intradayBreakout || []);
       setIntradayDev(data.intradayDev || []);
       setIntradayDevChanges(data.intradayDevChanges || []);
+      setGoldenAlerts((data as any).goldenAlerts || []);
       setPlaybackSnapshots(data.playbackSnapshots || []);
       setDailyNews((data as any).dailyNews || []);
       setNiftyAnalysis((data as any).niftyAnalysis || null);
@@ -81,6 +83,7 @@ export function useLiveData() {
     intradayBreakout,
     intradayDev,
     intradayDevChanges,
+    goldenAlerts,
     playbackSnapshots,
     dailyNews,
     niftyAnalysis,

@@ -13,7 +13,7 @@ type FilterType = "ALL" | "WATCHLIST" | "STAR3" | "STAR2" | "ENTRY_READY" | "EXI
 
 export function IntradayDev() {
     const navigate = useNavigate();
-    const { intradayDev: stocks, intradayDevChanges, playbackSnapshots, lastUpdate, refresh, isLoading } = useLiveData();
+    const { intradayDev: stocks, intradayDevChanges, goldenAlerts, playbackSnapshots, lastUpdate, refresh, isLoading } = useLiveData();
     const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
@@ -33,7 +33,7 @@ export function IntradayDev() {
         strong: true,
         pullback: true,
         exit: true,
-        changes: false
+        golden: false
     });
 
     const toggleSection = (section: string) => {
@@ -143,17 +143,56 @@ export function IntradayDev() {
             strong: filteredStocks.filter(s => s.state === "STRONG"),
             pullback: filteredStocks.filter(s => s.state === "PULLBACK"),
             exit: filteredStocks.filter(s => s.state === "EXIT" || s.state === "TRAP"),
-            changes: currentChanges
+            goldenAlerts: isPlayback ? [] : (goldenAlerts || []) // Hide alerts in playback for now unless we add snapshots for them
         };
-    }, [filteredStocks, intradayDevChanges, isPlayback, playbackSnapshots, playbackIndex]);
+    }, [filteredStocks, intradayDevChanges, goldenAlerts, isPlayback, playbackSnapshots, playbackIndex]);
 
     const stats = useMemo(() => ({
-        strong: (stocks || []).filter(s => s.state === "STRONG").length,
-        pullback: (stocks || []).filter(s => s.state === "PULLBACK").length,
-        exit: (stocks || []).filter(s => s.state === "EXIT" || s.state === "TRAP").length,
-        changes: (intradayDevChanges || []).length,
-        total: (stocks || []).length
-    }), [stocks, intradayDevChanges]);
+        strong: categorized.strong.length,
+        pullback: categorized.pullback.length,
+        exit: categorized.exit.length,
+        golden: categorized.goldenAlerts.length,
+        total: (categorized.strong.length || 0) + (categorized.pullback.length || 0) + (categorized.exit.length || 0)
+    }), [categorized]);
+
+    const tierDescriptions = [
+        {
+            id: 'GOLDEN',
+            stars: '★★★',
+            label: 'GOLDEN',
+            description: 'Best setup. Upside >4% to resistance, EMA9 > EMA63 confirmed. Buy on pullback to EMA9.',
+            color: 'text-yellow-500',
+            borderColor: 'border-yellow-500/20',
+            bgColor: 'bg-yellow-500/10'
+        },
+        {
+            id: 'BREAKOUT',
+            stars: '★★',
+            label: 'BREAKOUT',
+            description: 'Above resistance. Heading toward MODEL or BALANCE projections. Enter early or on retest.',
+            color: 'text-blue-400',
+            borderColor: 'border-blue-500/20',
+            bgColor: 'bg-blue-500/10'
+        },
+        {
+            id: 'UPTREND',
+            stars: '★★',
+            label: 'UPTREND',
+            description: 'No defined target. All levels crossed. Trail with strict EMA9 stoploss, no fixed target.',
+            color: 'text-green-500',
+            borderColor: 'border-green-500/20',
+            bgColor: 'bg-green-500/10'
+        },
+        {
+            id: 'DEVELOPING',
+            stars: '',
+            label: 'DEVELOPING',
+            description: 'Watch only. Limited 2-3% upside or EMA not confirmed. Do not chase.',
+            color: 'text-white/40',
+            borderColor: 'border-white/10',
+            bgColor: 'bg-white/5'
+        }
+    ];
 
     type StockCardProps = { stock: any; color: 'green' | 'yellow' | 'red' };
     const StockCard = forwardRef<HTMLDivElement, StockCardProps>(({ stock, color }, ref) => {
@@ -275,10 +314,33 @@ export function IntradayDev() {
         );
     });
 
-    type ChangeCardProps = { change: any };
-    const ChangeCard = forwardRef<HTMLDivElement, ChangeCardProps>(({ change }, ref) => {
-        const colorClass = change.toState === 'STRONG' ? 'text-emerald-400' :
-            change.toState === 'PULLBACK' ? 'text-yellow-500' : 'text-red-500';
+    type GoldenAlertCardProps = { alert: any };
+    const GoldenAlertCard = forwardRef<HTMLDivElement, GoldenAlertCardProps>(({ alert }, ref) => {
+        const renderStars = (stars: string) => {
+            const count = (stars?.match(/★/g) || []).length || parseInt(stars) || 0;
+            if (count === 0) return null;
+            return (
+                <div className="flex gap-0.5 text-yellow-500">
+                    {Array.from({ length: Math.min(count, 5) }).map((_, i) => (
+                        <Star key={i} className="w-2.5 h-2.5 fill-current" />
+                    ))}
+                </div>
+            );
+        };
+
+        const formatCurrency = (val: number) => {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 1
+            }).format(val || 0);
+        };
+
+        const formatPercent = (val: number) => {
+            const num = val || 0;
+            const sign = num >= 0 ? '+' : '';
+            return `${sign}${num.toFixed(1)}%`;
+        };
 
         return (
             <motion.div
@@ -287,22 +349,68 @@ export function IntradayDev() {
                 transition={{ type: "spring", stiffness: 350, damping: 25 }}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="px-4 py-2 border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors cursor-pointer group flex flex-col justify-center min-h-[50px] bg-[#0a0a0a]"
-                onClick={() => handleStockClick(change.symbol)}
+                className="px-4 py-3 border-b border-white/[0.03] hover:bg-yellow-500/[0.04] transition-all cursor-pointer group flex flex-col gap-2 bg-[#0a0a0a] border-l-2 border-l-transparent hover:border-l-yellow-500/50"
+                onClick={() => handleStockClick(alert.symbol)}
             >
-                <div className="flex flex-col gap-0.5">
-                    <span className="text-[12px] font-medium text-muted-foreground/70 font-mono tracking-tighter">{change.time}</span>
+                {/* Row 1: Symbol & Time */}
+                <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-semibold text-[#e8e8e8] tracking-[0.5px] uppercase w-20 truncate">{change.symbol}</span>
-                        <span className="text-muted-foreground/30 text-[10px]">→</span>
-                        <span className={`text-[11px] font-semibold uppercase tracking-[1px] ${colorClass}`}>
-                            {change.toState === 'PULLBACK' ? '▲ ENTRY' : change.toState}
-                        </span>
+                        <span className="text-[14px] font-black text-[#e8e8e8] tracking-[0.5px] uppercase">{alert.symbol}</span>
+                        {renderStars(alert.stars)}
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/20">
+                        <span className="text-[10px] text-yellow-500 font-black animate-pulse">⚡</span>
+                        <span className="text-[10px] font-black text-yellow-500 font-mono tracking-tighter">{alert.time}</span>
                     </div>
                 </div>
-                {change.note && (
-                    <div className="text-[12px] font-medium text-muted-foreground/70 leading-relaxed mt-1 group-hover:text-muted-foreground/80 transition-colors">
-                        {change.note}
+
+                {/* Row 2: Price & Vol */}
+                <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                        <span className="text-[15px] font-black text-white leading-none tracking-tight">{formatCurrency(alert.livePrice)}</span>
+                        <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.1em] mt-1">Live Price</span>
+                    </div>
+                    <span className={`text-[11px] font-black ${alert.change >= 0 ? 'text-emerald-500' : 'text-red-500'} self-start mt-1 ml-2`}>
+                        {formatPercent(alert.change)}
+                    </span>
+                    <div className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-500 uppercase tracking-tighter ml-auto">
+                        Vol x{alert.volumeMultiplier?.toFixed(1) || '1.0'}
+                    </div>
+                </div>
+
+                {/* Sub-row: Recommended Price */}
+                <div className="flex items-center gap-2 -mt-1 mb-1">
+                    <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.05em]">Recom Price:</span>
+                    <span className="text-[10px] font-black text-white/80">{formatCurrency(alert.recommendedPrice)}</span>
+                </div>
+
+                {/* Row 3: Res Gap & Target */}
+                <div className="grid grid-cols-2 gap-2 mt-1 border-t border-white/[0.03] pt-2">
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">Res Gap</span>
+                        <span className="text-[11px] font-black text-yellow-500/70">{formatPercent(alert.resGap)}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                        <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">Target</span>
+                        <span className="text-[11px] font-black text-orange-500/80">{formatCurrency(alert.target)}</span>
+                    </div>
+                </div>
+
+                {/* Row 4: EMAs */}
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">EMA9</span>
+                        <span className="text-[10px] font-black text-white/50">{formatCurrency(alert.ema9)}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                        <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">EMA63</span>
+                        <span className="text-[10px] font-black text-white/50">{formatCurrency(alert.ema63)}</span>
+                    </div>
+                </div>
+
+                {alert.note && (
+                    <div className="mt-0.5 text-[10px] font-bold text-white/30 leading-snug group-hover:text-white/50 transition-colors uppercase tracking-tight italic border-t border-white/[0.02] pt-1">
+                        {alert.note}
                     </div>
                 )}
             </motion.div>
@@ -449,6 +557,22 @@ export function IntradayDev() {
                             <RefreshCw className="w-3 h-3" />
                         </Button>
                     </div>
+                </div>
+
+                {/* TIER LEGEND SECTION */}
+                <div className="hidden lg:grid grid-cols-4 gap-[2px] mb-4 bg-white/5 border border-white/5 rounded-sm overflow-hidden">
+                    {tierDescriptions.map(tier => (
+                        <div key={tier.id} className={`${tier.bgColor} p-3 flex flex-col gap-1`}>
+                            <div className="flex items-center gap-2">
+                                <div className={`px-2 py-0.5 rounded text-[10px] font-black tracking-widest border ${tier.borderColor} ${tier.color} uppercase`}>
+                                    {tier.stars} {tier.label}
+                                </div>
+                            </div>
+                            <p className="text-[11px] font-bold text-white/50 leading-snug tracking-tight uppercase">
+                                {tier.description}
+                            </p>
+                        </div>
+                    ))}
                 </div>
 
                 {/* NEW COMPACT STATS & TABS ROW */}
@@ -658,52 +782,37 @@ export function IntradayDev() {
                                     </div>
                                 </div>
 
-                                {/* CHANGES COLUMN */}
+                                 {/* GOLDEN ALERTS COLUMN */}
                                 <div className="bg-[#050505] md:min-h-[calc(100vh-350px)] border-t md:border-t-0 border-white/5">
                                     <div
-                                        onClick={() => toggleSection('changes')}
-                                        className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-blue-500/10 flex justify-between items-center cursor-pointer md:cursor-default"
+                                        onClick={() => toggleSection('golden')}
+                                        className="sticky top-0 z-10 bg-[#050505] p-3 border-b border-yellow-500/20 flex justify-between items-center cursor-pointer md:cursor-default"
                                     >
                                         <div className="flex items-center gap-2 flex-1 justify-center md:justify-start">
-                                            <div className="w-0 h-0 border-t-[4px] border-t-transparent border-l-[6px] border-l-blue-400/40 border-b-[4px] border-b-transparent ml-1" />
-                                            <h2 className="text-[11px] font-black text-blue-400/60 uppercase tracking-[0.2em] font-mono ml-6 md:ml-0">Changes</h2>
+                                            <Star className="w-3.5 h-3.5 text-yellow-500 fill-current ml-6 md:ml-0" />
+                                            <h2 className="text-[11px] font-black text-yellow-500 uppercase tracking-[0.2em] font-sans">Golden Alerts</h2>
                                             <div className="md:hidden">
-                                                {expandedSections.changes ? <ChevronUp className="w-3 h-3 text-blue-500/50" /> : <ChevronDown className="w-3 h-3 text-blue-500/50" />}
+                                                {expandedSections.golden ? <ChevronUp className="w-3 h-3 text-yellow-500/50" /> : <ChevronDown className="w-3 h-3 text-yellow-500/50" />}
                                             </div>
                                         </div>
-                                        <span className="text-[12px] font-black text-blue-500/30 font-mono absolute right-3">{categorized.changes.length}</span>
+                                        <span className="text-[12px] font-black text-yellow-500/50 font-mono absolute right-3">{categorized.goldenAlerts.length}</span>
                                     </div>
                                     <AnimatePresence>
-                                        {expandedSections.changes && (
-                                            <motion.div
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: "auto", opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                className="flex flex-col overflow-hidden md:hidden"
-                                            >
-                                                <AnimatePresence mode="popLayout">
-                                                    {(categorized.changes || [])
-                                                        .map((c, i) => <ChangeCard key={`${c.symbol}-${c.time}-${i}`} change={c} />)
-                                                    }
-                                                    {(categorized.changes || []).length === 0 && (
-                                                        <div className="py-20 text-center px-4">
-                                                            <div className="text-[9px] font-black text-white/5 uppercase tracking-[0.3em] mb-1">Live Feed</div>
-                                                            <div className="text-[8px] font-medium text-white/5 lowercase">Waiting for movements...</div>
-                                                        </div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </motion.div>
+                                        {expandedSections.golden && (
+                                            <div className="flex flex-col md:hidden">
+                                                {categorized.goldenAlerts.map((alert, i) => <GoldenAlertCard key={`${alert.symbol}-${alert.time}-${i}`} alert={alert} />)}
+                                            </div>
                                         )}
                                     </AnimatePresence>
                                     <div className="hidden md:flex flex-col">
                                         <AnimatePresence mode="popLayout">
-                                            {(categorized.changes || [])
-                                                .map((c, i) => <ChangeCard key={`${c.symbol}-${c.time}-${i}`} change={c} />)
+                                            {(categorized.goldenAlerts || [])
+                                                .map((alert, i) => <GoldenAlertCard key={`${alert.symbol}-${alert.time}-${i}`} alert={alert} />)
                                             }
-                                            {(categorized.changes || []).length === 0 && (
+                                            {(categorized.goldenAlerts || []).length === 0 && (
                                                 <div className="py-20 text-center px-4">
-                                                    <div className="text-[9px] font-black text-white/5 uppercase tracking-[0.3em] mb-1">Live Feed</div>
-                                                    <div className="text-[8px] font-medium text-white/5 lowercase">Waiting for movements...</div>
+                                                    <div className="text-[9px] font-black text-white/5 uppercase tracking-[0.3em] mb-1">Alert Feed</div>
+                                                    <div className="text-[8px] font-medium text-white/5 lowercase">Waiting for golden signals...</div>
                                                 </div>
                                             )}
                                         </AnimatePresence>

@@ -122,6 +122,7 @@ export interface GoogleSheetsData {
   intradayBreakout: any[];
   intradayDev: any[];
   intradayDevChanges?: any[];
+  goldenAlerts?: any[];
   playbackSnapshots?: any[];
   dailyNews: DailyNewsItem[];
   niftyAnalysis?: NiftyAnalysisData;

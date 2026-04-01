@@ -39,8 +39,6 @@ const StockAnalysis = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [showVideoModalHindi, setShowVideoModalHindi] = useState(false);
-  const [narration, setNarration] = useState<string>("");
-  const [isNarrationLoading, setIsNarrationLoading] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -312,6 +310,8 @@ const StockAnalysis = () => {
       stock: currentStock.symbol,
       date: latest.date,
       close: close,
+      support: support,
+      resistance: resist,
       signals: [] as string[],
       warnings: [] as string[],
       targets: {} as Record<string, number>,
@@ -512,66 +512,6 @@ const StockAnalysis = () => {
     return result;
   }, [currentStock]);
 
-  // Layer 2: Gemini Narration Integration
-  useEffect(() => {
-    setNarration(""); // Reset narration when stock changes to show loading state
-    const fetchNarration = async () => {
-      if (!analysisResult || !currentStockData || !currentStockData.history || currentStockData.history.length === 0) {
-        setNarration("");
-        return;
-      }
-
-      setIsNarrationLoading(true);
-      try {
-        const history = currentStockData.history;
-        const latest = history[history.length - 1];
-
-        // Use the same look-back logic to provide high-quality context to Gemini
-        let lastValidSupport = 0;
-        let lastValidResist = 0;
-        let lastValidFvg = 0;
-        let lastValidMl = 0;
-        let lastValidWolfe = 0;
-
-        for (let i = history.length - 1; i >= 0; i--) {
-          if (lastValidSupport === 0 && history[i].support > 0) lastValidSupport = history[i].support;
-          if (lastValidResist === 0 && history[i].resistance > 0) lastValidResist = history[i].resistance;
-          if (lastValidFvg === 0 && history[i].projFvg > 0) lastValidFvg = history[i].projFvg;
-          if (lastValidMl === 0 && history[i].mlFutPrice20d > 0) lastValidMl = history[i].mlFutPrice20d;
-          if (lastValidWolfe === 0 && history[i].wolfeD > 0) lastValidWolfe = history[i].wolfeD;
-          if (lastValidSupport > 0 && lastValidResist > 0 && lastValidFvg > 0 && lastValidMl > 0 && lastValidWolfe > 0) break;
-        }
-
-        const result = await getStockNarration({
-          symbol: currentStockData.symbol,
-          price: latest.price,
-          bias: analysisResult.bias,
-          action: analysisResult.action,
-          signals: analysisResult.signals,
-          warnings: analysisResult.warnings,
-          support: lastValidSupport,
-          resistance: lastValidResist,
-          balance: lastValidFvg,
-          modelTarget: lastValidMl,
-          patternTarget: lastValidWolfe,
-          marketContext: analysisResult.marketContext,
-        });
-
-        if (result) {
-          setNarration(result);
-        } else {
-          setNarration(analysisResult!.bottomLine);
-        }
-      } catch (error) {
-        console.error("Failed to fetch narration:", error);
-        setNarration(analysisResult!.bottomLine);
-      } finally {
-        setIsNarrationLoading(false);
-      }
-    };
-
-    fetchNarration();
-  }, [analysisResult, currentStockData?.symbol]);
 
 
   if (isLoading || stocksData.length === 0) {
@@ -745,132 +685,213 @@ const StockAnalysis = () => {
           </div>
         </div>
 
-        <div className="glass-card p-4 md:p-5 mb-6 animate-fade-in-up-delay-1">
-          <div className="flex flex-col lg:flex-row items-stretch gap-6">
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-4 lg:w-[380px] shrink-0">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all duration-200">
-                <div className={`p-2 rounded-lg shrink-0 ${calculatedTrend === 'UPTREND' ? 'bg-success/10' : calculatedTrend === 'DOWNTREND' ? 'bg-destructive/10' : 'bg-warning/10'}`}>
-                  {calculatedTrend === 'DOWNTREND' ? <TrendingDown className="w-4 h-4 text-destructive" /> : <TrendingUp className="w-4 h-4 text-success" />}
+        <div className="glass-card mb-6 animate-fade-in-up-delay-1 p-2.5 md:p-3">
+          <div className="flex flex-col lg:flex-row items-stretch gap-4">
+            {/* 1. Primary Price Stats (Left) — NASA HUD Panel */}
+            <div className="lg:w-[32%] shrink-0 relative flex flex-col items-center justify-center text-center rounded-xl overflow-hidden p-3" style={{ background: 'linear-gradient(135deg, rgba(0,8,20,0.95) 0%, rgba(0,15,35,0.9) 100%)' }}>
+              {/* Technical grid overlay */}
+              <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(99,179,237,1) 1px, transparent 1px), linear-gradient(90deg, rgba(99,179,237,1) 1px, transparent 1px)', backgroundSize: '15px 15px' }} />
+
+              {/* Scan line animation */}
+              <div className="absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent animate-[scan_3s_ease-in-out_infinite]" style={{ top: '50%' }} />
+
+              {/* HUD Corner Brackets */}
+              <div className="absolute top-1.5 left-1.5 w-4 h-4 border-t-2 border-l-2 border-cyan-500/60 rounded-tl" />
+              <div className="absolute top-1.5 right-1.5 w-4 h-4 border-t-2 border-r-2 border-cyan-500/60 rounded-tr" />
+              <div className="absolute bottom-1.5 left-1.5 w-4 h-4 border-b-2 border-l-2 border-cyan-500/60 rounded-bl" />
+              <div className="absolute bottom-1.5 right-1.5 w-4 h-4 border-b-2 border-r-2 border-cyan-500/60 rounded-br" />
+
+              {/* Content */}
+              <div className="relative z-10 space-y-1.5 w-full">
+                {/* System ID line */}
+                <div className="flex items-center justify-center gap-1.5">
+                  <div className="h-0.5 w-0.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="font-mono text-[8px] font-bold text-cyan-400/70 uppercase tracking-[0.2em]">SYS.LIVE</span>
+                  <div className="h-0.5 w-0.5 rounded-full bg-cyan-400 animate-pulse" />
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Trend</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-2.5 h-2.5 text-muted-foreground/30 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="w-64 p-3 bg-popover border border-white/10 rounded-lg shadow-2xl z-[100]">
-                        <p className="text-[10px] leading-relaxed font-medium">Reflects observable direction of historical price movement.</p>
-                      </TooltipContent>
-                    </Tooltip>
+
+                {/* Symbol + Date */}
+                <div className="space-y-0">
+                  <div className="font-mono text-[10px] font-black text-cyan-300/80 uppercase tracking-widest">
+                    {currentStock?.symbol}
                   </div>
-                  <p className={`text-sm font-black truncate ${calculatedTrend === 'UPTREND' ? 'text-success' : calculatedTrend === 'DOWNTREND' ? 'text-destructive' : 'text-warning'}`}>
-                    {calculatedTrend}
-                  </p>
+                  <div className="font-mono text-[8px] text-cyan-500/40 tracking-widest uppercase">
+                    {analysisResult?.date}
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all duration-200">
-                <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                  <Activity className="w-4 h-4 text-primary" />
+                {/* Hero Price */}
+                <div className="relative">
+                  <div className="font-mono text-[32px] leading-tight font-black text-white tracking-tight drop-shadow-[0_0_15px_rgba(99,179,237,0.3)]">
+                    ₹{currentStock?.price?.toLocaleString()}
+                  </div>
+                  <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-12 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Price</p>
-                  <p className="text-sm font-black truncate">₹{currentStock?.price?.toLocaleString()}</p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all duration-200">
-                <div className="p-2 rounded-lg bg-accent/10 shrink-0">
-                  <Activity className="w-4 h-4 text-accent" />
+                {/* RSI + Trend Badges */}
+                <div className="flex items-center justify-center gap-1.5 pt-0.5">
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-sm bg-cyan-500/10 border border-cyan-500/25 backdrop-blur-sm">
+                    <Activity className="w-2.5 h-2.5 text-cyan-400" />
+                    <span className="font-mono text-[9px] font-black text-cyan-400 tracking-wider">RSI:{currentStock?.rsi?.toFixed(0)}</span>
+                  </div>
+                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-sm border backdrop-blur-sm ${calculatedTrend === 'UPTREND'
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-red-500/10 border-red-500/30'
+                    }`}>
+                    {calculatedTrend === 'UPTREND'
+                      ? <TrendingUp className="w-2.5 h-2.5 text-emerald-400" />
+                      : <TrendingDown className="w-2.5 h-2.5 text-red-400" />
+                    }
+                    <span className={`font-mono text-[9px] font-black tracking-wider ${calculatedTrend === 'UPTREND' ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {calculatedTrend}
+                    </span>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Daily RSI</p>
-                  <p className="text-sm font-black truncate">{currentStock?.rsi?.toFixed(1)}</p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all duration-200">
-                <div className="p-2 rounded-lg bg-secondary/10 shrink-0 text-primary">
-                  <Search className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Sector</p>
-                  <p className="text-sm font-black truncate text-primary">{currentStock?.sector}</p>
+                {/* Sector readout */}
+                <div className="pt-0.5 border-t border-cyan-500/10">
+                  <span className="font-mono text-[7px] text-cyan-500/35 uppercase tracking-[0.1em]">
+                    ◈ SEC/{currentStock?.sector?.replace('NIFTY-', '')}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Smart Analysis Summary - Premium Strategist Box */}
+
+
+            {/* 2. Strategist Intel (Right) */}
             {analysisResult && (
-              <div className="flex-1 animate-fade-in flex flex-col justify-center">
+              <div className="flex-1 min-w-0">
                 <PremiumProtector
                   isLocked={isDailyLimitReached}
                   title="Daily Limit Reached"
-                  description="Free users are limited to 3 stock analyses per day. Please upgrade to PRO for unlimited access."
+                  description="Upgrade to PRO for unlimited stock analysis."
                 >
-                  <div className="relative overflow-hidden group rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-background shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
-                    {/* Subtle Background Accent */}
-                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
-
-                    <div className="p-5 md:p-6 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1 px-2 rounded-md bg-primary/20 border border-primary/30 flex items-center gap-1.5">
-                            <Activity className="w-3 h-3 text-primary" />
-                            <span className="text-[10px] font-black tracking-tighter text-primary uppercase">Strategist Report</span>
-                          </div>
-                          <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${analysisResult.bias === 'BULLISH' ? 'bg-success' :
-                            analysisResult.bias === 'BEARISH' ? 'bg-destructive' :
-                              'bg-warning'
-                            }`} />
-                        </div>
-                        <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
-                          LASA Intel
-                        </div>
+                  <div className="relative overflow-hidden group rounded-xl border border-primary/10 bg-black/20 p-2 space-y-1">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-0">
+                      <div className="flex items-center gap-1">
+                        <div className="p-0.5 px-1 rounded bg-primary/20 border border-primary/30 text-[8px] font-black text-primary uppercase tracking-wider">Strategist Report</div>
+                        <div className={`h-0.5 w-0.5 rounded-full animate-pulse ${analysisResult.bias === 'BULLISH' ? 'bg-success' : 'bg-destructive'}`} />
                       </div>
+                      <div className="text-[8px] font-bold text-muted-foreground/20 uppercase tracking-widest leading-none">LASA INTEL</div>
+                    </div>
 
-                      <div className="relative">
-                        {isNarrationLoading ? (
-                          <div className="space-y-3 py-2">
-                            <div className="h-3 bg-primary/10 rounded-full w-full animate-shimmer" />
-                            <div className="h-3 bg-primary/10 rounded-full w-[92%] animate-shimmer delay-100" />
-                            <div className="h-3 bg-primary/10 rounded-full w-[88%] animate-shimmer delay-200" />
-                            <div className="h-3 bg-primary/10 rounded-full w-[95%] animate-shimmer delay-300" />
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <p className="text-sm md:text-[15px] font-medium leading-relaxed text-foreground/95 whitespace-pre-wrap italic">
-                              {narration || analysisResult.bottomLine}
-                            </p>
+                    {/* Sub-header */}
+                    <div className="text-[7.5px] font-bold text-muted-foreground/30 uppercase tracking-[0.15em]">Upside Targets &middot; Confidence Ranked</div>
 
-                            {/* Minimalist Footnote for Action */}
-                            <div className="flex items-center gap-3 pt-2 border-t border-white/5">
-                              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Action:</span>
-                              <span className={`text-xs font-bold ${analysisResult.action.includes('BUY') ? 'text-success' :
-                                analysisResult.action.includes('SELL') ? 'text-destructive' :
-                                  'text-warning'
-                                }`}>
-                                {analysisResult.action}
-                              </span>
+                    {/* HIGH CONFIDENCE */}
+                    {(analysisResult.resistance > 0 || analysisResult.targets.balance > 0) && (
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1">
+                          <div className="h-px flex-1 bg-success/20" />
+                          <span className="text-[7px] font-black text-success/50 uppercase tracking-widest">High Confidence</span>
+                          <div className="h-px flex-1 bg-success/20" />
+                        </div>
+                        {analysisResult.resistance > 0 && (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <div className="h-1 w-1 rounded-full bg-success shadow-[0_0_4px_rgba(34,197,94,0.7)] shrink-0" />
+                              <span className="text-[10px] font-semibold text-foreground/90">Resistance</span>
+                              <div className="flex items-center gap-1 px-1 py-0 rounded bg-success/10 border border-success/20">
+                                <span className="text-[7px] text-success font-black tracking-tight">|||</span>
+                                <span className="text-[6.5px] font-black text-success uppercase tracking-wide">HIGH</span>
+                              </div>
                             </div>
+                            <span className="text-[11px] font-bold font-mono text-success">₹{analysisResult.resistance.toLocaleString()}</span>
+                          </div>
+                        )}
+                        {analysisResult.targets.balance > 0 && (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <div className="h-1 w-1 rounded-full bg-success shadow-[0_0_4px_rgba(34,197,94,0.7)] shrink-0" />
+                              <span className="text-[10px] font-semibold text-foreground/90">Balance</span>
+                              <div className="flex items-center gap-1 px-1 py-0 rounded bg-success/10 border border-success/20">
+                                <span className="text-[7px] text-success font-black tracking-tight">|||</span>
+                                <span className="text-[6.5px] font-black text-success uppercase tracking-wide">HIGH</span>
+                              </div>
+                            </div>
+                            <span className="text-[11px] font-bold font-mono text-success">₹{analysisResult.targets.balance.toLocaleString()}</span>
                           </div>
                         )}
                       </div>
+                    )}
+
+                    {/* MODERATE CONFIDENCE */}
+                    {analysisResult.targets.model > 0 && (
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1">
+                          <div className="h-px flex-1 bg-warning/20" />
+                          <span className="text-[7px] font-black text-warning/50 uppercase tracking-widest">Moderate Confidence</span>
+                          <div className="h-px flex-1 bg-warning/20" />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-1 w-1 rounded-full bg-warning shadow-[0_0_4px_rgba(234,179,8,0.7)] shrink-0" />
+                            <span className="text-[10px] font-semibold text-foreground/90">Model Target</span>
+                            <div className="flex items-center gap-1 px-1 py-0 rounded bg-warning/10 border border-warning/20">
+                              <span className="text-[7px] text-warning font-black tracking-tight">||</span>
+                              <span className="text-[6.5px] font-black text-warning uppercase tracking-wide">MODERATE</span>
+                            </div>
+                          </div>
+                          <span className="text-[11px] font-bold font-mono text-warning">₹{analysisResult.targets.model.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SPECULATIVE */}
+                    {analysisResult.targets.pattern > 0 && (
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1">
+                          <div className="h-px flex-1 bg-primary/20" />
+                          <span className="text-[7px] font-black text-primary/50 uppercase tracking-widest">Speculative</span>
+                          <div className="h-px flex-1 bg-primary/20" />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-1 w-1 rounded-full bg-primary shadow-[0_0_4px_rgba(99,102,241,0.7)] shrink-0" />
+                            <span className="text-[10px] font-semibold text-foreground/90">Pattern Target</span>
+                            <div className="flex items-center gap-1 px-1 py-0 rounded bg-primary/10 border border-primary/20">
+                              <span className="text-[7px] text-primary font-black">|</span>
+                              <span className="text-[6.5px] font-black text-primary uppercase tracking-wide">SPECULATIVE</span>
+                            </div>
+                          </div>
+                          <span className="text-[11px] font-bold font-mono text-primary">₹{analysisResult.targets.pattern.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Support Floor */}
+                    <div className="pt-0.5 border-t border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-1 w-1 rounded-full bg-destructive shadow-[0_0_4px_rgba(239,68,68,0.7)] shrink-0" />
+                        <span className="text-[10px] font-semibold text-destructive/90">Support (Floor)</span>
+                      </div>
+                      <span className="text-[11px] font-bold font-mono text-destructive">₹{analysisResult.support.toLocaleString()}</span>
                     </div>
 
-                    {/* Bottom decorative bar */}
-                    <div className={`h-1 w-full ${analysisResult.bias === 'BULLISH' ? 'bg-success/50' :
-                      analysisResult.bias === 'BEARISH' ? 'bg-destructive/50' :
-                        'bg-warning/50'
-                      }`} />
+                    {/* Footer Alerts */}
+                    <div className="space-y-0.5 pt-0">
+                      <div className="p-1 rounded-lg bg-primary/5 border border-primary/10 flex items-center gap-1.5">
+                        <Info className="w-2.5 h-2.5 text-primary shrink-0" />
+                        <p className="text-[8px] text-muted-foreground/80 leading-tight">Higher targets carry lower probability in near term.</p>
+                      </div>
+                      {analysisResult.support > 0 && (
+                        <div className="p-1 rounded-lg bg-destructive/5 border border-destructive/10 flex items-center gap-1.5">
+                          <X className="w-2.5 h-2.5 text-destructive shrink-0" />
+                          <p className="text-[8px] text-destructive/80 leading-tight">
+                            If <span className="font-bold text-destructive">₹{analysisResult.support.toLocaleString()}</span> breaks, upside is invalidated.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </PremiumProtector>
               </div>
             )}
           </div>
         </div>
+
 
         {/* Chart */}
         <div className="mb-6 animate-fade-in-up-delay-2">
@@ -888,72 +909,73 @@ const StockAnalysis = () => {
         <div className="animate-fade-in-up-delay-3">
           <StockStrengthZone data={chartData} />
         </div>
-      </div>
+      </div >
 
       {/* Info Modal */}
-      {showInfoModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-          onClick={() => setShowInfoModal(false)}
-        >
+      {
+        showInfoModal && (
           <div
-            className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowInfoModal(false)}
           >
-            <div className="sticky top-0 flex items-center justify-between p-4 border-b border-white/10 bg-background/95 backdrop-blur-xl">
-              <h3 className="text-lg font-semibold text-foreground">Price Structure & Zone Analysis</h3>
-              <button
-                onClick={() => setShowInfoModal(false)}
-                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-              >
-                <X className="w-5 h-5 text-muted-foreground" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Overview</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  This section is designed to give traders a deeper understanding of price structure using our proprietary algorithms. It helps users clearly identify whether a stock is trading in a strong zone, weak zone, or a range-bound structure, along with possible reference price levels.
-                </p>
+            <div
+              className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 flex items-center justify-between p-4 border-b border-white/10 bg-background/95 backdrop-blur-xl">
+                <h3 className="text-lg font-semibold text-foreground">Price Structure & Zone Analysis</h3>
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
               </div>
 
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Algorithm Insights</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Every day, our multimodal algorithms scan the top 500 stocks and generate price references using different analytical approaches:
-                </p>
-                <ul className="text-sm text-muted-foreground leading-relaxed list-disc list-inside ml-2 space-y-1">
-                  <li><span className="text-primary font-medium">Model</span> – derived from machine-learning models</li>
-                  <li><span className="text-primary font-medium">Balance</span> – based on market balance and price equilibrium</li>
-                  <li><span className="text-primary font-medium">Patterns</span> – identified using chart-pattern recognition</li>
-                </ul>
-              </div>
+              <div className="p-6 space-y-6">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Overview</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    This section is designed to give traders a deeper understanding of price structure using our proprietary algorithms. It helps users clearly identify whether a stock is trading in a strong zone, weak zone, or a range-bound structure, along with possible reference price levels.
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Important Considerations</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Markets are dynamic, so these levels should be used only as reference points, not as fixed predictions. Traders should remain cautious:
-                </p>
-                <ul className="text-sm text-muted-foreground leading-relaxed list-disc list-inside ml-2 space-y-1">
-                  <li>A close below the weak zone may lead to a breakdown</li>
-                  <li>A close above strong zone may indicate a Breakout</li>
-                </ul>
-                <p className="text-sm text-muted-foreground leading-relaxed mt-3">
-                  Our algorithms perform best when stocks are range-bound or moving within a controlled trend. They are not designed to predict stocks in very strong or runaway uptrends or downtrends.
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Algorithm Insights</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Every day, our multimodal algorithms scan the top 500 stocks and generate price references using different analytical approaches:
+                  </p>
+                  <ul className="text-sm text-muted-foreground leading-relaxed list-disc list-inside ml-2 space-y-1">
+                    <li><span className="text-primary font-medium">Model</span> – derived from machine-learning models</li>
+                    <li><span className="text-primary font-medium">Balance</span> – based on market balance and price equilibrium</li>
+                    <li><span className="text-primary font-medium">Patterns</span> – identified using chart-pattern recognition</li>
+                  </ul>
+                </div>
 
-              <div className="space-y-2 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
-                <h4 className="text-sm font-semibold text-destructive uppercase tracking-wide">Disclaimer</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  All price projections are for informational purposes only. This tool does not provide trading or investment advice. Please consult your financial advisor before making any trading decisions.
-                </p>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-primary uppercase tracking-wide">Important Considerations</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Markets are dynamic, so these levels should be used only as reference points, not as fixed predictions. Traders should remain cautious:
+                  </p>
+                  <ul className="text-sm text-muted-foreground leading-relaxed list-disc list-inside ml-2 space-y-1">
+                    <li>A close below the weak zone may lead to a breakdown</li>
+                    <li>A close above strong zone may indicate a Breakout</li>
+                  </ul>
+                  <p className="text-sm text-muted-foreground leading-relaxed mt-3">
+                    Our algorithms perform best when stocks are range-bound or moving within a controlled trend. They are not designed to predict stocks in very strong or runaway uptrends or downtrends.
+                  </p>
+                </div>
+
+                <div className="space-y-2 p-4 rounded-xl bg-destructive/10 border border-destructive/20">
+                  <h4 className="text-sm font-semibold text-destructive uppercase tracking-wide">Disclaimer</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    All price projections are for informational purposes only. This tool does not provide trading or investment advice. Please consult your financial advisor before making any trading decisions.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )
+        )
       }
 
       {/* Video Modal */}

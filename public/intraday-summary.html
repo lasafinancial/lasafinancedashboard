@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LASA | Intraday Summary (Firebase Live)</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0b10;
+            --card-bg: #14161f;
+            --border-color: #232631;
+            --text-primary: #f0f2f5;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-gold: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header h1 span {
+            color: var(--accent-blue);
+        }
+
+        .status-badge {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+            padding: 0.4rem 0.8rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 1rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .symbol {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stars {
+            color: var(--accent-gold);
+            letter-spacing: 2px;
+        }
+
+        .state-tag {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .state-PULLBACK {
+            color: #3b82f6;
+        }
+
+        .state-STRONG {
+            color: #10b981;
+        }
+
+        .state-EXIT {
+            color: #ef4444;
+        }
+
+        .price {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .move-up {
+            color: var(--accent-green);
+        }
+
+        .move-down {
+            color: var(--accent-red);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(59, 130, 246, 0.1);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p style="color: var(--text-secondary)">Connecting to Firebase...</p>
+    </div>
+
+    <div class="header">
+        <h1>LASA <span>DASHBOARD</span></h1>
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            LIVE FIREBASE DATA
+        </div>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-label">Total Stocks</div>
+            <div id="stat-total" class="stat-value">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Strong States</div>
+            <div id="stat-strong" class="stat-value" style="color: var(--accent-green)">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Last Firebase Sync</div>
+            <div id="stat-time" class="stat-value" style="font-size: 1.2rem; margin-top: 0.5rem;">Never</div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th>Stars</th>
+                    <th>Symbol</th>
+                    <th>State</th>
+                    <th>Tier</th>
+                    <th>Close</th>
+                    <th>Move%</th>
+                    <th>Target</th>
+                    <th>Reason</th>
+                    <th>Last Sync</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Data will be injected here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase configuration (Hardcoded for demo from .env)
+        const firebaseConfig = {
+            apiKey: "AIzaSyC1H-wPpsAObnQ1onNVQDP-dwGSkgniQHY",
+            authDomain: "lasa-dashboard-2f21d.firebaseapp.com",
+            projectId: "lasa-dashboard-2f21d",
+            storageBucket: "lasa-dashboard-2f21d.firebasestorage.app",
+            messagingSenderId: "216300482922",
+            appId: "1:216300482922:web:7e71e2171674dc45147513"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const tableBody = document.getElementById('table-body');
+        const loadingOverlay = document.getElementById('loading');
+
+        // Listen for real-time updates from Firebase
+        const q = query(collection(db, "intraday-summary"), orderBy("Symbol", "asc"));
+
+        onSnapshot(q, (snapshot) => {
+            tableBody.innerHTML = '';
+            let strongCount = 0;
+            let latestTime = '';
+
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const row = document.createElement('tr');
+
+                if (data.State === 'STRONG') strongCount++;
+
+                const moveVal = parseFloat(data['Move%']) || 0;
+                const moveClass = moveVal >= 0 ? 'move-up' : 'move-down';
+                const moveSign = moveVal >= 0 ? '+' : '';
+
+                // Handle the timestamp from Firebase
+                let updateStr = 'N/A';
+                if (data.UpdatedAt) {
+                    const date = data.UpdatedAt.toDate();
+                    updateStr = date.toLocaleTimeString();
+                    if (!latestTime || date > new Date(latestTime)) latestTime = updateStr;
+                }
+
+                row.innerHTML = `
+                    <td class="stars">${data.Stars || ''}</td>
+                    <td class="symbol">${data.Symbol || 'N/A'}</td>
+                    <td><span class="state-tag state-${data.State}">${data.State || ''}</span></td>
+                    <td style="color: var(--text-secondary)">${data.Tier || ''}</td>
+                    <td class="price">${data.Close || ''}</td>
+                    <td class="${moveClass}">${moveSign}${data['Move%'] || '0'}%</td>
+                    <td style="max-width: 150px; color: var(--accent-blue); font-size: 0.75rem;">${data.Target || ''}</td>
+                    <td style="max-width: 250px; color: var(--text-secondary); font-size: 0.75rem;">${data.Reason || ''}</td>
+                    <td style="color: var(--text-secondary); font-size: 0.7rem;">${updateStr}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Update stats
+            document.getElementById('stat-total').innerText = snapshot.size;
+            document.getElementById('stat-strong').innerText = strongCount;
+            document.getElementById('stat-time').innerText = latestTime || 'Connecting...';
+
+            // Hide loading
+            loadingOverlay.style.display = 'none';
+        }, (error) => {
+            console.error("Error fetching Firestore data:", error);
+            alert("Firebase Error: Make sure Firestore Rules allow public read access for this demo.");
+        });
+
+    </script>
+</body>
+
+</html>

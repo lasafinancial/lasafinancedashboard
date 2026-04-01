@@ -1133,6 +1133,17 @@ const Admin = () => {
                 </TabsContent>
 
                 <TabsContent value="analytics" className="space-y-8">
+                    {/* Clarification Banner */}
+                    <div className="p-3 rounded-xl bg-warning/5 border border-warning/20 flex items-start gap-3">
+                        <span className="text-warning text-base">⚠️</span>
+                        <div>
+                            <p className="text-xs font-bold text-warning uppercase tracking-wider mb-1">Why our numbers are lower than Vercel Analytics</p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                Our Admin Analytics only counts <span className="font-bold text-foreground">authenticated, logged-in users</span>. Vercel Analytics counts <span className="font-bold text-foreground">all browser visits</span> including unauthenticated visitors, bots, crawlers, and people who land on the login page but never sign in. This is expected — the numbers will always differ.
+                            </p>
+                        </div>
+                    </div>
+
                     {/* Analytics Dashboard */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <GlassCard className="p-6 border-white/10">
@@ -1141,8 +1152,9 @@ const Admin = () => {
                                     <Clock className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Total Sessions</p>
+                                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Auth Sessions</p>
                                     <h3 className="text-2xl font-bold">{totalLogins}</h3>
+                                    <p className="text-[10px] text-muted-foreground/50 mt-0.5">Logged-in users only</p>
                                 </div>
                             </div>
                         </GlassCard>
@@ -1155,6 +1167,7 @@ const Admin = () => {
                                 <div>
                                     <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Unique Users</p>
                                     <h3 className="text-2xl font-bold">{uniqueUsersCount}</h3>
+                                    <p className="text-[10px] text-muted-foreground/50 mt-0.5">Distinct accounts (all time)</p>
                                 </div>
                             </div>
                         </GlassCard>
