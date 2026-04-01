@@ -1945,7 +1945,7 @@ app.post('/api/verify-otp', async (req, res) => {
 // ── End Twilio OTP Routes ────────────────────────────────────────────────────
 
 const PORT = 3001;
-app.listen(PORT, '127.0.0.1', () => {
+app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
 
   // Heartbeat to prove the server is alive

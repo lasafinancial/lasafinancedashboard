@@ -148,12 +148,12 @@ export function IntradayDev() {
     }, [filteredStocks, intradayDevChanges, goldenAlerts, isPlayback, playbackSnapshots, playbackIndex]);
 
     const stats = useMemo(() => ({
-        strong: categorized.strong.length,
-        pullback: categorized.pullback.length,
-        exit: categorized.exit.length,
-        golden: categorized.goldenAlerts.length,
-        total: (categorized.strong.length || 0) + (categorized.pullback.length || 0) + (categorized.exit.length || 0)
-    }), [categorized]);
+        strong: (stocks || []).filter(s => s.state === "STRONG").length,
+        pullback: (stocks || []).filter(s => s.state === "PULLBACK").length,
+        exit: (stocks || []).filter(s => s.state === "EXIT" || s.state === "TRAP").length,
+        golden: (goldenAlerts || []).length,
+        total: (stocks || []).length
+    }), [stocks, intradayDevChanges, goldenAlerts]);
 
     const tierDescriptions = [
         {
