@@ -416,9 +416,9 @@ async function fetchData() {
   let goldenAlerts = [];
   let currentPriceMap = new Map();
   let niftyAnalysis = { summary: {}, scenarios: [], actionPlan: [] };
-  try {
-    currentData = rowsToObjects(rawCurrent);
-    // Build currentPriceMap for enrichment
+  
+  currentData = rowsToObjects(rawCurrent);
+  // Build currentPriceMap for enrichment
     currentData.forEach(row => {
       const sym = (row['ID'] || row['C'] || '').toString().trim().toUpperCase();
       if (sym) {
@@ -735,13 +735,6 @@ async function fetchData() {
           niftyAnalysis = { history: blocks };
           console.log(`Parsed Nifty Analysis: ${blocks.length} date blocks found.`);
         }
-      } catch (niftyErr) {
-        console.warn('Could not fetch DAILY_NIFTY_ANALYSIS:', niftyErr.message);
-      }
-    } catch (indErr) {
-      console.warn('Could not fetch INDICES sheet, falling back to column flags:', indErr.message);
-    }
-
 
     // Use INDICES sheet sets if available; otherwise fall back to old column-flag approach
     const useIndicesSheet = Object.keys(indexStockIdSets).length > 0;
@@ -1140,9 +1133,6 @@ async function fetchData() {
           };
         });
       }
-    } catch (err) {
-      console.warn('Could not fetch intraday dev data:', err.message);
-    }
 
     // --- Final Golden Alerts Enrichment with Live Prices ---
     if (goldenAlerts && goldenAlerts.length > 0) {
@@ -1166,10 +1156,6 @@ async function fetchData() {
       });
     }
     // --- End Intraday Dev Screener ---
-
-  } catch (err) {
-    console.warn('Could not fetch top movers from current tab:', err.message);
-  }
 
   // --- Link Current Live Data to Stock History ---
   const currentLiveMap = {};
