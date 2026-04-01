@@ -206,86 +206,47 @@ async function fetchData() {
 
   const sheets = google.sheets({ version: 'v4', auth });
 
-  let lasaMasterData = [];
-  try {
-    const lasaMasterRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: EOD_SHEET_ID,
-      range: 'lasa-master!A:FJ',
-    });
+  console.log('Fetching all sheets in parallel...');
+  const fetchPromises = [
+    sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FJ' }),
+    sheets.spreadsheets.values.get({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }),
+    sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FJ" }),
+    sheets.spreadsheets.values.get({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }),
+    sheets.spreadsheets.values.get({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' }),
+    sheets.spreadsheets.values.get({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NIFTY_ANALYSIS!A1:Z500' }),
+    sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: 'intraday-breakout-scanner!A:Q' }),
+    sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-summary'!A1:Z500" }),
+    sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: 'golden!A1:T2000' }),
+    sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-commentry'!A1:T5000" })
+  ];
 
-    // Filter rows BEFORE converting to large object array to save memory
-    const rawValues = lasaMasterRes.data.values || [];
-    const groupIdx = colToIdx('S');
-    const filteredRows = rawValues.filter((row, i) => {
-      if (i === 0) return true; // Keep headers
-      const g = (row[groupIdx] || '').toString().toUpperCase();
-      return g === 'LARGECAP' || g === 'MIDCAP' || g === 'INDEX';
-    });
+  const results = await Promise.allSettled(fetchPromises);
+  const getRes = (idx) => results[idx].status === 'fulfilled' ? results[idx].value.data.values : [];
 
-    lasaMasterData = rowsToObjects(filteredRows);
-    console.log(`Total rows kept (LARGECAP/MIDCAP/INDEX): ${lasaMasterData.length} (from ${rawValues.length} total)`);
+  const rawMaster = getRes(0);
+  const rawSwing = getRes(1);
+  const rawCurrent = getRes(2);
+  const rawIndices = getRes(3);
+  const rawNews = getRes(4);
+  const rawNifty = getRes(5);
+  const rawBreakout = getRes(6);
+  const rawSummary = getRes(7);
+  const rawGolden = getRes(8);
+  const rawCommentary = getRes(9);
 
-    // Explicitly nullify large raw arrays to free memory
-    rawValues.length = 0;
-    filteredRows.length = 0;
-  } catch (err) {
-    console.warn('Failed to fetch from lasa-master, using fallback or empty:', err.message);
-    lasaMasterData = [];
-  }
-
-  console.log(`Total rows fetched from lasa-master: ${lasaMasterData.length}`);
-
-  const allDates = [...new Set(lasaMasterData.map(r => r['DATE']).filter(Boolean))];
-  const sortedDates = allDates.sort((a, b) => new Date(b) - new Date(a));
-  const latestDate = sortedDates[0];
-
-  // Helper to calculate sentiment for a set of rows
-  const calculateSentiment = (rows) => {
-    const moodStocks = rows.filter(row => {
-      const g = (row['GROUP'] || '').toString().toUpperCase();
-      return g === 'LARGECAP' || g === 'MIDCAP';
-    });
-    let bull = 0, bear = 0, neut = 0;
-    moodStocks.forEach(row => {
-      const gn = (v) => parseFloat((v || '0').toString().replace(/,/g, '')) || 0;
-      const cp = gn(row['CLOSE_PRICE'] || row[colToIdx('E')]);
-      const res = gn(row['RESISTANCE'] || row[colToIdx('DI')]);
-      const sup = gn(row['SUPPORT'] || row[colToIdx('DH')]);
-      const st = getDynamicStatus(cp, sup, res);
-      if (st === 'BULLISH') bull++; else if (st === 'BEARISH') bear++; else neut++;
-    });
-    if (moodStocks.length === 0) return { bullish: 0, bearish: 0, neutral: 0 };
-    return {
-      bullish: (bull / moodStocks.length) * 100,
-      bearish: (bear / moodStocks.length) * 100,
-      neutral: (neut / moodStocks.length) * 100
-    };
-  };
-
-  const marketMood = { bullish: 0, bearish: 0, neutral: 0, date: formatDate(new Date(latestDate)), trend: [] };
-
-  // Calculate trend for last 5 available dates in master
-  const trendDates = sortedDates.slice(0, 5).reverse();
-  marketMood.trend = trendDates.map(dateStr => {
-    const dateRows = lasaMasterData.filter(r => r['DATE'] === dateStr);
-    const sentiment = calculateSentiment(dateRows);
-    return {
-      date: formatDate(new Date(dateStr)),
-      ...sentiment
-    };
+  // --- Process Lasa Master ---
+  const groupIdx = colToIdx('S');
+  const filteredMasterRows = rawMaster.filter((row, i) => {
+    if (i === 0) return true;
+    const g = (row[groupIdx] || '').toString().toUpperCase();
+    return g === 'LARGECAP' || g === 'MIDCAP' || g === 'INDEX';
   });
+  let lasaMasterData = rowsToObjects(filteredMasterRows);
+  console.log(`Lasa Master: ${lasaMasterData.length} rows.`);
 
-  console.log('Fetching Swing DATA sheet...');
-  try {
-    const swingRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SWING_SHEET_ID,
-      range: 'DATA',
-    });
-    var dataRows = rowsToObjects(swingRes.data.values);
-  } catch (err) {
-    console.warn('Failed to fetch Swing DATA, using empty:', err.message);
-    var dataRows = [];
-  }
+  // --- Process Swing Data ---
+  const dataRows = rowsToObjects(rawSwing);
+  console.log(`Swing Data: ${dataRows.length} rows.`);
 
   const strengthData = dataRows.map(row => ({
     dateObj: parseSwingDate(row['DATE']),
@@ -456,13 +417,7 @@ async function fetchData() {
   let currentPriceMap = new Map();
   let niftyAnalysis = { summary: {}, scenarios: [], actionPlan: [] };
   try {
-    const currentRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: EOD_SHEET_ID,
-      range: "'current'!A1:FJ",
-    });
-    const currentRows = currentRes.data.values || [];
-    currentData = rowsToObjects(currentRows);
-
+    currentData = rowsToObjects(rawCurrent);
     // Build currentPriceMap for enrichment
     currentData.forEach(row => {
       const sym = (row['ID'] || row['C'] || '').toString().trim().toUpperCase();
@@ -613,12 +568,7 @@ async function fetchData() {
     // Build a map: displayName -> Set of stock IDs
     const indexStockIdSets = {};
 
-    try {
-      const indicesRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: INDICES_SHEET_ID,
-        range: 'Sheet1!A:Z',
-      });
-      const indicesRows = indicesRes.data.values || [];
+      const indicesRows = rawIndices;
       if (indicesRows.length > 2) {
         // Headers are in row 2 (index 1)
         const indicesHeaders = indicesRows[1].map(h => (h || '').toString().trim());
@@ -633,16 +583,11 @@ async function fetchData() {
           }
         });
         console.log('INDICES sheet loaded. Keys: ' + Object.keys(indexStockIdSets).join(', '));
-        console.log('INDICES sheet loaded. Keys: ' + Object.keys(indexStockIdSets).join(', '));
         console.log('NIFTY 50 count from INDICES: ' + ((indexStockIdSets['NIFTY 50'] || new Set()).size));
       }
 
-      // Fetch DAILY_NEWS tab
-      const newsRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: INDICES_SHEET_ID,
-        range: 'DAILY_NEWS!A:Z',
-      });
-      const newsRows = newsRes.data.values || [];
+      // Process DAILY_NEWS
+      const newsRows = rawNews;
       if (newsRows.length > 1) {
         // Headers are in row 1
         const newsHeaders = newsRows[0].map(h => (h || '').toString().trim());
@@ -676,14 +621,9 @@ async function fetchData() {
         console.log(`Fetched ${dailyNews.length} news items from DAILY_NEWS.`);
       }
 
-      // Fetch DAILY_NIFTY_ANALYSIS tab
-      try {
-        const niftyRes = await sheets.spreadsheets.values.get({
-          spreadsheetId: INDICES_SHEET_ID,
-          range: 'DAILY_NIFTY_ANALYSIS!A1:Z500', // Expanded range for history
-        });
-        const niftyRows = niftyRes.data.values || [];
-        console.log(`DAILY_NIFTY_ANALYSIS fetch successful. Found ${niftyRows.length} rows.`);
+      // Process DAILY_NIFTY_ANALYSIS
+      const niftyRows = rawNifty;
+      console.log(`NIFTY Analysis rows found: ${niftyRows.length}`);
 
         if (niftyRows.length > 0) {
           const blocks = [];
@@ -937,237 +877,196 @@ async function fetchData() {
       topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
     };
 
-    // --- Start Intraday Breakout Screener ---
-    try {
-      const breakoutRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: 'intraday-breakout-scanner!A:Q',
-      });
-      const breakoutRows = breakoutRes.data.values;
-      if (breakoutRows && breakoutRows.length > 1) {
-        const breakoutData = rowsToObjects(breakoutRows);
+    // --- Process Intraday Breakout ---
+    const breakoutRows = rawBreakout;
+    if (breakoutRows && breakoutRows.length > 1) {
+      const breakoutData = rowsToObjects(breakoutRows);
+      // Logic: Unique rows for last two trading days, de-duplicate Symbol + Time + Date
+      const allBreakoutDates = [...new Set(breakoutData.map(r => r['Date']).filter(Boolean))];
+      const sortedBreakoutDates = allBreakoutDates.sort((a, b) => new Date(b) - new Date(a));
+      const lastTwoDates = sortedBreakoutDates.slice(0, 2);
 
-        // Logic: Unique rows for last two trading days, de-duplicate Symbol + Time + Date
-        const allBreakoutDates = [...new Set(breakoutData.map(r => r['Date']).filter(Boolean))];
-        const sortedBreakoutDates = allBreakoutDates.sort((a, b) => new Date(b) - new Date(a));
-        const lastTwoDates = sortedBreakoutDates.slice(0, 2);
-
-        const seen = new Set();
-        intradayBreakout = breakoutData
-          .filter(row => row['Date'] && lastTwoDates.includes(row['Date']))
-          .filter(row => {
-            const key = `${row['Symbol']}_${row['Time']}_${row['Date']}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          })
-          .map(row => {
-            // Robust header lookup
-            const getVal = (key, idx) => {
-              const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
-              return (foundKey ? row[foundKey] : row[idx]) || '';
-            };
-
-            return {
-              symbol: getVal('Symbol', 0) || 'N/A',
-              date: getVal('Date', 1) || 'N/A',
-              time: getVal('Time', 2) || 'N/A',
-              close: getNum(getVal('Close', 6)),
-              Volume_multiplie: getNum(getVal('Volume_multiplie', 9)),
-              'Price_%_Move': getNum(getVal('Price_%_Move', 10)),
-              BALANCE: getVal('BALANCE', 12) || 'N/A',
-              MODEL: getVal('MODEL', 13) || 'N/A',
-              PATTERN: getVal('PATTERN', 14) || 'N/A',
-              RESISTANCE: getVal('RESISTANCE', 16) || 'N/A'
-            };
-          })
-          .sort((a, b) => {
-            // Sort by Date and Time descending
-            try {
-              const dateA = new Date(`${a.date} ${a.time}`);
-              const dateB = new Date(`${b.date} ${b.time}`);
-              return dateB - dateA;
-            } catch (e) {
-              return 0;
-            }
-          });
-      }
-    } catch (err) {
-      console.warn('Could not fetch intraday breakout data:', err.message);
-    }
-    // --- End Intraday Breakout Screener ---
-
-    // --- Start Intraday Summary (Stars & Tiers) ---
-    let intradaySummaryMap = {};
-    try {
-      const summaryRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: "'intraday-summary'!A1:Z500",
-      });
-      const summaryRows = summaryRes.data.values;
-      if (summaryRows && summaryRows.length > 1) {
-        summaryRows.slice(1).forEach(row => {
-          const symbol = (row[1] || '').toString().trim().toUpperCase(); // Column B
-          if (!symbol) return;
-          intradaySummaryMap[symbol] = {
-            stars: (row[0] || '').toString().trim(),      // Column A
-            tier: (row[3] || 'DEVELOPING').toString().trim().toUpperCase(), // Column D
-            target: (row[9] || '').toString().trim(),     // Column J
-            targetPrice: parseFloat((row[10] || '0').toString().replace(/[^0-9.]/g, '')) || 0, // Column K
-            resistance: parseFloat((row[12] || '0').toString().replace(/[^0-9.]/g, '')) || 0, // Column M
-            ema9: getNum(row[7]),  // Column H
-            ema63: getNum(row[8]), // Column I
-            changePercent: parseFloat((row[5] || '0').toString().replace('%', '').replace(/,/g, '')) || 0, // Column F
-            targetStr: (row[9] || '').toString().trim(), // Column J
-            emaCrossover: (row[8] || '').toString().trim(), // Column I
-            reasons: (row[15] || '').toString().trim()      // Column P
-          };
-        });
-        console.log(`[INTRADAY-SUMMARY] Loaded ${Object.keys(intradaySummaryMap).length} symbols from summary sheet.`);
-      }
-    } catch (err) {
-      console.warn('Could not fetch intraday-summary data:', err.message);
-    }
-
-    // --- Start Golden Alerts Fetch ---
-    try {
-      const goldenRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: 'golden!A1:T2000',
-      });
-      const gRows = goldenRes.data.values || [];
-      if (gRows.length > 1) {
-        const earliestAlerts = new Map();
-        
-        gRows.slice(1).forEach(row => {
-          const sym = (row[0] || '').toString().trim().toUpperCase();
-          const time = (row[2] || '').toString().trim();
-          if (!sym || !time) return;
-
-          const alertData = {
-            symbol: sym,
-            time: time,
-            recommendedPrice: getNum(row[3]),
-            volumeMultiplier: getNum(row[4]),
-            change: getNum(row[5]),
-            ema9: getNum(row[6]),
-            ema63: getNum(row[7]),
-            resGap: getNum(row[8]),
-            target: getNum(row[9]),
-            stars: '★★★'
-          };
-
-          const parseTimeLocal = (t) => {
-            try {
-              const parts = t.split(':').map(Number);
-              return parts[0] * 60 + (parts[1] || 0);
-            } catch { return 9999; }
-          };
-
-          const existing = earliestAlerts.get(sym);
-          if (!existing || parseTimeLocal(time) < parseTimeLocal(existing.time)) {
-            earliestAlerts.set(sym, alertData);
-          }
-        });
-        goldenAlerts = Array.from(earliestAlerts.values());
-        console.log(`[GOLDEN] Fetched and deduplicated ${goldenAlerts.length} golden alerts.`);
-      }
-    } catch (err) {
-      console.warn('Could not fetch golden alerts:', err.message);
-    }
-    // --- End Golden Alerts Fetch ---
-
-    // --- Start Intraday Dev (Commentary) Screener ---
-    try {
-      const devRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: "'intraday-commentry'!A1:T5000",
-      });
-      const devRows = devRes.data.values;
-      if (devRows && devRows.length > 1) {
-        const rawDevData = rowsToObjects(devRows);
-        const symbolStates = {};
-        const symbolNotes = {};
-        const recentChanges = [];
-
-        // Record a change only if the state OR the note/commentary changes
-        rawDevData.forEach(row => {
-          const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
-          if (!symbol || symbol === 'N/A' || symbol === 'Symbol' || symbol === 'Date') return;
-
-          const currentState = (row['State'] || row['N (State)'] || row[13] || 'STRONG').toString().toUpperCase();
-          const time = (row['Time'] || row[2] || 'N/A').toString();
-          const note = (row['Note'] || row[15] || row['Event'] || row[14] || '').toString();
-
-          const hasStateChange = !symbolStates[symbol] || symbolStates[symbol] !== currentState;
-          const hasNoteChange = symbolNotes[symbol] !== note;
-
-          if (hasStateChange || hasNoteChange) {
-            recentChanges.push({
-              symbol,
-              fromState: symbolStates[symbol] || 'NONE',
-              toState: currentState,
-              time,
-              note,
-              price: getNum(row['Close'] || row[7])
-            });
-            symbolStates[symbol] = currentState;
-            symbolNotes[symbol] = note;
-          }
-        });
-
-        // Grouping for the latest status columns (Strong, Pullback, Exit)
-        const groupedRows = {};
-        devRows.slice(1).forEach(row => {
-          const symbol = (row[0] || '').toString().trim();
-          if (!symbol || symbol === 'N/A' || symbol === 'Symbol' || symbol === 'Date') return;
-          if (!groupedRows[symbol]) groupedRows[symbol] = [];
-          groupedRows[symbol].push(row);
-        });
-
-        intradayDev = Object.values(groupedRows).map(symbolRows => {
-          const latest = symbolRows[symbolRows.length - 1];
-          const sym = (latest['Symbol'] || latest[0] || 'N/A').toString().trim().toUpperCase();
-          const latestState = (latest['State'] || latest['N (State)'] || latest[12] || 'STRONG').toString().toUpperCase();
-          const summary = intradaySummaryMap[sym] || {};
-
-          // Find the LATEST non-empty value for each field (in case of truncated rows)
-          const findLatest = (idx) => {
-            for (let i = symbolRows.length - 1; i >= 0; i--) {
-              const val = (symbolRows[i][idx] || '').toString().trim();
-              if (val) return val;
-            }
-            return '';
+      const seen = new Set();
+      intradayBreakout = breakoutData
+        .filter(row => row['Date'] && lastTwoDates.includes(row['Date']))
+        .filter(row => {
+          const key = `${row['Symbol']}_${row['Time']}_${row['Date']}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .map(row => {
+          const getVal = (key, idx) => {
+            const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
+            return (foundKey ? row[foundKey] : row[idx]) || '';
           };
 
           return {
-            symbol: sym,
-            date: (latest[1] || 'N/A').toString(),
-            time: (latest[1] || 'N/A').toString(),
-            open: getNum(findLatest(2)),
-            high: getNum(findLatest(3)),
-            low: getNum(findLatest(4)),
-            close: getNum(findLatest(5)),
-            volume: getNum(findLatest(6)),
-            volMult: getNum(findLatest(8)),
-            changePercent: summary.changePercent || 0,
-            isGreen: (findLatest(7) || '').toString(),
-            tier: summary.tier || (findLatest(12) ? 'MODERN' : 'DEVELOPING'),
-            stars: summary.stars || '',
-            targetPrice: summary.targetPrice || 0,
-            summaryTarget: summary.target || '',
-            state: latestState,
-            event: (findLatest(13) || '').toString(),
-            note: (findLatest(15) || '').toString(),
-            ema9: getNum(findLatest(9)),
-            ema63: getNum(findLatest(10)),
-            emaCrossover: findLatest(11),
-            targetStr: findLatest(17),
-            reasons: findLatest(14),
-            allSignals: symbolRows.length,
-            recentChanges: recentChanges.filter(c => c.symbol === sym)
+            symbol: getVal('Symbol', 0) || 'N/A',
+            date: getVal('Date', 1) || 'N/A',
+            time: getVal('Time', 2) || 'N/A',
+            close: getNum(getVal('Close', 6)),
+            Volume_multiplie: getNum(getVal('Volume_multiplie', 9)),
+            'Price_%_Move': getNum(getVal('Price_%_Move', 10)),
+            BALANCE: getVal('BALANCE', 12) || 'N/A',
+            MODEL: getVal('MODEL', 13) || 'N/A',
+            PATTERN: getVal('PATTERN', 14) || 'N/A',
+            RESISTANCE: getVal('RESISTANCE', 16) || 'N/A'
           };
+        })
+        .sort((a, b) => {
+          try {
+            const dateA = new Date(`${a.date} ${a.time}`);
+            const dateB = new Date(`${b.date} ${b.time}`);
+            return dateB - dateA;
+          } catch (e) { return 0; }
         });
+    }
+
+    // --- Process Intraday Summary ---
+    const summaryRows = rawSummary;
+    if (summaryRows && summaryRows.length > 1) {
+      summaryRows.slice(1).forEach(row => {
+        const symbol = (row[1] || '').toString().trim().toUpperCase();
+        if (!symbol) return;
+        intradaySummaryMap[symbol] = {
+          stars: (row[0] || '').toString().trim(),
+          tier: (row[3] || 'DEVELOPING').toString().trim().toUpperCase(),
+          target: (row[9] || '').toString().trim(),
+          targetPrice: parseFloat((row[10] || '0').toString().replace(/[^0-9.]/g, '')) || 0,
+          resistance: parseFloat((row[12] || '0').toString().replace(/[^0-9.]/g, '')) || 0,
+          ema9: getNum(row[7]),
+          ema63: getNum(row[8]),
+          changePercent: parseFloat((row[5] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
+          targetStr: (row[9] || '').toString().trim(),
+          emaCrossover: (row[8] || '').toString().trim(),
+          reasons: (row[15] || '').toString().trim()
+        };
+      });
+      console.log(`[INTRADAY-SUMMARY] Loaded ${Object.keys(intradaySummaryMap).length} symbols.`);
+    }
+
+    // --- Process Golden Alerts ---
+    const gRows = rawGolden;
+    if (gRows.length > 1) {
+      const earliestAlerts = new Map();
+      gRows.slice(1).forEach(row => {
+        const sym = (row[0] || '').toString().trim().toUpperCase();
+        const time = (row[2] || '').toString().trim();
+        if (!sym || !time) return;
+
+        const alertData = {
+          symbol: sym,
+          time: time,
+          recommendedPrice: getNum(row[3]),
+          volumeMultiplier: getNum(row[4]),
+          change: getNum(row[5]),
+          ema9: getNum(row[6]),
+          ema63: getNum(row[7]),
+          resGap: getNum(row[8]),
+          target: getNum(row[9]),
+          stars: '★★★'
+        };
+
+        const parseTimeLocal = (t) => {
+          try {
+            const parts = t.split(':').map(Number);
+            return parts[0] * 60 + (parts[1] || 0);
+          } catch { return 9999; }
+        };
+
+        const existing = earliestAlerts.get(sym);
+        if (!existing || parseTimeLocal(time) < parseTimeLocal(existing.time)) {
+          earliestAlerts.set(sym, alertData);
+        }
+      });
+      goldenAlerts = Array.from(earliestAlerts.values());
+      console.log(`[GOLDEN] Deduplicated ${goldenAlerts.length} golden alerts.`);
+    }
+
+    // --- Process Intraday Dev (Commentary) ---
+    const devRows = rawCommentary;
+    if (devRows && devRows.length > 1) {
+      const rawDevData = rowsToObjects(devRows);
+      const symbolStates = {};
+      const symbolNotes = {};
+      const recentChanges = [];
+
+      rawDevData.forEach(row => {
+        const symbol = (row['Symbol'] || row['ID'] || row[0] || '').toString().trim();
+        if (!symbol || symbol === 'N/A' || symbol === 'Symbol' || symbol === 'Date') return;
+
+        const currentState = (row['State'] || row['N (State)'] || row[13] || 'STRONG').toString().toUpperCase();
+        const time = (row['Time'] || row[2] || 'N/A').toString();
+        const note = (row['Note'] || row[15] || row['Event'] || row[14] || '').toString();
+
+        const hasStateChange = !symbolStates[symbol] || symbolStates[symbol] !== currentState;
+        const hasNoteChange = symbolNotes[symbol] !== note;
+
+        if (hasStateChange || hasNoteChange) {
+          recentChanges.push({
+            symbol,
+            fromState: symbolStates[symbol] || 'NONE',
+            toState: currentState,
+            time,
+            note,
+            price: getNum(row['Close'] || row[7])
+          });
+          symbolStates[symbol] = currentState;
+          symbolNotes[symbol] = note;
+        }
+      });
+
+      const groupedRows = {};
+      devRows.slice(1).forEach(row => {
+        const symbol = (row[0] || '').toString().trim();
+        if (!symbol || symbol === 'N/A') return;
+        if (!groupedRows[symbol]) groupedRows[symbol] = [];
+        groupedRows[symbol].push(row);
+      });
+
+      intradayDev = Object.values(groupedRows).map(symbolRows => {
+        const latest = symbolRows[symbolRows.length - 1];
+        const sym = (latest[0] || 'N/A').toString().trim().toUpperCase();
+        const latestState = (latest[12] || 'STRONG').toString().toUpperCase();
+        const summary = intradaySummaryMap[sym] || {};
+
+        const findLatest = (idx) => {
+          for (let i = symbolRows.length - 1; i >= 0; i--) {
+            const val = (symbolRows[i][idx] || '').toString().trim();
+            if (val) return val;
+          }
+          return '';
+        };
+
+        return {
+          symbol: sym,
+          date: (latest[1] || 'N/A').toString(),
+          time: (latest[1] || 'N/A').toString(),
+          open: getNum(findLatest(2)),
+          high: getNum(findLatest(3)),
+          low: getNum(findLatest(4)),
+          close: getNum(findLatest(5)),
+          volume: getNum(findLatest(6)),
+          volMult: getNum(findLatest(8)),
+          changePercent: summary.changePercent || 0,
+          isGreen: (findLatest(7) || '').toString(),
+          tier: summary.tier || (findLatest(12) ? 'MODERN' : 'DEVELOPING'),
+          stars: summary.stars || '',
+          targetPrice: summary.targetPrice || 0,
+          summaryTarget: summary.target || '',
+          state: latestState,
+          event: (findLatest(13) || '').toString(),
+          note: (findLatest(15) || '').toString(),
+          ema9: getNum(findLatest(9)),
+          ema63: getNum(findLatest(10)),
+          emaCrossover: findLatest(11),
+          targetStr: findLatest(17),
+          reasons: findLatest(14),
+          allSignals: symbolRows.length,
+          recentChanges: recentChanges.filter(c => c.symbol === sym)
+        };
+      });
         // Sort all changes by time descending so the latest signals from ANY stock appear at top
         const parseTime = (t) => {
           try {
