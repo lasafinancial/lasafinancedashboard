@@ -126,6 +126,7 @@ export interface GoogleSheetsData {
   playbackSnapshots?: any[];
   dailyNews: DailyNewsItem[];
   niftyAnalysis?: NiftyAnalysisData;
+  niftyOptionsData?: any[];
   lastUpdated: string;
 }
 
@@ -167,6 +168,16 @@ export async function refreshAllData(): Promise<GoogleSheetsData | null> {
     }
 
     const data: GoogleSheetsData = await response.json();
+
+    // Fetch Nifty Options Data
+    try {
+      const optionsRes = await fetch(getApiUrl('/api/nifty-options-data'));
+      if (optionsRes.ok) {
+        data.niftyOptionsData = await optionsRes.json();
+      }
+    } catch (e) {
+      console.warn('Could not fetch nifty options data:', e);
+    }
 
     cachedData = data;
     lastFetchTime = now;

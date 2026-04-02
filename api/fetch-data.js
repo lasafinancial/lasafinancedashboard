@@ -1119,7 +1119,9 @@ async function fetchData() {
             changePercent: parseFloat((row[5] || '0').toString().replace('%', '').replace(/,/g, '')) || 0, // Column F
             targetStr: (row[9] || '').toString().trim(), // Column J
             emaCrossover: (row[8] || '').toString().trim(), // Column I
-            reasons: (row[15] || '').toString().trim()      // Column P
+            reasons: (row[15] || '').toString().trim(),      // Column P
+            valV: (row[21] || '').toString().trim(),         // Column V
+            valW: (row[22] || '').toString().trim()          // Column W
           };
         });
         console.log(`[INTRADAY-SUMMARY] Loaded ${Object.keys(intradaySummaryMap).length} symbols from summary sheet.`);
@@ -1347,6 +1349,11 @@ async function fetchData() {
       else if (finalStockData && finalStockData.length > 0) {
         const matched = finalStockData.find(s => s.symbol.toUpperCase() === alert.symbol);
         if (matched) livePrice = matched.price;
+      }
+
+      if (intradaySummaryMap[alert.symbol]) {
+        alert.valV = intradaySummaryMap[alert.symbol].valV;
+        alert.valW = intradaySummaryMap[alert.symbol].valW;
       }
 
       return {

@@ -408,6 +408,20 @@ export function IntradayDev() {
                     </div>
                 </div>
 
+                {/* Row 5: Column V & W */}
+                {(alert.valV || alert.valW) && (
+                    <div className="grid grid-cols-2 gap-2 border-t border-white/[0.02] pt-1 mt-1">
+                        <div className="flex flex-col">
+                            <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.1em]">BO Today</span>
+                            <span className="text-[10px] font-black text-white/40">{alert.valV || '—'}</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.1em]">BO Prev</span>
+                            <span className="text-[10px] font-black text-white/40">{alert.valW || '—'}</span>
+                        </div>
+                    </div>
+                )}
+
                 {alert.note && (
                     <div className="mt-0.5 text-[10px] font-bold text-white/30 leading-snug group-hover:text-white/50 transition-colors uppercase tracking-tight italic border-t border-white/[0.02] pt-1">
                         {alert.note}
@@ -782,7 +796,7 @@ export function IntradayDev() {
                                     </div>
                                 </div>
 
-                                 {/* GOLDEN ALERTS COLUMN */}
+                                {/* GOLDEN ALERTS COLUMN */}
                                 <div className="bg-[#050505] md:min-h-[calc(100vh-350px)] border-t md:border-t-0 border-white/5">
                                     <div
                                         onClick={() => toggleSection('golden')}

@@ -34,6 +34,7 @@ export function useLiveData() {
   const [playbackSnapshots, setPlaybackSnapshots] = useState<any[]>(cached ? cached.playbackSnapshots || [] : []);
   const [dailyNews, setDailyNews] = useState<any[]>(cached ? (cached as any).dailyNews || [] : []);
   const [niftyAnalysis, setNiftyAnalysis] = useState<any | null>(cached ? (cached as any).niftyAnalysis || null : null);
+  const [niftyOptionsData, setNiftyOptionsData] = useState<any[]>(cached ? (cached as any).niftyOptionsData || [] : []);
   const [isLoading, setIsLoading] = useState(!cached);
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
 
@@ -56,6 +57,7 @@ export function useLiveData() {
       setPlaybackSnapshots(data.playbackSnapshots || []);
       setDailyNews((data as any).dailyNews || []);
       setNiftyAnalysis((data as any).niftyAnalysis || null);
+      setNiftyOptionsData((data as any).niftyOptionsData || []);
       setLastUpdate(new Date().toLocaleTimeString());
       setIsLoading(false);
     });
@@ -87,6 +89,7 @@ export function useLiveData() {
     playbackSnapshots,
     dailyNews,
     niftyAnalysis,
+    niftyOptionsData,
     isLoading,
     lastUpdate,
     refresh: refreshAllData
