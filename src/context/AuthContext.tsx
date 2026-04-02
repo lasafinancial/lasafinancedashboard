@@ -243,10 +243,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Twilio OTP Methods
     const twilioSendOtp = async (phoneNumber: string) => {
-        const response = await fetch(getApiUrl('/api/send-otp'), {
+        const response = await fetch(getApiUrl('/api/otp'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phoneNumber }),
+            body: JSON.stringify({ phoneNumber, type: 'send' }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Failed to send OTP via Twilio');
@@ -254,10 +254,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const twilioVerifyOtp = async (phoneNumber: string, code: string) => {
-        const response = await fetch(getApiUrl('/api/verify-otp'), {
+        const response = await fetch(getApiUrl('/api/otp'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phoneNumber, code }),
+            body: JSON.stringify({ phoneNumber, code, type: 'verify' }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Verification failed');

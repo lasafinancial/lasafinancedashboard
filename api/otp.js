@@ -1,4 +1,5 @@
-// api/verify-otp.js — Twilio Verify: check OTP, then issue Firebase custom token
+
+// api/otp.js — Consolidated Twilio OTP Handler (Send & Verify)
 import twilio from 'twilio';
 import admin from 'firebase-admin';
 
@@ -6,9 +7,7 @@ import admin from 'firebase-admin';
 function getFirebaseCredentials() {
     const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
     const base64Key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64;
-
     if (!key && !base64Key) return null;
-
     try {
         let credentials;
         if (base64Key) {
@@ -21,7 +20,6 @@ function getFirebaseCredentials() {
             }
             credentials = JSON.parse(cleanKey);
         }
-
         if (credentials?.private_key) {
             credentials.private_key = credentials.private_key.replace(/\\n/g, '\n').trim();
         }
@@ -53,10 +51,10 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { phoneNumber, code } = req.body;
+    const { phoneNumber, code, type } = req.body; // type: 'send' or 'verify'
 
-    if (!phoneNumber || !code) {
-        return res.status(400).json({ error: 'Phone number and OTP code are required' });
+    if (!phoneNumber) {
+        return res.status(400).json({ error: 'Phone number is required' });
     }
 
     // Robust formatting: Clean non-digits first, then re-apply +91 prefix
@@ -67,48 +65,60 @@ export default async function handler(req, res) {
     const formattedPhone = `+91${cleanPhone}`;
 
     try {
-        // Step 1: Verify OTP with Twilio
-        console.log(`[verify-otp] Checking code for: ${formattedPhone}`);
+        // --- CASE 1: SEND OTP ---
+        if (type === 'send') {
+            console.log(`[otp] Sending OTP to: ${formattedPhone}`);
+            const verification = await client.verify.v2
+                .services(serviceSid)
+                .verifications.create({ to: formattedPhone, channel: 'sms' });
 
-        const check = await client.verify.v2
-            .services(serviceSid)
-            .verificationChecks.create({ to: formattedPhone, code });
-
-        console.log(`[verify-otp] Status: ${check.status} for ${formattedPhone}`);
-
-        if (check.status !== 'approved') {
-            return res.status(400).json({ error: 'Invalid or expired OTP. Please try again.' });
+            return res.status(200).json({
+                success: true,
+                message: `OTP sent to ${formattedPhone}`,
+                status: verification.status
+            });
         }
 
-        // Step 2: Create or fetch the Firebase user for this phone number
-        // We use a deterministic UID so the same phone always maps to the same user record
-        const uid = `phone_${formattedPhone.replace('+', '')}`;
+        // --- CASE 2: VERIFY OTP ---
+        if (type === 'verify') {
+            if (!code) return res.status(400).json({ error: 'Verification code is required' });
 
-        let userRecord;
-        try {
-            userRecord = await admin.auth().getUser(uid);
-        } catch (err) {
-            if (err.code === 'auth/user-not-found') {
-                userRecord = await admin.auth().createUser({
-                    uid,
-                    phoneNumber: formattedPhone,
-                    displayName: formattedPhone,
-                });
-                console.log(`[verify-otp] Created new Firebase user: ${uid}`);
-            } else {
-                throw err;
+            console.log(`[otp] Checking code for: ${formattedPhone}`);
+            const check = await client.verify.v2
+                .services(serviceSid)
+                .verificationChecks.create({ to: formattedPhone, code });
+
+            if (check.status !== 'approved') {
+                return res.status(400).json({ error: 'Invalid or expired OTP.' });
             }
+
+            // Create Firebase custom token
+            const uid = `phone_${formattedPhone.replace('+', '')}`;
+            let userRecord;
+            try {
+                userRecord = await admin.auth().getUser(uid);
+            } catch (err) {
+                if (err.code === 'auth/user-not-found') {
+                    userRecord = await admin.auth().createUser({
+                        uid,
+                        phoneNumber: formattedPhone,
+                        displayName: formattedPhone,
+                    });
+                } else {
+                    throw err;
+                }
+            }
+
+            const customToken = await admin.auth().createCustomToken(uid);
+            return res.status(200).json({ success: true, customToken });
         }
 
-        // Step 3: Issue a Firebase custom token for the client to sign in with
-        const customToken = await admin.auth().createCustomToken(uid);
-
-        return res.status(200).json({ success: true, customToken });
+        return res.status(400).json({ error: 'Invalid action type' });
 
     } catch (err) {
-        console.error('[verify-otp] Error:', err.message, err.code ?? '');
+        console.error('[otp] Error:', err.message);
         return res.status(500).json({
-            error: 'Verification failed',
+            error: 'Operation failed',
             details: err.message,
         });
     }
