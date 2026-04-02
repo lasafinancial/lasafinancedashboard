@@ -3,29 +3,39 @@ import twilio from 'twilio';
 import admin from 'firebase-admin';
 
 // ── Firebase Admin Init ──────────────────────────────────────────────────────
-if (!admin.apps.length) {
-    let credential;
+function getFirebaseCredentials() {
+    const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    const base64Key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64;
 
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        try {
-            let keyStr = process.env.FIREBASE_SERVICE_ACCOUNT_KEY.trim();
-            if ((keyStr.startsWith("'") && keyStr.endsWith("'")) || (keyStr.startsWith('"') && keyStr.endsWith('"'))) {
-                keyStr = keyStr.slice(1, -1);
+    if (!key && !base64Key) return null;
+
+    try {
+        let credentials;
+        if (base64Key) {
+            const decoded = Buffer.from(base64Key, 'base64').toString('utf-8');
+            credentials = JSON.parse(decoded);
+        } else {
+            let cleanKey = key.trim();
+            if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+                cleanKey = cleanKey.slice(1, -1).trim();
             }
-            const serviceAccount = JSON.parse(keyStr);
-
-            if (serviceAccount.private_key) {
-                serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-            }
-
-            credential = admin.credential.cert(serviceAccount);
-        } catch (e) {
-            console.error('[verify-otp] Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:', e.message);
+            credentials = JSON.parse(cleanKey);
         }
-    }
 
+        if (credentials?.private_key) {
+            credentials.private_key = credentials.private_key.replace(/\\n/g, '\n').trim();
+        }
+        return credentials;
+    } catch (e) {
+        console.error('Firebase Auth Parse Error:', e.message);
+        return null;
+    }
+}
+
+if (!admin.apps.length) {
+    const serviceAccount = getFirebaseCredentials();
     admin.initializeApp({
-        credential: credential ?? admin.credential.applicationDefault(),
+        credential: serviceAccount ? admin.credential.cert(serviceAccount) : admin.credential.applicationDefault(),
         projectId: 'lasa-dashboard-2f21d',
     });
 }

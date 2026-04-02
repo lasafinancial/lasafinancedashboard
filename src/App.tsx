@@ -21,6 +21,7 @@ import SupportReversal from "@/pages/SupportReversal";
 import ReactionZone from "@/pages/ReactionZone";
 import IntradayBreakout from "@/pages/IntradayBreakout";
 import IntradayDev from "@/pages/IntradayDev";
+import NiftyAnalysis from "@/pages/NiftyAnalysis";
 import Nifty50 from "@/pages/Nifty50";
 import DailyNews from "@/pages/DailyNews";
 import Backtests from "@/pages/Backtests";
@@ -225,6 +226,7 @@ const AppContent = () => {
             <Route path="/screeners/support-reversal" element={<ProtectedRoute><SupportReversal /></ProtectedRoute>} />
             <Route path="/screeners/reaction-zone" element={<ProtectedRoute><ReactionZone /></ProtectedRoute>} />
             <Route path="/screeners/intraday-breakout" element={<ProtectedRoute><IntradayBreakout /></ProtectedRoute>} />
+            <Route path="/screeners/nifty-analysis" element={<ProtectedRoute><NiftyAnalysis /></ProtectedRoute>} />
             <Route path="/screeners/intraday-dev" element={<ProtectedRoute><IntradayDev /></ProtectedRoute>} />
             <Route path="/nifty50" element={<ProtectedRoute><Nifty50 /></ProtectedRoute>} />
             <Route path="/daily-news" element={<ProtectedRoute><DailyNews /></ProtectedRoute>} />

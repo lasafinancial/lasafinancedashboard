@@ -211,24 +211,68 @@ async function fetchData() {
   try {
     const goldenRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
-      range: "'golden'!A1:T200",
+      range: "'golden'",
     });
     const goldenRows = goldenRes.data.values;
     console.log(`[GOLDEN] Raw fetch result: ${goldenRows ? goldenRows.length : 0} rows`);
     if (goldenRows && goldenRows.length > 0) {
+      console.log(`[GOLDEN-DEBUG] Row 0: ${JSON.stringify(goldenRows[0])}`);
+      console.log(`[GOLDEN-DEBUG] Last Row: ${JSON.stringify(goldenRows[goldenRows.length - 1])}`);
       const firstVal = (goldenRows[0][0] || '').toString().toLowerCase();
       const isHeader = firstVal.includes('symbol') || firstVal.includes('id') || firstVal.includes('date');
       const rowsToProcess = isHeader ? goldenRows.slice(1) : goldenRows;
 
       const deduplicated = new Map();
+      // Get today's date as YYYY-MM-DD string (timezone-safe)
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      console.log(`[GOLDEN] Filtering for today: ${todayStr}`);
+
+      // Helper for numeric time comparison (minutes from midnight)
+      const getMinutes = (timeStr) => {
+        if (!timeStr || typeof timeStr !== 'string') return 0;
+        const parts = timeStr.trim().split(':');
+        if (parts.length < 2) return 0;
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      };
+
       rowsToProcess.forEach((row) => {
         const sym = (row[0] || '').toString().trim().toUpperCase();
         if (!sym || sym.length < 2 || sym === 'SYMBOL') return;
+
+        // DATE FILTER (Column B / Index 1) - compare as string to avoid timezone issues
+        const rawDate = (row[1] || '').toString().trim();
+        if (rawDate) {
+          // Normalize different date formats to YYYY-MM-DD using regex
+          let normalizedDate = '';
+          const serial = parseFloat(rawDate);
+          if (!isNaN(serial) && serial > 40000 && !rawDate.includes('-') && !rawDate.includes('/')) {
+            // Excel/Sheets serial number
+            const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+            normalizedDate = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+          } else {
+            // Flexible regex match for YYYY-MM-DD or DD-MM-YYYY or M-D-YYYY
+            const match = rawDate.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})/) || rawDate.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+            if (match) {
+              if (match[1].length === 4) {
+                // YYYY-MM-DD
+                normalizedDate = `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+              } else {
+                // DD-MM-YYYY or MM-DD-YYYY — assume DD-MM-YYYY (Indian format)
+                normalizedDate = `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+              }
+            }
+          }
+          if (normalizedDate && normalizedDate !== todayStr) {
+            return; // Skip alerts not from today
+          }
+        }
 
         const timeStr = (row[2] || '').toString().trim();
         const alert = {
           symbol: sym,
           time: timeStr,
+          timeMinutes: getMinutes(timeStr),
           stars: (row[13] || '').toString(),
           note: (row[10] || '').toString(), // Column K: SIGNAL TYPE
           recommendedPrice: getNum(row[3]), // Column D: LTP (Recommended Price)
@@ -245,7 +289,7 @@ async function fetchData() {
         } else {
           // Keep only the EARLIEST alert for each stock
           const existing = deduplicated.get(sym);
-          if (timeStr && existing.time && timeStr < existing.time) {
+          if (alert.timeMinutes < existing.timeMinutes) {
             deduplicated.set(sym, alert);
           }
         }
@@ -1289,11 +1333,11 @@ async function fetchData() {
   if (goldenAlerts && goldenAlerts.length > 0) {
     goldenAlerts = goldenAlerts.map(alert => {
       let livePrice = alert.recommendedPrice;
-      
+
       // Priority 1: 'current' sheet (TRULY LIVE)
       if (currentPriceMap.has(alert.symbol)) {
         livePrice = currentPriceMap.get(alert.symbol);
-      } 
+      }
       // Priority 2: stockData (Historical/Master fallback)
       else if (finalStockData && finalStockData.length > 0) {
         const matched = finalStockData.find(s => s.symbol.toUpperCase() === alert.symbol);

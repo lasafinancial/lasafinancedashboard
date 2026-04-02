@@ -6,6 +6,7 @@
     "gaxios": "^6.7.1",
     "gcp-metadata": "^6.1.0",
     "google-auth-library": "^9.15.0",
-    "twilio": "^5.12.2"
+    "twilio": "^5.12.2",
+    "xlsx": "^0.18.5"
   }
 }

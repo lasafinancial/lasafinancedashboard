@@ -1,11 +1,34 @@
 import admin from 'firebase-admin';
 
 // Reusing the same initialization logic as other endpoints
-if (!admin.apps.length) {
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-        : null;
+function getFirebaseCredentials() {
+    const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    const base64Key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64;
+    if (!key && !base64Key) return null;
+    try {
+        let credentials;
+        if (base64Key) {
+            const decoded = Buffer.from(base64Key, 'base64').toString('utf-8');
+            credentials = JSON.parse(decoded);
+        } else {
+            let cleanKey = key.trim();
+            if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+                cleanKey = cleanKey.slice(1, -1).trim();
+            }
+            credentials = JSON.parse(cleanKey);
+        }
+        if (credentials?.private_key) {
+            credentials.private_key = credentials.private_key.replace(/\\n/g, '\n').trim();
+        }
+        return credentials;
+    } catch (e) {
+        console.error('Firebase Auth Parse Error:', e.message);
+        return null;
+    }
+}
 
+if (!admin.apps.length) {
+    const serviceAccount = getFirebaseCredentials();
     if (serviceAccount) {
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),

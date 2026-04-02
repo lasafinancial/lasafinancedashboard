@@ -9,7 +9,7 @@
 
                     ┌──────────────────────────────────┐
                     │       GOOGLE SHEETS              │
-                    │  (Your Source of Truth)          │
+                    │            		       │
                     │                                  │
                     │  ┌────────────────────────┐      │
                     │  │ EOD Sheet (lasa-master)│      │
