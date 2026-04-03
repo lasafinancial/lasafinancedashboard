@@ -1,67 +1,85 @@
+import { google } from 'googleapis';
 
-const XLSX = require('xlsx');
-const fs = require('fs');
-const path = require('path');
+const SPREADSHEET_ID = '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU';
 
-module.exports = async (req, res) => {
-    // Add CORS headers for Vercel
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    );
-
-    if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
+function getCredentials() {
+    const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+    if (!key) {
+        throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable not set');
     }
 
     try {
-        console.log('[NIFTY-OPTICS] Diagnostic Info:');
-        console.log('process.cwd():', process.cwd());
-        console.log('__dirname:', __dirname);
+        let cleanKey = key.trim();
 
-        // List potential locations
-        const locations = [
-            path.join(process.cwd(), 'datapulling', 'NiftyAnalysis.xlsx'),
-            path.join(process.cwd(), '..', 'datapulling', 'NiftyAnalysis.xlsx'),
-            path.join(__dirname, '..', 'datapulling', 'NiftyAnalysis.xlsx'),
-            path.join(__dirname, 'datapulling', 'NiftyAnalysis.xlsx')
-        ];
+        // Remove potential surrounding quotes from Vercel env var
+        if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
+            (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+            cleanKey = cleanKey.slice(1, -1).trim();
+        }
 
-        let excelPath = null;
-        for (const loc of locations) {
-            if (fs.existsSync(loc)) {
-                excelPath = loc;
-                console.log('[NIFTY-OPTICS] Found file at:', loc);
-                break;
+        // In case the key was double-encoded as a JSON string
+        let credentials;
+        try {
+            credentials = JSON.parse(cleanKey);
+            if (typeof credentials === 'string') {
+                credentials = JSON.parse(credentials);
+            }
+        } catch (e) {
+            throw new Error(`JSON Parse Error: ${e.message}`);
+        }
+
+        if (credentials && credentials.private_key) {
+            // Robustly replace escaped newlines
+            credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+
+            // Remove any leading/trailing quotes that might have been accidentally included in the private_key value
+            credentials.private_key = credentials.private_key.trim();
+            if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
+                credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
             }
         }
-
-        if (!excelPath) {
-            console.error('[NIFTY-OPTICS] NiftyAnalysis.xlsx NOT found in any known locations.');
-            // Let's at least see what IS in the current directory
-            try {
-                console.log('CWD contents:', fs.readdirSync(process.cwd()));
-            } catch (e) { }
-            return res.status(404).json({ error: 'NiftyAnalysis.xlsx not found in deployment' });
-        }
-
-        const workbook = XLSX.readFile(excelPath);
-        const sheetName = 'Nifty-Options';
-
-        if (!workbook.SheetNames.includes(sheetName)) {
-            return res.status(404).json({ error: 'Sheet Nifty-Options not found in Excel file' });
-        }
-
-        const sheet = workbook.Sheets[sheetName];
-        const data = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
-
-        res.status(200).json(data);
-    } catch (error) {
-        console.error('[NIFTY-OPTICS] Error reading NiftyAnalysis.xlsx:', error);
-        res.status(500).json({ error: 'Failed to read Nifty Options data', details: error.message });
+        return credentials;
+    } catch (e) {
+        throw new Error(`Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY: ${e.message}`);
     }
-};
+}
+
+export default async function handler(req, res) {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    try {
+        const credentials = getCredentials();
+        const auth = new google.auth.GoogleAuth({
+            credentials,
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        });
+        const sheets = google.sheets({ version: 'v4', auth });
+
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "'Nifty-Options'",
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length < 2) {
+            return res.status(200).json([]);
+        }
+
+        const headers = rows[0];
+        const data = rows.slice(1).map(row => {
+            let obj = {};
+            headers.forEach((header, i) => {
+                obj[header] = row[i] !== undefined ? row[i] : "";
+            });
+            return obj;
+        });
+
+        res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
+        return res.status(200).json(data);
+    } catch (error) {
+        console.error('Error in nifty-options-data api:', error);
+        return res.status(500).json({ error: 'Failed to fetch Nifty Options data', message: error.message });
+    }
+}

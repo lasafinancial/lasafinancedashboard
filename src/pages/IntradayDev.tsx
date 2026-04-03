@@ -143,17 +143,26 @@ export function IntradayDev() {
             strong: filteredStocks.filter(s => s.state === "STRONG"),
             pullback: filteredStocks.filter(s => s.state === "PULLBACK"),
             exit: filteredStocks.filter(s => s.state === "EXIT" || s.state === "TRAP"),
-            goldenAlerts: isPlayback ? [] : (goldenAlerts || []) // Hide alerts in playback for now unless we add snapshots for them
+            // During playback, filter from the snapshot stocks; during live mode, use the live alerts
+            goldenAlerts: isPlayback 
+                ? filteredStocks.filter(s => s.tier === "GOLDEN")
+                : (goldenAlerts || [])
         };
     }, [filteredStocks, intradayDevChanges, goldenAlerts, isPlayback, playbackSnapshots, playbackIndex]);
 
-    const stats = useMemo(() => ({
-        strong: (stocks || []).filter(s => s.state === "STRONG").length,
-        pullback: (stocks || []).filter(s => s.state === "PULLBACK").length,
-        exit: (stocks || []).filter(s => s.state === "EXIT" || s.state === "TRAP").length,
-        golden: (goldenAlerts || []).length,
-        total: (stocks || []).length
-    }), [stocks, intradayDevChanges, goldenAlerts]);
+    const stats = useMemo(() => {
+        // Use filteredStocks for accurate point-in-time statistics
+        const sourceData = filteredStocks || [];
+        const goldenData = categorized.goldenAlerts || [];
+        
+        return {
+            strong: sourceData.filter(s => s.state === "STRONG").length,
+            pullback: sourceData.filter(s => s.state === "PULLBACK").length,
+            exit: sourceData.filter(s => s.state === "EXIT" || s.state === "TRAP").length,
+            golden: goldenData.length,
+            total: sourceData.length
+        };
+    }, [filteredStocks, categorized]);
 
     const tierDescriptions = [
         {
@@ -364,11 +373,10 @@ export function IntradayDev() {
                     </div>
                 </div>
 
-                {/* Row 2: Price & Vol */}
                 <div className="flex items-center gap-3">
                     <div className="flex flex-col">
                         <span className="text-[15px] font-black text-white leading-none tracking-tight">{formatCurrency(alert.livePrice)}</span>
-                        <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.1em] mt-1">Live Price</span>
+                        <span className="text-[7px] font-black text-white/70 uppercase tracking-[0.1em] mt-1 italic">Live Price</span>
                     </div>
                     <span className={`text-[11px] font-black ${alert.change >= 0 ? 'text-emerald-500' : 'text-red-500'} self-start mt-1 ml-2`}>
                         {formatPercent(alert.change)}
@@ -380,50 +388,48 @@ export function IntradayDev() {
 
                 {/* Sub-row: Recommended Price */}
                 <div className="flex items-center gap-2 -mt-1 mb-1">
-                    <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.05em]">Recom Price:</span>
-                    <span className="text-[10px] font-black text-white/80">{formatCurrency(alert.recommendedPrice)}</span>
+                    <span className="text-[8px] font-black text-white/50 uppercase tracking-[0.05em]">Recom Price:</span>
+                    <span className="text-[10px] font-black text-white">{formatCurrency(alert.recommendedPrice)}</span>
                 </div>
 
                 {/* Row 3: Res Gap & Target */}
                 <div className="grid grid-cols-2 gap-2 mt-1 border-t border-white/[0.03] pt-2">
                     <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">Res Gap</span>
-                        <span className="text-[11px] font-black text-yellow-500/70">{formatPercent(alert.resGap)}</span>
+                        <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.1em]">Res Gap</span>
+                        <span className="text-[11px] font-black text-yellow-500/90">{formatPercent(alert.resGap)}</span>
                     </div>
                     <div className="flex flex-col items-end">
-                        <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">Target</span>
-                        <span className="text-[11px] font-black text-orange-500/80">{formatCurrency(alert.target)}</span>
+                        <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.1em]">Target</span>
+                        <span className="text-[11px] font-black text-orange-500/90">{formatCurrency(alert.target)}</span>
                     </div>
                 </div>
 
                 {/* Row 4: EMAs */}
                 <div className="grid grid-cols-2 gap-2">
                     <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">EMA9</span>
-                        <span className="text-[10px] font-black text-white/50">{formatCurrency(alert.ema9)}</span>
+                        <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.1em]">EMA9</span>
+                        <span className="text-[10px] font-black text-white/80">{formatCurrency(alert.ema9)}</span>
                     </div>
                     <div className="flex flex-col items-end">
-                        <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.1em]">EMA63</span>
-                        <span className="text-[10px] font-black text-white/50">{formatCurrency(alert.ema63)}</span>
+                        <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.1em]">EMA63</span>
+                        <span className="text-[10px] font-black text-white/80">{formatCurrency(alert.ema63)}</span>
                     </div>
                 </div>
 
-                {/* Row 5: Column V & W */}
-                {(alert.valV || alert.valW) && (
-                    <div className="grid grid-cols-2 gap-2 border-t border-white/[0.02] pt-1 mt-1">
-                        <div className="flex flex-col">
-                            <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.1em]">BO Today</span>
-                            <span className="text-[10px] font-black text-white/40">{alert.valV || '—'}</span>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.1em]">BO Prev</span>
-                            <span className="text-[10px] font-black text-white/40">{alert.valW || '—'}</span>
-                        </div>
+                {/* Row 5: Column V & W (Consistent) */}
+                <div className="grid grid-cols-2 gap-2 border-t border-white/[0.02] pt-1 mt-1">
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-white/50 uppercase tracking-[0.1em]">BO Today</span>
+                        <span className="text-[10px] font-black text-white/70">{alert.valV ?? '—'}</span>
                     </div>
-                )}
+                    <div className="flex flex-col items-end">
+                        <span className="text-[8px] font-black text-white/50 uppercase tracking-[0.1em]">BO Prev</span>
+                        <span className="text-[10px] font-black text-white/70">{alert.valW ?? '—'}</span>
+                    </div>
+                </div>
 
                 {alert.note && (
-                    <div className="mt-0.5 text-[10px] font-bold text-white/30 leading-snug group-hover:text-white/50 transition-colors uppercase tracking-tight italic border-t border-white/[0.02] pt-1">
+                    <div className="mt-0.5 text-[10px] font-bold text-white/50 leading-snug group-hover:text-white/80 transition-colors uppercase tracking-tight italic border-t border-white/[0.02] pt-1">
                         {alert.note}
                     </div>
                 )}

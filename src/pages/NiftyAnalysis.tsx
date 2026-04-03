@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from "@/components/ui/card";
 import { PlayCircle, PauseCircle, ChevronLeft, ChevronRight, Activity, TrendingDown, TrendingUp } from 'lucide-react';
-import { useLiveData } from "@/hooks/useLiveData";
+import { useQuery } from '@tanstack/react-query';
 
 interface FrameData {
     Time: string;
@@ -26,28 +26,33 @@ const formatBigNumber = (num: number) => {
 };
 
 export default function NiftyAnalysis() {
-    const { niftyOptionsData, isLoading: isLiveDataLoading } = useLiveData();
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
 
-    // Filter and Parse raw data from live hook
-    const frames = useMemo(() => {
-        if (!niftyOptionsData) return [];
-        return niftyOptionsData
-            .filter((row: any) => row.Time && row["Raw JSON Data"] && row["Raw JSON Data"] !== "API Error")
-            .map((row: any) => {
-                let parsedOptions = null;
-                try {
-                    parsedOptions = JSON.parse(row["Raw JSON Data"]);
-                } catch (e) {
-                    console.error("Failed to parse options JSON for row:", row.Time);
-                }
-                return { ...row, parsedOptions };
-            });
-    }, [niftyOptionsData]);
+    // Fetch data
+    const { data: frames, isLoading, isError } = useQuery({
+        queryKey: ['niftyOptix'],
+        queryFn: async () => {
+            const res = await fetch('/api/nifty-options-data');
+            if (!res.ok) throw new Error('Network response was not ok');
+            const json = await res.json();
 
-    const isLoading = isLiveDataLoading && frames.length === 0;
-    const isError = false; // Error handling is now in the global hook
+            // Filter out blank rows or API errors
+            return json
+                .filter((row: any) => row.Time && row["Raw JSON Data"] && row["Raw JSON Data"] !== "API Error")
+                .map((row: any) => {
+                    let parsedOptions = null;
+                    try {
+                        // Need to fix broken JSON from sheet if necessary. Assuming valid here.
+                        parsedOptions = JSON.parse(row["Raw JSON Data"]);
+                    } catch (e) {
+                        console.error("Failed to parse options JSON for row:", row.Time);
+                    }
+                    return { ...row, parsedOptions };
+                });
+        },
+        refetchInterval: 300000 // Refetch every 5 mins
+    });
 
     const activeFrame: FrameData | null = frames?.[currentFrameIndex] || null;
 
@@ -125,8 +130,8 @@ export default function NiftyAnalysis() {
                     <span className="text-slate-700 text-[10px] font-mono hidden sm:inline">5-MIN SESSION · NSE</span>
                     <div className="flex gap-1.5 flex-wrap ml-1">
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${activeFrame?.["1-Min Trend"]?.includes("BULLISH")
-                            ? "text-green-400 bg-green-500/10 border-green-500/30"
-                            : "text-red-400 bg-red-500/10 border-red-500/30"
+                                ? "text-green-400 bg-green-500/10 border-green-500/30"
+                                : "text-red-400 bg-red-500/10 border-red-500/30"
                             }`}>1-MIN: {activeFrame?.["1-Min Trend"] || "---"}</span>
                         <span className="px-2 py-0.5 rounded text-[9px] font-bold border border-orange-500/30 text-orange-400 bg-orange-400/10">
                             PCR {pcr > 0 ? pcr.toFixed(2) : '--'}
@@ -135,8 +140,8 @@ export default function NiftyAnalysis() {
                             KEY STRIKE {activeFrame?.["Key Strike"] || "N/A"}
                         </span>
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${sessionChange >= 0
-                            ? 'text-green-400 bg-green-500/10 border-green-500/20'
-                            : 'text-red-400 bg-red-500/10 border-red-500/20'
+                                ? 'text-green-400 bg-green-500/10 border-green-500/20'
+                                : 'text-red-400 bg-red-500/10 border-red-500/20'
                             }`}>SESSION {sessionChange >= 0 ? '+' : ''}{sessionChangePct.toFixed(2)}%</span>
                     </div>
                 </div>
@@ -245,14 +250,14 @@ export default function NiftyAnalysis() {
                             </span>
                         </div>
                         <div className={`flex flex-col items-center justify-center px-2 sm:px-4 py-2 sm:py-3 border-t border-white/[0.04] ${activeFrame?.["1-Min Trend"]?.includes("BULLISH")
-                            ? 'bg-green-500/10'
-                            : activeFrame?.["1-Min Trend"]?.includes("BEARISH")
-                                ? 'bg-red-500/10'
-                                : 'bg-[#0d1117]'
+                                ? 'bg-green-500/10'
+                                : activeFrame?.["1-Min Trend"]?.includes("BEARISH")
+                                    ? 'bg-red-500/10'
+                                    : 'bg-[#0d1117]'
                             }`}>
                             <span className="text-[8px] sm:text-[9px] text-slate-600 uppercase tracking-widest mb-0.5">1-MIN</span>
                             <span className={`text-[10px] sm:text-xs font-black ${activeFrame?.["1-Min Trend"]?.includes("BULLISH") ? 'text-green-400' :
-                                activeFrame?.["1-Min Trend"]?.includes("BEARISH") ? 'text-red-400' : 'text-slate-500'
+                                    activeFrame?.["1-Min Trend"]?.includes("BEARISH") ? 'text-red-400' : 'text-slate-500'
                                 }`}>
                                 {activeFrame?.["1-Min Trend"]?.includes("BULLISH") ? "BULLISH" :
                                     activeFrame?.["1-Min Trend"]?.includes("BEARISH") ? "BEARISH" : "--"}
