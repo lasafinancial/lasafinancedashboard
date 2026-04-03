@@ -208,6 +208,7 @@ async function fetchData() {
 
   // --- Golden Alerts Fetch (Moved to top for reliability) ---
   let goldenAlerts = [];
+  let intradaySummaryMap = {}; // Hoisted for global access within fetchData
   try {
     const goldenRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
@@ -1097,7 +1098,7 @@ async function fetchData() {
     // --- End Intraday Breakout Screener ---
 
     // --- Start Intraday Summary (Stars & Tiers) ---
-    let intradaySummaryMap = {};
+    // (intradaySummaryMap already defined at top)
     try {
       const summaryRes = await sheets.spreadsheets.values.get({
         spreadsheetId: EOD_SHEET_ID,
