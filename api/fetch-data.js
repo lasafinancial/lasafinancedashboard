@@ -550,6 +550,7 @@ async function fetchData() {
   let playbackSnapshots = [];
   let niftyAnalysis = { history: [] };
   let currentPriceMap = new Map();
+  let currentChangePercentMap = new Map();
   try {
     const currentRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
@@ -558,12 +559,15 @@ async function fetchData() {
     const currentRows = currentRes.data.values || [];
     currentData = rowsToObjects(currentRows);
 
-    // Build currentPriceMap for later enrichment
+    // Build currentPriceMap and currentChangePercentMap for later enrichment
     currentData.forEach(row => {
       const sym = (row['ID'] || row['C'] || '').toString().trim().toUpperCase();
       if (sym) {
         const cp = getNum(row['CLOSE_PRICE'] || row[colToIdx('E')]);
         currentPriceMap.set(sym, cp);
+
+        const changePct = parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0;
+        currentChangePercentMap.set(sym, changePct);
       }
     });
 
@@ -1204,7 +1208,7 @@ async function fetchData() {
             close: getNum(findLatest(5)),
             volume: getNum(findLatest(6)),
             volMult: getNum(findLatest(8)),
-            changePercent: summary.changePercent || 0,
+            changePercent: currentChangePercentMap.has(sym) ? currentChangePercentMap.get(sym) : (summary.changePercent || 0),
             isGreen: (findLatest(7) || '').toString(),
             tier: summary.tier || (findLatest(12) ? 'MODERN' : 'DEVELOPING'),
             stars: summary.stars || '',
@@ -1262,7 +1266,7 @@ async function fetchData() {
               symbol: sym,
               time: (latest[1] || 'N/A').toString(),
               close: getNum(latest[5]),
-              changePercent: summary.changePercent || 0,
+              changePercent: currentChangePercentMap.has(sym) ? currentChangePercentMap.get(sym) : (summary.changePercent || 0),
               state: (latest[12] || 'STRONG').toString().toUpperCase(),
               tier: summary.tier || 'DEVELOPING',
               stars: summary.stars || '',

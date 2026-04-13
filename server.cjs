@@ -368,6 +368,7 @@ async function fetchData() {
   let playbackSnapshots = [];
   let niftyAnalysis = { history: [] };
   let currentPriceMap = new Map();
+  let currentChangePercentMap = new Map();
 
   console.log('Fetching live data from Google Sheets...');
   const credentials = getCredentials();
@@ -712,12 +713,15 @@ async function fetchData() {
       const currentRows = currentRes.data.values || [];
       const currentData = rowsToObjects(currentRows);
 
-      // Build currentPriceMap for later enrichment
+      // Build currentPriceMap and currentChangePercentMap for later enrichment
       currentData.forEach(row => {
         const sym = (row['ID'] || row['C'] || '').toString().trim().toUpperCase();
         if (sym) {
           const cp = getNum(row['CLOSE_PRICE'] || row[colToIdx('E')]);
           currentPriceMap.set(sym, cp);
+
+          const changePct = parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0;
+          currentChangePercentMap.set(sym, changePct);
         }
       });
 
@@ -1379,7 +1383,7 @@ async function fetchData() {
             close: getNum(findLatest(5)),
             volume: getNum(findLatest(6)),
             volMult: getNum(findLatest(8)),
-            changePercent: summary.changePercent || 0,
+            changePercent: currentChangePercentMap.has(sym) ? currentChangePercentMap.get(sym) : (summary.changePercent || 0),
             isGreen: (findLatest(7) || '').toString(),
             tier: summary.tier || (findLatest(12) ? 'MODERN' : 'DEVELOPING'),
             stars: summary.stars || '',
@@ -1443,7 +1447,7 @@ async function fetchData() {
               symbol: sym,
               time: (latest[1] || 'N/A').toString(),
               close: getNum(latest[5]),
-              changePercent: summary.changePercent || 0,
+              changePercent: currentChangePercentMap.has(sym) ? currentChangePercentMap.get(sym) : (summary.changePercent || 0),
               state: (latest[12] || 'STRONG').toString().toUpperCase(),
               tier: summary.tier || 'DEVELOPING',
               stars: summary.stars || '',
@@ -1988,24 +1992,39 @@ app.post('/api/verify-otp', async (req, res) => {
 
 //niftyoptionsfetching
 
-app.get('/api/nifty-options-data', (req, res) => {
+app.get('/api/nifty-options-data', async (req, res) => {
   try {
-    const excelPath = path.join(__dirname, 'datapulling', 'NiftyAnalysis.xlsx');
-    if (!fs.existsSync(excelPath)) {
-      return res.status(404).json({ error: 'NiftyAnalysis.xlsx not found in datapulling folder' });
+    const SPREADSHEET_ID = '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU';
+    const credentials = getCredentials();
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    });
+    const sheets = google.sheets({ version: 'v4', auth });
+    
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "'Nifty-Options'",
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length < 2) {
+      return res.json([]);
     }
-    const workbook = XLSX.readFile(excelPath);
-    const sheetName = 'Nifty-Options';
-    if (!workbook.SheetNames.includes(sheetName)) {
-      return res.status(404).json({ error: 'Sheet Nifty-Options not found in Excel file' });
-    }
-    const sheet = workbook.Sheets[sheetName];
-    // Convert to JSON
-    const data = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+
+    const headers = rows[0];
+    const data = rows.slice(1).map(row => {
+      let obj = {};
+      headers.forEach((header, i) => {
+        obj[header] = row[i] !== undefined ? row[i] : "";
+      });
+      return obj;
+    });
+
     res.json(data);
   } catch (error) {
-    console.error('Error reading NiftyAnalysis.xlsx:', error);
-    res.status(500).json({ error: 'Failed to read Nifty Options data' });
+    console.error('Error fetching Nifty Options data from Google Sheets:', error);
+    res.status(500).json({ error: 'Failed to read Nifty Options live data', message: error.message });
   }
 });
 
