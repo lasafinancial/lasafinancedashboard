@@ -4,6 +4,19 @@ const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
 const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';
 
+function isMarketOpen() {
+  const now = new Date();
+  const istDateString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+  const istDate = new Date(istDateString);
+  const day = istDate.getDay(); 
+  const timeInMinutes = istDate.getHours() * 60 + istDate.getMinutes();
+  return (day >= 1 && day <= 5) && (timeInMinutes >= 9 * 60 + 15 && timeInMinutes <= 15 * 60 + 30);
+}
+
+function getLogTimeIST() {
+  return new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }) + " IST";
+}
+
 function parseDateFlexible(dateStr) {
   if (dateStr === null || dateStr === undefined || dateStr === '') return null;
 
@@ -1391,6 +1404,25 @@ async function fetchData() {
 }
 
 export default async function handler(req, res) {
+  const isForced = req.query.force === 'true';
+  const isMarketNowOpen = isMarketOpen();
+  const istTime = getLogTimeIST();
+
+  // Optimization: Skip fetching if market is closed, it's not a forced refresh, and not a scheduled morning cron
+  // We allow fetches between 6:00 AM and 9:15 AM for pre-market preparation
+  const istDate = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const hours = istDate.getHours();
+  const isPreMarket = hours >= 6 && hours < 9;
+  
+  if (!isMarketNowOpen && !isForced && !isPreMarket) {
+     console.log(`[${istTime}] Skipping API Fetch: Market is Closed. Use ?force=true to override.`);
+     return res.status(200).json({ 
+       message: 'Market is currently closed. Polling is restricted to 09:15 - 15:30 IST.',
+       isClosed: true,
+       lastUpdated: new Date().toISOString()
+     });
+  }
+
   try {
     const data = await fetchData();
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');

@@ -138,6 +138,7 @@ let refreshInterval: ReturnType<typeof setInterval> | null = null;
 const dataListeners: Set<(data: GoogleSheetsData) => void> = new Set();
 
 import { getApiUrl } from '@/config/api';
+import { isMarketOpen } from './marketHours';
 
 export function subscribeToData(callback: (data: GoogleSheetsData) => void): () => void {
   dataListeners.add(callback);
@@ -153,15 +154,26 @@ function notifyListeners(data: GoogleSheetsData) {
   dataListeners.forEach(callback => callback(data));
 }
 
-export async function refreshAllData(): Promise<GoogleSheetsData | null> {
+export async function refreshAllData(force: boolean = false): Promise<GoogleSheetsData | null> {
   const now = Date.now();
 
-  if (cachedData && (now - lastFetchTime) < CACHE_DURATION) {
+  // If not forced and market is closed, return cached data to avoid unnecessary API calls
+  if (!force && !isMarketOpen() && cachedData) {
+    console.log('Market is closed. Skipping auto-refresh and using cached data.');
+    return cachedData;
+  }
+
+  if (!force && cachedData && (now - lastFetchTime) < CACHE_DURATION) {
     return cachedData;
   }
 
   try {
-    const response = await fetch(getApiUrl('/api/fetch-data'));
+    let finalUrl = getApiUrl('/api/fetch-data');
+    if (force) {
+      finalUrl += finalUrl.includes('?') ? '&force=true' : '?force=true';
+    }
+    
+    const response = await fetch(finalUrl);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

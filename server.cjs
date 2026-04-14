@@ -94,6 +94,19 @@ function parseDateFlexible(dateStr) {
   return null;
 }
 
+function isMarketOpen() {
+  const now = new Date();
+  const istDateString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+  const istDate = new Date(istDateString);
+  const day = istDate.getDay(); 
+  const timeInMinutes = istDate.getHours() * 60 + istDate.getMinutes();
+  return (day >= 1 && day <= 5) && (timeInMinutes >= 9 * 60 + 15 && timeInMinutes <= 15 * 60 + 30);
+}
+
+function getLogTimeIST() {
+  return new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }) + " IST";
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -2061,7 +2074,16 @@ app.listen(PORT, () => {
   // Background refresh every 1 minute (handled via recursive timeout to prevent overlap OOM)
   const scheduleNextRefresh = () => {
     setTimeout(() => {
-      console.log('--- Scheduled Background Refresh Started ---');
+      const marketOpen = isMarketOpen();
+      const istTime = getLogTimeIST();
+
+      if (!marketOpen) {
+        console.log(`[${istTime}] Skipping Background Refresh: Market is Closed.`);
+        scheduleNextRefresh(); // Just schedule again
+        return;
+      }
+
+      console.log(`[${istTime}] --- Scheduled Background Refresh Started ---`);
       fetchData()
         .then(async () => {
           console.log('--- Scheduled Background Refresh Complete ---');
@@ -2085,6 +2107,6 @@ app.listen(PORT, () => {
     }, 1 * 60 * 1000);
   };
 
-  console.log('Background refresh loop scheduled (1 minute interval, overlap-safe)');
+  console.log('Background refresh loop scheduled (1 minute interval, market-hours optimized)');
   scheduleNextRefresh();
 });
