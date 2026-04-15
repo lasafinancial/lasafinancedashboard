@@ -1408,19 +1408,8 @@ export default async function handler(req, res) {
   const isMarketNowOpen = isMarketOpen();
   const istTime = getLogTimeIST();
 
-  // Optimization: Skip fetching if market is closed, it's not a forced refresh, and not a scheduled morning cron
-  // We allow fetches between 6:00 AM and 9:15 AM for pre-market preparation
-  const istDate = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-  const hours = istDate.getHours();
-  const isPreMarket = hours >= 6 && hours < 9;
-  
-  if (!isMarketNowOpen && !isForced && !isPreMarket) {
-     console.log(`[${istTime}] Skipping API Fetch: Market is Closed. Use ?force=true to override.`);
-     return res.status(200).json({ 
-       message: 'Market is currently closed. Polling is restricted to 09:15 - 15:30 IST.',
-       isClosed: true,
-       lastUpdated: new Date().toISOString()
-     });
+  if (!isMarketNowOpen && !isForced) {
+      console.log(`[${istTime}] API requested after-hours. Resolving valid data structure for viewer...`);
   }
 
   try {
