@@ -1171,7 +1171,7 @@ async function fetchData() {
         .map(row => ({
           id: row['ID'] || row[colToIdx('C')] || row['STOCK_NAME'] || row[colToIdx('D')],
           stockName: row['STOCK_NAME'] || row[colToIdx('D')],
-          changePercent: (parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0) * 100,
+          changePercent: parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
           closePrice: parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0
         }))
         .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
