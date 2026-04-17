@@ -799,7 +799,7 @@ async function fetchData() {
     // --- 13. Fetch DAILY_NIFTY_ANALYSIS tab (Independent) ---
     try {
       const niftyRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: INDICES_SHEET_ID,
+        spreadsheetId: '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU', // Nifty Options Sheet
         range: 'DAILY_NIFTY_ANALYSIS!A1:Z500', // Expanded range for history
       });
       const niftyRows = niftyRes.data.values || [];
