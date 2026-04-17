@@ -28,6 +28,7 @@ const formatBigNumber = (num: number) => {
 export default function NiftyAnalysis() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
+    const [hasInitialized, setHasInitialized] = useState(false);
 
     // Fetch data
     const { data: frames, isLoading, isError } = useQuery({
@@ -53,6 +54,14 @@ export default function NiftyAnalysis() {
         },
         refetchInterval: 300000 // Refetch every 5 mins
     });
+
+    // Default to the latest live frame on initial load
+    useEffect(() => {
+        if (frames && frames.length > 0 && !hasInitialized) {
+            setCurrentFrameIndex(frames.length - 1);
+            setHasInitialized(true);
+        }
+    }, [frames, hasInitialized]);
 
     const activeFrame: FrameData | null = frames?.[currentFrameIndex] || null;
 
