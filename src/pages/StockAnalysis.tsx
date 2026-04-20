@@ -540,7 +540,7 @@ const StockAnalysis = () => {
               <Info className="w-5 h-5 text-orange-500" />
               Stock Analysis Disclaimer
             </DialogTitle>
-            <DialogDescription className="text-base leading-relaxed pt-4 text-foreground/90 font-medium">
+            <DialogDescription className="text-base leading-relaxed pt-4 text-foreground/90 font-medium max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               Stock data shown is algorithmically derived. Trend, support, and resistance levels are analytical observations, not recommendations. This is not SEBI-registered investment advice. Consult a qualified financial advisor before trading.
             </DialogDescription>
           </DialogHeader>

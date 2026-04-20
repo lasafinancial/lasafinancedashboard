@@ -64,7 +64,10 @@ export const PremiumProtector = ({
     };
 
     return (
-        <div className="relative group overflow-hidden rounded-2xl">
+        <div 
+            className="relative group overflow-hidden rounded-2xl"
+            style={{ isolation: 'isolate' }}
+        >
             {/* Blurred Content */}
             <div className={`select-none pointer-events-none ${blurClasses[blurLevel]} opacity-60 transition-opacity duration-500`}>
                 {children}

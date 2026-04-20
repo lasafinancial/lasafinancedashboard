@@ -15,6 +15,10 @@ export function GlassCard({ children, className = "", contentClassName = "", del
     <div
       onClick={onClick}
       className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-card/40 p-6 backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] hover:border-white/10 ${delayClass} ${className}`}
+      style={{
+        WebkitBackdropFilter: 'blur(24px)',
+        isolation: 'isolate'
+      }}
     >
       {/* Sleek inner border/ring for glass effect */}
       <div className="absolute inset-0 rounded-2xl border border-white/5 pointer-events-none ring-1 ring-inset ring-white/5" />
