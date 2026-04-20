@@ -368,6 +368,11 @@ async function fetchData() {
   let marketMood = { bullish: 0, bearish: 0, neutral: 0, trend: [] };
   let strengthData = [];
   let marketPosition = { score: 50, status: 'Neutral' };
+  
+  // Sheet IDs
+  const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';
+  const OPTION_SHEET_ID = '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU';
+  
   let stockData = [];
   let topMovers = { topGainers: [], topLosers: [] };
   let indexPerformance = [];
@@ -858,7 +863,7 @@ async function fetchData() {
       // --- End Reaction Zone ---
 
       // --- INDICES sheet: official stock lists per index (fixes 32→52 bug for NIFTY 50 etc.) ---
-      const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';
+      // INDICES_SHEET_ID defined at top of function
 
       // Known display names (with proper spacing).
       const knownIndexDisplayNames = [
@@ -950,7 +955,7 @@ async function fetchData() {
       // --- 13. Fetch DAILY_NIFTY_ANALYSIS tab (Independent) ---
       try {
         const niftyRes = await sheets.spreadsheets.values.get({
-          spreadsheetId: '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU', // Nifty Options Sheet
+          spreadsheetId: INDICES_SHEET_ID,
           range: 'DAILY_NIFTY_ANALYSIS!A1:Z500',
         });
         const niftyRows = niftyRes.data.values || [];
