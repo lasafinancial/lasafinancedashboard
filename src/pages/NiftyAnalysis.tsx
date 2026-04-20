@@ -424,13 +424,14 @@ export default function NiftyAnalysis() {
                 </div>
 
                 {/* RIGHT PANEL - TIMELINE */}
-                <div className="col-span-1 lg:col-span-1 bg-[#111827]/50 border border-white/10 rounded-xl p-4 flex flex-col h-[600px]">
+                <div className="col-span-1 lg:col-span-1 bg-[#111827]/50 border border-white/10 rounded-xl p-4 flex flex-col h-[450px] lg:h-[600px]">
                     <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center justify-between mb-4">
                         <span className="flex items-center gap-2">⏱️ 5-Min Timeline</span>
                         <span className="text-[9px]">TAP TO JUMP</span>
                     </h2>
                     <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
-                        {frames.map((frame: any, idx: number) => {
+                        {[...(frames || [])].reverse().map((frame: any, reversedIdx: number) => {
+                            const idx = (frames.length - 1) - reversedIdx;
                             let displayTime = frame.Time;
                             // Fallback: If Excel sent the timestamp as a raw float decimal (e.g., 46097.388)
                             if (displayTime && !isNaN(Number(displayTime)) && Number(displayTime) > 10000) {
