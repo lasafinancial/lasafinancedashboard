@@ -772,7 +772,7 @@ async function fetchData() {
         const sectorIdx = newsHeaders.indexOf('Sector');
         const sourceIdx = newsHeaders.indexOf('Source');
 
-        const dateRegex = /^(\d{1,2}-[a-zA-Z]{3}-\d{4}|\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}-\d{1,2}-\d{4}|\d{4}-\d{1,2}-\d{1,2})$/;
+        const dateRegex = /^(\d{1,2}-[a-zA-Z]{3,9}-\d{2,4}|\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4}|\d{4}-\d{1,2}-\d{1,2})$/;
         for (let i = 1; i < newsRows.length; i++) {
           const row = newsRows[i];
           const rawDate = (row[dateIdx] || '').toString().trim();
@@ -799,7 +799,7 @@ async function fetchData() {
     // --- 13. Fetch DAILY_NIFTY_ANALYSIS tab (Independent) ---
     try {
       const niftyRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: INDICES_SHEET_ID, // Indices Sheet (has DAILY_NIFTY_ANALYSIS tab)
+        spreadsheetId: INDICES_SHEET_ID, // DAILY_NIFTY_ANALYSIS lives here
         range: 'DAILY_NIFTY_ANALYSIS!A1:Z500', // Expanded range for history
       });
       const niftyRows = niftyRes.data.values || [];
@@ -816,8 +816,8 @@ async function fetchData() {
           if (!row || row.length === 0) continue;
 
           const dateMatch = (row[0] || '').toString().trim();
-          // Broader date match: 13-Mar-2026, 13/03/2026, 13-03-2026, or 2026-03-13
-          const dateRegex = /^(\d{1,2}-[a-zA-Z]{3}-\d{4}|\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}-\d{1,2}-\d{4}|\d{4}-\d{1,2}-\d{1,2})$/;
+          // Broader date match: 13-Mar-2026, 13/03/2026, 13-03-2026, 2026-03-13, or 20-Apr-26
+          const dateRegex = /^(\d{1,2}-[a-zA-Z]{3,9}-\d{2,4}|\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4}|\d{4}-\d{1,2}-\d{1,2})$/;
           const isDate = dateMatch && dateRegex.test(dateMatch);
 
           if (isDate && (!currentBlock || currentBlock.summary.date !== dateMatch)) {
@@ -841,7 +841,7 @@ async function fetchData() {
 
           if (!currentBlock) continue;
 
-          const firstCell = (row[1] || '').toString().trim();
+          const firstCell = (row[1] || '').toString().trim().toUpperCase();
           if (firstCell.includes('SCENARIO TABLE')) {
             currentSection = 'SCENARIOS';
             i++; // Skip header

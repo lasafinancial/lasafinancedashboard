@@ -368,11 +368,6 @@ async function fetchData() {
   let marketMood = { bullish: 0, bearish: 0, neutral: 0, trend: [] };
   let strengthData = [];
   let marketPosition = { score: 50, status: 'Neutral' };
-  
-  // Sheet IDs
-  const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';
-  const OPTION_SHEET_ID = '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU';
-  
   let stockData = [];
   let topMovers = { topGainers: [], topLosers: [] };
   let indexPerformance = [];
@@ -863,7 +858,7 @@ async function fetchData() {
       // --- End Reaction Zone ---
 
       // --- INDICES sheet: official stock lists per index (fixes 32→52 bug for NIFTY 50 etc.) ---
-      // INDICES_SHEET_ID defined at top of function
+      const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';
 
       // Known display names (with proper spacing).
       const knownIndexDisplayNames = [
@@ -955,7 +950,7 @@ async function fetchData() {
       // --- 13. Fetch DAILY_NIFTY_ANALYSIS tab (Independent) ---
       try {
         const niftyRes = await sheets.spreadsheets.values.get({
-          spreadsheetId: INDICES_SHEET_ID,
+          spreadsheetId: INDICES_SHEET_ID, // DAILY_NIFTY_ANALYSIS lives here
           range: 'DAILY_NIFTY_ANALYSIS!A1:Z500',
         });
         const niftyRows = niftyRes.data.values || [];
@@ -972,8 +967,8 @@ async function fetchData() {
             if (!row || row.length === 0) continue;
 
             const dateMatch = (row[0] || '').toString().trim();
-            // Broader date match: 13-Mar-2026, 13/03/2026, 13-03-2026, or 2026-03-13
-            const dateRegex = /^(\d{1,2}-[a-zA-Z]{3}-\d{4}|\d{1,2}\/\d{1,2}\/\d{4}|\d{1,2}-\d{1,2}-\d{4}|\d{4}-\d{1,2}-\d{1,2})$/;
+            // Broader date match: 13-Mar-2026, 13/03/2026, 13-03-2026, 2026-03-13, or 20-Apr-26
+            const dateRegex = /^(\d{1,2}-[a-zA-Z]{3,9}-\d{2,4}|\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4}|\d{4}-\d{1,2}-\d{1,2})$/;
             const isDate = dateMatch && dateRegex.test(dateMatch);
 
             if (isDate && (!currentBlock || currentBlock.summary.date !== dateMatch)) {
@@ -996,7 +991,7 @@ async function fetchData() {
 
             if (!currentBlock) continue;
 
-            const firstCell = (row[1] || '').toString().trim();
+            const firstCell = (row[1] || '').toString().trim().toUpperCase();
             if (firstCell.includes('SCENARIO TABLE')) {
               currentSection = 'SCENARIOS';
               i++;
@@ -2020,13 +2015,29 @@ app.get('/api/nifty-options-data', async (req, res) => {
     });
     const sheets = google.sheets({ version: 'v4', auth });
     
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "'Nifty-Options'",
-    });
+    let rows = [];
+    let fetchSuccessful = false;
+    const tabsToTry = ["'Nifty-Options'", "'Sheet1'", "'Options'"];
 
-    const rows = response.data.values;
-    if (!rows || rows.length < 2) {
+    for (const tab of tabsToTry) {
+      try {
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: tab,
+        });
+        rows = response.data.values || [];
+        if (rows.length >= 2) {
+          console.log(`[NIFTY-OPTIONS] Successfully fetched from tab: ${tab}`);
+          fetchSuccessful = true;
+          break;
+        }
+      } catch (tabErr) {
+        console.warn(`[NIFTY-OPTIONS] Tab ${tab} not found or inaccessible:`, tabErr.message);
+      }
+    }
+
+    if (!fetchSuccessful) {
+      console.error('[NIFTY-OPTIONS] Failed to fetch data from any of the standard tabs.');
       return res.json([]);
     }
 

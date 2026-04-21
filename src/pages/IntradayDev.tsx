@@ -235,6 +235,23 @@ export function IntradayDev() {
                     onClick={() => handleStockClick(stock.symbol)}
                     className="p-3 bg-black border border-white/5 rounded-lg mb-2 cursor-pointer transition-all duration-200 hover:border-white/20 group relative overflow-hidden"
                 >
+                    {/* Hover Description Overlay (Sir's request: Mobile hover text only - hidden on lg/laptop) */}
+                    <div className="absolute inset-0 bg-black/95 flex flex-col justify-center p-4 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none z-20 lg:hidden">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${
+                                stock.tier === 'GOLDEN' ? 'border-yellow-500/30 text-yellow-500' : 'border-green-500/30 text-green-500'
+                            } uppercase tracking-widest`}>
+                                {stock.tier} INFO
+                            </span>
+                        </div>
+                        <p className="text-[11px] font-bold text-white/90 leading-relaxed uppercase tracking-tight italic">
+                            {tierDescriptions.find(t => t.id === stock.tier || t.label === stock.tier)?.description || 'No description available for this tier.'}
+                        </p>
+                        <div className="mt-4 flex items-center gap-2 text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">
+                            <ArrowUpRight className="w-3 h-3" /> CLICK TO VIEW FULL ANALYSIS
+                        </div>
+                    </div>
+
                     {/* Header Row: Stars + Name + Tier Overlay */}
                     <div className="flex justify-between items-center mb-1">
                         <div className="flex items-center">
@@ -358,9 +375,24 @@ export function IntradayDev() {
                 transition={{ type: "spring", stiffness: 350, damping: 25 }}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="px-4 py-3 border-b border-white/[0.03] hover:bg-yellow-500/[0.04] transition-all cursor-pointer group flex flex-col gap-2 bg-[#0a0a0a] border-l-2 border-l-transparent hover:border-l-yellow-500/50"
+                className="px-4 py-3 border-b border-white/[0.03] hover:bg-yellow-500/[0.04] transition-all cursor-pointer group flex flex-col gap-2 bg-[#0a0a0a] border-l-2 border-l-transparent hover:border-l-yellow-500/50 relative overflow-hidden"
                 onClick={() => handleStockClick(alert.symbol)}
             >
+                {/* Hover Description Overlay (Sir's request: Mobile hover text only - hidden on lg/laptop) */}
+                <div className="absolute inset-0 bg-black/95 flex flex-col justify-center p-4 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none z-20 lg:hidden">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded border border-yellow-500/30 text-yellow-500 uppercase tracking-widest">
+                            {alert.tier || 'GOLDEN'} INFO
+                        </span>
+                    </div>
+                    <p className="text-[11px] font-bold text-white/90 leading-relaxed uppercase tracking-tight italic">
+                        {tierDescriptions.find(t => t.id === (alert.tier || 'GOLDEN') || t.label === (alert.tier || 'GOLDEN'))?.description || 'No description available for this tier.'}
+                    </p>
+                    <div className="mt-4 flex items-center gap-2 text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">
+                        <ArrowUpRight className="w-3 h-3" /> CLICK TO VIEW FULL ANALYSIS
+                    </div>
+                </div>
+
                 {/* Row 1: Symbol & Time */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

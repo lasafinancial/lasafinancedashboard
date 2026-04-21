@@ -38,14 +38,16 @@ export default function NiftyAnalysis() {
             if (!res.ok) throw new Error('Network response was not ok');
             const json = await res.json();
 
-            // Filter out blank rows or API errors
+            // Keep ALL rows that have a valid Time (for the 5-Min Timeline)
+            // parsedOptions may be null for some rows — OI Battlefield handles that gracefully
             return json
-                .filter((row: any) => row.Time && row["Raw JSON Data"] && row["Raw JSON Data"] !== "API Error")
+                .filter((row: any) => row.Time)
                 .map((row: any) => {
                     let parsedOptions = null;
                     try {
-                        // Need to fix broken JSON from sheet if necessary. Assuming valid here.
-                        parsedOptions = JSON.parse(row["Raw JSON Data"]);
+                        if (row["Raw JSON Data"] && row["Raw JSON Data"] !== "API Error") {
+                            parsedOptions = JSON.parse(row["Raw JSON Data"]);
+                        }
                     } catch (e) {
                         console.error("Failed to parse options JSON for row:", row.Time);
                     }
@@ -146,7 +148,7 @@ export default function NiftyAnalysis() {
                             PCR {pcr > 0 ? pcr.toFixed(2) : '--'}
                         </span>
                         <span className="px-2 py-0.5 rounded text-[9px] font-bold border border-white/10 text-slate-300 bg-white/5">
-                            KEY STRIKE {activeFrame?.["Key Strike"] || "N/A"}
+                            KEY STRIKE {(!activeFrame?.["Key Strike"] || activeFrame?.["Key Strike"] === "API Error") ? "---" : activeFrame?.["Key Strike"]}
                         </span>
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${sessionChange >= 0
                                 ? 'text-green-400 bg-green-500/10 border-green-500/20'
@@ -250,7 +252,9 @@ export default function NiftyAnalysis() {
                         </div>
                         <div className="flex flex-col items-center justify-center px-2 sm:px-4 py-2 sm:py-3 bg-[#0d1117]">
                             <span className="text-[8px] sm:text-[9px] text-slate-600 uppercase tracking-widest mb-0.5">KEY STRIKE</span>
-                            <span className="text-base sm:text-lg font-black text-yellow-400 tabular-nums leading-none">{activeFrame?.["Key Strike"] || "---"}</span>
+                            <span className="text-base sm:text-lg font-black text-yellow-400 tabular-nums leading-none">
+                                {(!activeFrame?.["Key Strike"] || activeFrame?.["Key Strike"] === "API Error") ? "---" : activeFrame?.["Key Strike"]}
+                            </span>
                         </div>
                         <div className="flex flex-col items-center justify-center px-2 sm:px-4 py-2 sm:py-3 bg-[#0d1117] border-t border-white/[0.04]">
                             <span className="text-[8px] sm:text-[9px] text-slate-600 uppercase tracking-widest mb-0.5">5-MIN BIAS</span>
@@ -498,7 +502,18 @@ export default function NiftyAnalysis() {
                 </button>
 
                 <button
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    onClick={() => {
+                        if (isPlaying) {
+                            // Pause
+                            setIsPlaying(false);
+                        } else {
+                            // If at the end or beginning, rewind first then play
+                            if (currentFrameIndex >= (frames.length - 1)) {
+                                setCurrentFrameIndex(0);
+                            }
+                            setIsPlaying(true);
+                        }
+                    }}
                     className="flex items-center gap-2 px-6 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/40 rounded-full text-primary font-bold tracking-widest transition-colors shadow-[0_0_15px_rgba(var(--primary),0.3)]"
                 >
                     {isPlaying ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
