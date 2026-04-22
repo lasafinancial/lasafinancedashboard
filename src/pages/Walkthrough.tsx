@@ -33,6 +33,31 @@ const Walkthrough = ({ isInDropdown = false, onClose }: WalkthroughProps) => {
     const { stockData, nearResistance } = useLiveData();
     const navigate = useNavigate();
 
+    // Alert State
+    const [activeAlerts, setActiveAlerts] = useState<string[]>(() => {
+        const saved = localStorage.getItem("lasa_watchlist_alerts");
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    useEffect(() => {
+        localStorage.setItem("lasa_watchlist_alerts", JSON.stringify(activeAlerts));
+    }, [activeAlerts]);
+
+    const handleToggleAlert = async (symbol: string) => {
+        if (!activeAlerts.includes(symbol)) {
+            // Request permission
+            if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                await Notification.requestPermission();
+            }
+            setActiveAlerts(prev => [...prev, symbol]);
+            toast({ title: "Alert Activated", description: `Monitoring ${symbol} for key levels.` });
+        } else {
+            setActiveAlerts(prev => prev.filter(s => s !== symbol));
+            toast({ title: "Alert Disabled", description: `Stopped monitoring ${symbol}.` });
+        }
+    };
+
+
     const watchlist = userData?.watchlist || [];
 
     const handleAddStock = async (symbol: string) => {
@@ -120,6 +145,51 @@ const Walkthrough = ({ isInDropdown = false, onClose }: WalkthroughProps) => {
             p: nrMatch?.algoW || Math.floor(price * 1.05)
         };
     };
+
+    // Alert Monitoring Engine
+    useEffect(() => {
+        if (!activeAlerts.length || !stockData) return;
+
+        let triggeredAlerts: string[] = [];
+
+        activeAlerts.forEach(symbol => {
+            const stats = getRenderStats(symbol);
+            if (!stats.price) return;
+
+            let hitReason = "";
+
+            // Evaluate thresholds (0.2% buffer for precision)
+            if (stats.price <= stats.support * 1.002) hitReason = `Support Level (₹${stats.support})`;
+            else if (stats.price >= stats.resistance * 0.998) hitReason = `Resistance Level (₹${stats.resistance})`;
+            else if (Math.abs(stats.price - stats.m) / stats.m <= 0.002) hitReason = `Model Level (₹${stats.m})`;
+            else if (Math.abs(stats.price - stats.b) / stats.b <= 0.002) hitReason = `Balance Level (₹${stats.b})`;
+            else if (Math.abs(stats.price - stats.p) / stats.p <= 0.002) hitReason = `Pivot Level (₹${stats.p})`;
+
+            if (hitReason) {
+                triggeredAlerts.push(symbol);
+
+                // 1. In-App Toast
+                toast({
+                    title: `🚨 ${symbol} ALERT`,
+                    description: `Hit ${hitReason} at ₹${stats.price}`,
+                    variant: "destructive",
+                });
+
+                // 2. Browser Notification
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification(`LASA Alert: ${symbol}`, {
+                        body: `${symbol} hit ${hitReason} at ₹${stats.price}`,
+                    });
+                }
+            }
+        });
+
+        // Auto-turn off triggered alerts
+        if (triggeredAlerts.length > 0) {
+            setActiveAlerts(prev => prev.filter(s => !triggeredAlerts.includes(s)));
+        }
+    }, [stockData, nearResistance, activeAlerts]);
+
 
     const sortedWatchlist = useMemo(() => {
         if (!sortOrder) return watchlist;
@@ -457,8 +527,12 @@ const Walkthrough = ({ isInDropdown = false, onClose }: WalkthroughProps) => {
                                                         <span className="bg-white/5 px-1.5 rounded">P:{stats.p}</span>
                                                     </div>
                                                     <div className="flex items-center gap-3 opacity-90 group-hover:opacity-100 transition-opacity">
-                                                        <button className="text-yellow-400 hover:text-yellow-300 hover:scale-110 transition-all">
-                                                            <Bell className="w-3.5 h-3.5 fill-current drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]" />
+                                                        <button 
+                                                            onClick={() => handleToggleAlert(symbol)}
+                                                            title={activeAlerts.includes(symbol) ? "Disable Alert" : "Enable Alert"}
+                                                            className={`hover:scale-110 transition-all ${activeAlerts.includes(symbol) ? 'text-yellow-400 animate-pulse' : 'text-white/30 hover:text-yellow-400/50'}`}
+                                                        >
+                                                            <Bell className={`w-3.5 h-3.5 ${activeAlerts.includes(symbol) ? 'fill-current drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : ''}`} />
                                                         </button>
                                                         <button
                                                             onClick={() => setStockToDelete(symbol)}

@@ -43,6 +43,13 @@ export function IntradayDev() {
         }));
     };
 
+    // Info Description Toggle State
+    const [showInfoFor, setShowInfoFor] = useState<string | null>(null);
+    const toggleInfo = (symbol: string) => {
+        setShowInfoFor(prev => prev === symbol ? null : symbol);
+    };
+
+
     // Auto-advance playback timer
     useEffect(() => {
         if (!isPlaying || !isPlayback || !playbackSnapshots || playbackSnapshots.length === 0) return;
@@ -232,25 +239,8 @@ export function IntradayDev() {
                 className="group relative"
             >
                 <div
-                    onClick={() => handleStockClick(stock.symbol)}
-                    className="p-3 bg-black border border-white/5 rounded-lg mb-2 cursor-pointer transition-all duration-200 hover:border-white/20 group relative overflow-hidden"
+                    className="p-3 bg-black border border-white/5 rounded-lg mb-2 transition-all duration-200 hover:border-white/20 relative overflow-hidden"
                 >
-                    {/* Hover Description Overlay (Sir's request: Mobile hover text only - hidden on lg/laptop) */}
-                    <div className="absolute inset-0 bg-black/95 flex flex-col justify-center p-4 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none z-20 lg:hidden">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${
-                                stock.tier === 'GOLDEN' ? 'border-yellow-500/30 text-yellow-500' : 'border-green-500/30 text-green-500'
-                            } uppercase tracking-widest`}>
-                                {stock.tier} INFO
-                            </span>
-                        </div>
-                        <p className="text-[11px] font-bold text-white/90 leading-relaxed uppercase tracking-tight italic">
-                            {tierDescriptions.find(t => t.id === stock.tier || t.label === stock.tier)?.description || 'No description available for this tier.'}
-                        </p>
-                        <div className="mt-4 flex items-center gap-2 text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">
-                            <ArrowUpRight className="w-3 h-3" /> CLICK TO VIEW FULL ANALYSIS
-                        </div>
-                    </div>
 
                     {/* Header Row: Stars + Name + Tier Overlay */}
                     <div className="flex justify-between items-center mb-1">
@@ -317,23 +307,61 @@ export function IntradayDev() {
                         </div>
                     )}
 
+                    {/* Expandable Info Block */}
+                    <AnimatePresence>
+                        {showInfoFor === stock.symbol && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="p-2.5 bg-black/50 border border-white/10 rounded text-[11px] font-bold text-white/80 leading-relaxed italic uppercase">
+                                    <span className="text-[9px] text-white/40 block mb-1">TIER LOGIC</span>
+                                    {tierDescriptions.find(t => t.id === stock.tier || t.label === stock.tier)?.description || 'No description available for this tier.'}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     {/* Bottom Row */}
-                    <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center justify-between pt-2">
                         <div className="flex items-center gap-2 text-white/50 text-[10px] font-bold">
                             <Clock className="w-3 h-3 opacity-50" />
                             <span>{stock.time}</span>
                         </div>
 
-                        <button
-                            onClick={(e) => handleTogglePin(e, stock.symbol)}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[9px] font-black tracking-widest transition-all ${stock.isPinned
-                                ? 'bg-yellow-500 text-black shadow-[0_0_10px_rgba(234,179,8,0.2)]'
-                                : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white'
-                                }`}
-                        >
-                            <Pin className={`w-2.5 h-2.5 ${stock.isPinned ? 'fill-current' : ''}`} />
-                            {stock.isPinned ? 'PINNED' : 'PIN'}
-                        </button>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            {/* INFO BUTTON */}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); toggleInfo(stock.symbol); }}
+                                className={`p-1.5 rounded-sm transition-all border shrink-0 ${showInfoFor === stock.symbol ? 'bg-white/20 text-white border-white/20' : 'bg-white/5 text-white/60 hover:bg-white/10 border-transparent hover:text-white'}`}
+                                aria-label="Toggle Info"
+                            >
+                                <Info className="w-3 h-3" />
+                            </button>
+
+                            {/* CHART BUTTON */}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleStockClick(stock.symbol); }}
+                                className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-[9px] font-black tracking-widest bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/20 transition-all uppercase shrink-0"
+                            >
+                                <BarChart2 className="w-3 h-3" />
+                                <span className="hidden xs:inline">CHART</span>
+                            </button>
+
+                            {/* PIN BUTTON */}
+                            <button
+                                onClick={(e) => handleTogglePin(e, stock.symbol)}
+                                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-[9px] font-black tracking-widest transition-all shrink-0 ${stock.isPinned
+                                    ? 'bg-yellow-500 text-black shadow-[0_0_10px_rgba(234,179,8,0.2)]'
+                                    : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white border border-transparent'
+                                    }`}
+                            >
+                                <Pin className={`w-3 h-3 ${stock.isPinned ? 'fill-current' : ''}`} />
+                                <span className="hidden xs:inline">{stock.isPinned ? 'PINNED' : 'PIN'}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </motion.div>
@@ -375,23 +403,8 @@ export function IntradayDev() {
                 transition={{ type: "spring", stiffness: 350, damping: 25 }}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="px-4 py-3 border-b border-white/[0.03] hover:bg-yellow-500/[0.04] transition-all cursor-pointer group flex flex-col gap-2 bg-[#0a0a0a] border-l-2 border-l-transparent hover:border-l-yellow-500/50 relative overflow-hidden"
-                onClick={() => handleStockClick(alert.symbol)}
+                className="px-4 py-3 border-b border-white/[0.03] transition-all flex flex-col gap-2 bg-[#0a0a0a] border-l-2 border-l-transparent hover:border-l-yellow-500/50 relative overflow-hidden"
             >
-                {/* Hover Description Overlay (Sir's request: Mobile hover text only - hidden on lg/laptop) */}
-                <div className="absolute inset-0 bg-black/95 flex flex-col justify-center p-4 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200 pointer-events-none z-20 lg:hidden">
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded border border-yellow-500/30 text-yellow-500 uppercase tracking-widest">
-                            {alert.tier || 'GOLDEN'} INFO
-                        </span>
-                    </div>
-                    <p className="text-[11px] font-bold text-white/90 leading-relaxed uppercase tracking-tight italic">
-                        {tierDescriptions.find(t => t.id === (alert.tier || 'GOLDEN') || t.label === (alert.tier || 'GOLDEN'))?.description || 'No description available for this tier.'}
-                    </p>
-                    <div className="mt-4 flex items-center gap-2 text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">
-                        <ArrowUpRight className="w-3 h-3" /> CLICK TO VIEW FULL ANALYSIS
-                    </div>
-                </div>
 
                 {/* Row 1: Symbol & Time */}
                 <div className="flex items-center justify-between">
@@ -465,6 +478,46 @@ export function IntradayDev() {
                         {alert.note}
                     </div>
                 )}
+
+                {/* Expandable Info Block */}
+                <AnimatePresence>
+                    {showInfoFor === alert.symbol && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                            animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="p-2.5 bg-black/50 border border-white/10 rounded text-[11px] font-bold text-white/80 leading-relaxed italic uppercase">
+                                <span className="text-[9px] text-white/40 block mb-1">TIER LOGIC</span>
+                                {tierDescriptions.find(t => t.id === (alert.tier || 'GOLDEN') || t.label === (alert.tier || 'GOLDEN'))?.description || 'No description available for this tier.'}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Bottom Row */}
+                <div className="flex items-center justify-between pt-2 border-t border-white/[0.03] mt-1">
+                    <div className="flex items-center gap-1.5 ml-auto">
+                        {/* INFO BUTTON */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); toggleInfo(alert.symbol); }}
+                            className={`p-1.5 rounded-sm transition-all border shrink-0 ${showInfoFor === alert.symbol ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30' : 'bg-white/5 text-white/60 hover:bg-white/10 border-transparent hover:text-white'}`}
+                            aria-label="Toggle Info"
+                        >
+                            <Info className="w-3 h-3" />
+                        </button>
+
+                        {/* CHART BUTTON */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleStockClick(alert.symbol); }}
+                            className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-[9px] font-black tracking-widest bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 hover:text-yellow-400 border border-yellow-500/20 transition-all uppercase shrink-0"
+                        >
+                            <BarChart2 className="w-3 h-3" />
+                            <span className="hidden xs:inline">CHART</span>
+                        </button>
+                    </div>
+                </div>
             </motion.div>
         );
     });

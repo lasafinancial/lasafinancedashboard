@@ -29,6 +29,18 @@ export default function NiftyAnalysis() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
     const [hasInitialized, setHasInitialized] = useState(false);
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+    const activeItemRef = React.useRef<HTMLDivElement>(null);
+
+    // Auto-scroll the timeline to the active frame
+    useEffect(() => {
+        if (activeItemRef.current) {
+            activeItemRef.current.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }, [currentFrameIndex]);
 
     // Fetch data
     const { data: frames, isLoading, isError } = useQuery({
@@ -433,7 +445,7 @@ export default function NiftyAnalysis() {
                         <span className="flex items-center gap-2">⏱️ 5-Min Timeline</span>
                         <span className="text-[9px]">TAP TO JUMP</span>
                     </h2>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+                    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
                         {[...(frames || [])].reverse().map((frame: any, reversedIdx: number) => {
                             const idx = (frames.length - 1) - reversedIdx;
                             let displayTime = frame.Time;
@@ -458,11 +470,12 @@ export default function NiftyAnalysis() {
                             return (
                                 <div
                                     key={idx}
+                                    ref={idx === currentFrameIndex ? activeItemRef : null}
                                     onClick={() => {
                                         setCurrentFrameIndex(idx);
                                         setIsPlaying(false);
                                     }}
-                                    className={`relative pl-4 border-l-2 cursor-pointer transition-colors ${idx === currentFrameIndex ? 'border-primary bg-primary/5 py-2' : 'border-slate-800 hover:border-slate-600'}`}
+                                    className={`relative pl-4 border-l-2 cursor-pointer transition-all duration-300 ${idx === currentFrameIndex ? 'border-primary bg-primary/10 py-3 shadow-[inset_4px_0_15px_rgba(var(--primary),0.1)]' : 'border-slate-800 hover:border-slate-600'}`}
                                 >
                                     <div className={`absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${idx === currentFrameIndex ? 'bg-primary shadow-[0_0_10px_rgba(var(--primary),0.8)]' : 'bg-slate-700'}`} />
 
