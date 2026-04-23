@@ -5,7 +5,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Lock, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Upload, Users, Search as SearchIcon, Trash2, Crown, UserMinus, UserCheck, RotateCcw, Book, Edit2, Sparkles, Mail, Phone, BarChart3, Clock, MousePointer2, History, ExternalLink } from 'lucide-react';
+import { Send, Lock, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Upload, Users, Search as SearchIcon, Trash2, Crown, UserMinus, UserCheck, RotateCcw, Book, Edit2, Sparkles, Mail, Phone, BarChart3, Clock, MousePointer2, History, ExternalLink, Bell, Star, Info } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
@@ -44,6 +44,13 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 const Admin = () => {
     // Auth State
     const { isAdminAuthorized: isAuthorized, setAdminAuthorized: setIsAuthorized } = useAuth();
@@ -945,6 +952,8 @@ const Admin = () => {
                                         <TableHead>Method</TableHead>
                                         <TableHead>Trader Type</TableHead>
                                         <TableHead>Current Tier</TableHead>
+                                        <TableHead>Watchlist</TableHead>
+                                        <TableHead>Alerts</TableHead>
                                         <TableHead>Last Activity</TableHead>
                                         <TableHead>IP Address</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
@@ -1016,6 +1025,53 @@ const Admin = () => {
                                                         )}
                                                     </div>
                                                 </TableCell>
+                                                <TableCell>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <div className="flex items-center gap-1.5 text-xs cursor-help border-b border-dashed border-white/10 w-fit">
+                                                                    <Star className="w-3 h-3 text-yellow-500" />
+                                                                    <span className={cn(user.watchlist?.length > 0 ? "text-foreground font-bold" : "text-muted-foreground")}>
+                                                                        {user.watchlist?.length || 0}
+                                                                    </span>
+                                                                    {user.watchlist?.length > 0 && <Info className="w-2.5 h-2.5 opacity-30" />}
+                                                                </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent className="bg-slate-900 border-white/20 text-[10px] p-2 max-w-[200px]">
+                                                                <div className="font-bold border-b border-white/10 mb-1 pb-1">Watchlist Stocks:</div>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {user.watchlist?.map((s: string) => (
+                                                                        <Badge key={s} variant="secondary" className="px-1 py-0 h-4 text-[9px] bg-white/10">{s}</Badge>
+                                                                    )) || "Empty"}
+                                                                </div>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <div className="flex items-center gap-1.5 text-xs cursor-help border-b border-dashed border-white/10 w-fit">
+                                                                    <Bell className="w-3 h-3 text-orange-500" />
+                                                                    <span className={cn(user.activeAlerts?.length > 0 ? "text-foreground font-bold" : "text-muted-foreground")}>
+                                                                        {user.activeAlerts?.length || 0}
+                                                                    </span>
+                                                                    {user.activeAlerts?.length > 0 && <Info className="w-2.5 h-2.5 opacity-30" />}
+                                                                </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent className="bg-slate-900 border-white/20 text-[10px] p-2 max-w-[200px]">
+                                                                <div className="font-bold border-b border-white/10 mb-1 pb-1 text-orange-400">Monitoring Alerts:</div>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {user.activeAlerts?.map((s: string) => (
+                                                                        <Badge key={s} variant="secondary" className="px-1 py-0 h-4 text-[9px] bg-orange-500/20 text-orange-400 border-orange-500/30">{s}</Badge>
+                                                                    )) || "No active alerts"}
+                                                                </div>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </TableCell>
+
                                                 <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                                     {formatDate(user.lastLoginAt || user.lastLogin)}
                                                 </TableCell>
