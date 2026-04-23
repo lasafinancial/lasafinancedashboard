@@ -29,6 +29,7 @@ interface UserData {
     acceptanceIP?: string;
     hasCompletedProfile?: boolean;
     watchlist?: string[];
+    activeAlerts?: string[];
 }
 
 interface AuthContextType {

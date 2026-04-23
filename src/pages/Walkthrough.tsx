@@ -33,26 +33,23 @@ const Walkthrough = ({ isInDropdown = false, onClose }: WalkthroughProps) => {
     const { stockData, nearResistance } = useLiveData();
     const navigate = useNavigate();
 
-    // Alert State
-    const [activeAlerts, setActiveAlerts] = useState<string[]>(() => {
-        const saved = localStorage.getItem("lasa_watchlist_alerts");
-        return saved ? JSON.parse(saved) : [];
-    });
-
-    useEffect(() => {
-        localStorage.setItem("lasa_watchlist_alerts", JSON.stringify(activeAlerts));
-    }, [activeAlerts]);
+    // Alert State (Database Synced)
+    const activeAlerts = userData?.activeAlerts || [];
 
     const handleToggleAlert = async (symbol: string) => {
-        if (!activeAlerts.includes(symbol)) {
+        const isCurrentlyActive = activeAlerts.includes(symbol);
+        
+        if (!isCurrentlyActive) {
             // Request permission
             if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
                 await Notification.requestPermission();
             }
-            setActiveAlerts(prev => [...prev, symbol]);
+            const updatedAlerts = [...activeAlerts, symbol];
+            await updateUserData({ activeAlerts: updatedAlerts });
             toast({ title: "Alert Activated", description: `Monitoring ${symbol} for key levels.` });
         } else {
-            setActiveAlerts(prev => prev.filter(s => s !== symbol));
+            const updatedAlerts = activeAlerts.filter(s => s !== symbol);
+            await updateUserData({ activeAlerts: updatedAlerts });
             toast({ title: "Alert Disabled", description: `Stopped monitoring ${symbol}.` });
         }
     };
@@ -184,11 +181,12 @@ const Walkthrough = ({ isInDropdown = false, onClose }: WalkthroughProps) => {
             }
         });
 
-        // Auto-turn off triggered alerts
+        // Auto-turn off triggered alerts in the Database
         if (triggeredAlerts.length > 0) {
-            setActiveAlerts(prev => prev.filter(s => !triggeredAlerts.includes(s)));
+            const updatedAlerts = activeAlerts.filter(s => !triggeredAlerts.includes(s));
+            updateUserData({ activeAlerts: updatedAlerts });
         }
-    }, [stockData, nearResistance, activeAlerts]);
+    }, [stockData, nearResistance, activeAlerts, updateUserData]);
 
 
     const sortedWatchlist = useMemo(() => {
