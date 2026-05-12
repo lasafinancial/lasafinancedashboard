@@ -1235,6 +1235,8 @@ async function fetchData() {
             emaCrossover: findLatest(11),
             targetStr: findLatest(17),
             reasons: findLatest(14),
+            valV: summary.valV || '',
+            valW: summary.valW || '',
             allSignals: symbolRows.length,
             recentChanges: recentChanges.filter(c => c.symbol === sym)
           };
@@ -1295,7 +1297,9 @@ async function fetchData() {
               ema63: getNum(latest[10] || 0),
               emaCrossover: (latest[11] || '').toString().trim(),
               targetStr: (latest[17] || '').toString().trim(),
-              reasons: (latest[14] || '').toString().trim()
+              reasons: (latest[14] || '').toString().trim(),
+              valV: summary.valV || '',
+              valW: summary.valW || ''
             };
           });
 

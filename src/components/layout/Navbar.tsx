@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader2, Send, Filter, ChevronDown, Menu, MessageSquare, HelpCircle, TrendingUp, Newspaper } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useNotifications } from "@/hooks/useNotifications";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { CountrySelector } from "@/components/ui/CountrySelector";
@@ -31,17 +31,17 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
   const [isSending, setIsSending] = useState(false);
   const [isScreenersOpen, setIsScreenersOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  let closeTimeout: NodeJS.Timeout;
+  const closeTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const handleMouseEnter = () => {
-    clearTimeout(closeTimeout);
+    if (closeTimeout.current) clearTimeout(closeTimeout.current);
     setIsScreenersOpen(true);
   };
 
   const handleMouseLeave = () => {
-    closeTimeout = setTimeout(() => {
+    closeTimeout.current = setTimeout(() => {
       setIsScreenersOpen(false);
-    }, 300);
+    }, 150);
   };
 
   // Admin: Manual trigger for market mood notification
@@ -117,7 +117,11 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                       <ChevronDown className={`h-3 w-3 opacity-50 transition-transform ${isScreenersOpen ? 'rotate-180' : ''}`} />
                     </button>
 
-                    <div className={`absolute top-[calc(100%+2px)] left-0 min-w-[220px] p-2 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl transition-all duration-200 z-[150] ${isScreenersOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+                    <div 
+                      className={`absolute top-[calc(100%+2px)] left-0 min-w-[220px] p-2 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl transition-all duration-200 z-[150] ${isScreenersOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'}`}
+                      onMouseEnter={handleMouseEnter}
+                      onMouseLeave={handleMouseLeave}
+                    >
                       <div className="absolute -top-2 left-0 w-full h-2 bg-transparent" /> { /* Bridge the gap */}
                       <Link
                         to="/screeners/intraday-dev"
@@ -127,6 +131,16 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold">Breakout Board</span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Status Based</span>
+                        </div>
+                      </Link>
+                      <Link
+                        to="/screeners/breakout-v1"
+                        onClick={() => setIsScreenersOpen(false)}
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold">Breakout Board v1</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Excel / Tabular</span>
                         </div>
                       </Link>
                       <Link
@@ -382,6 +396,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                             </Link>
                             <div className="pl-12 space-y-1 border-l border-white/5 ml-6">
                               <Link to="/screeners/intraday-dev" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout Board</Link>
+                              <Link to="/screeners/breakout-v1" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout Board v1</Link>
                               <Link to="/screeners/near-resistance" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout</Link>
                               <Link to="/screeners/support-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reversal</Link>
                               <Link to="/screeners/reaction-zone" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reaction Zone</Link>

@@ -21,6 +21,10 @@ export const getApiUrl = (path: string): string => {
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
 
     if (isNative) {
+        // Direct connect to the API server via the ADB tunnel (port 3001)
+        if (window.location.hostname === 'localhost') {
+            return `http://localhost:3001${cleanPath}`;
+        }
         return `${PRODUCTION_URL}${cleanPath}`;
     }
 

@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     // This allows the app to load your local dev server for live changes
-    url: 'http://10.209.18.1:8080',
+    url: 'http://localhost:8080',
     cleartext: true
   }
 };

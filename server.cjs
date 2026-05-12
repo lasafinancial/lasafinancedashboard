@@ -1410,6 +1410,8 @@ async function fetchData() {
             emaCrossover: findLatest(11),
             targetStr: findLatest(17),
             reasons: findLatest(14),
+            valV: summary.valV || '',
+            valW: summary.valW || '',
             allSignals: symbolRows.length,
             recentChanges: recentChanges.filter(c => c.symbol === sym)
           };
@@ -1476,7 +1478,9 @@ async function fetchData() {
               ema63: getNum(latest[10] || 0),
               emaCrossover: (latest[11] || '').toString().trim(),
               targetStr: (latest[17] || '').toString().trim(),
-              reasons: (latest[14] || '').toString().trim()
+              reasons: (latest[14] || '').toString().trim(),
+              valV: summary.valV || '',
+              valW: summary.valW || ''
             };
           });
 
@@ -2060,8 +2064,8 @@ app.get('/api/nifty-options-data', async (req, res) => {
 
 
 const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`API server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`API server running on http://0.0.0.0:${PORT}`);
 
   // Heartbeat to prove the server is alive
   setInterval(() => {
