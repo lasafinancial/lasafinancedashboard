@@ -41,7 +41,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
   const handleMouseLeave = () => {
     closeTimeout.current = setTimeout(() => {
       setIsScreenersOpen(false);
-    }, 150);
+    }, 400);
   };
 
   // Admin: Manual trigger for market mood notification
@@ -118,7 +118,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                     </button>
 
                     <div 
-                      className={`absolute top-[calc(100%+2px)] left-0 min-w-[220px] p-2 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl transition-all duration-200 z-[150] ${isScreenersOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'}`}
+                      className={`absolute top-full left-0 min-w-[220px] p-2 pt-3 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl transition-all duration-200 z-[150] ${isScreenersOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'}`}
                       onMouseEnter={handleMouseEnter}
                       onMouseLeave={handleMouseLeave}
                     >
