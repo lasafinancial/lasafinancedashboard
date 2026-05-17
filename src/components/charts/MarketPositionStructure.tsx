@@ -96,7 +96,7 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
     return () => unsubscribe();
   }, []);
 
-  if (isLoading || !data) {
+  if (isLoading || !data || !data.model) {
     return (
       <div className="h-full flex flex-col">
         <div className="flex justify-between items-center mb-6">

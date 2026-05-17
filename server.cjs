@@ -367,12 +367,18 @@ async function fetchData() {
   let nifty50Stocks = [];
   let marketMood = { bullish: 0, bearish: 0, neutral: 0, trend: [] };
   let strengthData = [];
-  let marketPosition = { score: 50, status: 'Neutral' };
+  let marketPosition = {
+    model: { bullish: 0, bearish: 0, neutral: 0 },
+    balance: { above: 0, below: 0 },
+    momentum: { bullish: 0, bearish: 0 },
+    sr: { atSupport: 0, atResistance: 0, neutral: 0 },
+    reversal: { up: 0, down: 0, neutral: 0 },
+    lastUpdate: 'Pending'
+  };
   let stockData = [];
   let topMovers = { topGainers: [], topLosers: [] };
   let indexPerformance = [];
-  let nearResistance = [];
-  let supportReversal = [];
+  let nearResistance = [];  let supportReversal = [];
   let reactionZone = [];
   let dailyNews = [];
   let intradayBreakout = [];
@@ -2006,6 +2012,55 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 });
 // ── End Twilio OTP Routes ────────────────────────────────────────────────────
+
+// Consolidated OTP Handler for compatibility with api/otp.js
+app.post('/api/otp', async (req, res) => {
+  const { phoneNumber, code, type } = req.body; // type: 'send' or 'verify'
+  const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  const twilioServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+
+  if (!phoneNumber) return res.status(400).json({ error: 'Phone number is required' });
+
+  let cleanPhone = phoneNumber.replace(/\D/g, '');
+  if (cleanPhone.startsWith('91') && cleanPhone.length > 10) cleanPhone = cleanPhone.slice(2);
+  const formattedPhone = `+91${cleanPhone}`;
+
+  try {
+    if (type === 'send') {
+      console.log(`[otp-compat] Sending OTP to: ${formattedPhone}`);
+      const verification = await twilioClient.verify.v2.services(twilioServiceSid)
+        .verifications.create({ to: formattedPhone, channel: 'sms' });
+      return res.json({ success: true, message: `OTP sent to ${formattedPhone}`, status: verification.status });
+    }
+
+    if (type === 'verify') {
+      if (!code) return res.status(400).json({ error: 'Verification code is required' });
+      console.log(`[otp-compat] Checking code for: ${formattedPhone}`);
+      const check = await twilioClient.verify.v2.services(twilioServiceSid)
+        .verificationChecks.create({ to: formattedPhone, code });
+
+      if (check.status !== 'approved') return res.status(400).json({ error: 'Invalid or expired OTP.' });
+
+      const uid = `phone_${formattedPhone.replace('+', '')}`;
+      let userRecord;
+      try {
+        userRecord = await admin.auth().getUser(uid);
+      } catch (err) {
+        if (err.code === 'auth/user-not-found') {
+          userRecord = await admin.auth().createUser({ uid, phoneNumber: formattedPhone, displayName: formattedPhone });
+        } else throw err;
+      }
+
+      const customToken = await admin.auth().createCustomToken(uid);
+      return res.json({ success: true, customToken });
+    }
+
+    return res.status(400).json({ error: 'Invalid action type' });
+  } catch (err) {
+    console.error('[otp-compat] Error:', err.message);
+    res.status(500).json({ error: 'Operation failed', details: err.message });
+  }
+});
 
 //niftyoptionsfetching
 

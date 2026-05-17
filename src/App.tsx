@@ -31,6 +31,7 @@ import Help from "@/pages/Help";
 import Pricing from "@/pages/Pricing";
 import NotFound from "./pages/NotFound";
 import LandingPage from "@/pages/Landing";
+import HelloWorld from "@/pages/HelloWorld";
 import { startAutoRefresh } from "@/lib/googleSheetsService";
 import { OnboardingModal } from "@/components/ui/OnboardingModal";
 import { CountrySelectionModal, type CountryId } from "@/components/ui/CountrySelectionModal";
@@ -236,6 +237,7 @@ const AppContent = () => {
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+            <Route path="/hello-world" element={<HelloWorld />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           {!isLoginPage && <Footer />}
