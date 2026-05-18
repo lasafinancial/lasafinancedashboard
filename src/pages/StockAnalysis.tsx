@@ -728,23 +728,11 @@ const StockAnalysis = () => {
                   <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-12 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
                 </div>
 
-                {/* RSI + Trend Badges */}
+                {/* RSI Badge */}
                 <div className="flex items-center justify-center gap-1.5 pt-0.5">
                   <div className="flex items-center gap-1 px-2 py-0.5 rounded-sm bg-cyan-500/10 border border-cyan-500/25 backdrop-blur-sm">
                     <Activity className="w-2.5 h-2.5 text-cyan-400" />
                     <span className="font-mono text-[9px] font-black text-cyan-400 tracking-wider">RSI:{currentStock?.rsi?.toFixed(0)}</span>
-                  </div>
-                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-sm border backdrop-blur-sm ${calculatedTrend === 'UPTREND'
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-red-500/10 border-red-500/30'
-                    }`}>
-                    {calculatedTrend === 'UPTREND'
-                      ? <TrendingUp className="w-2.5 h-2.5 text-emerald-400" />
-                      : <TrendingDown className="w-2.5 h-2.5 text-red-400" />
-                    }
-                    <span className={`font-mono text-[9px] font-black tracking-wider ${calculatedTrend === 'UPTREND' ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {calculatedTrend}
-                    </span>
                   </div>
                 </div>
 
