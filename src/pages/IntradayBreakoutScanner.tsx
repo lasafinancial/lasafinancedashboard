@@ -261,7 +261,7 @@ export function IntradayBreakoutScanner() {
                     >
                         <GlassCard className="p-5 flex flex-col justify-between min-h-[120px] bg-gradient-to-br from-white/[0.03] to-transparent hover:border-white/10 transition-all border border-white/5">
                             <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                                Highest U% ({metrics.latestDate})
+                                Highest Res_Gap% ({metrics.latestDate})
                             </span>
                             <div className="flex items-baseline gap-2 mt-2">
                                 <span className="text-3xl font-extrabold text-accent">{metrics.highestUStock}</span>
@@ -341,7 +341,7 @@ export function IntradayBreakoutScanner() {
                                             <div className="flex items-center justify-end">Resistance {getSortIcon("resistance")}</div>
                                         </th>
                                         <th onClick={() => toggleSort("u")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
-                                            <div className="flex items-center justify-end">U (Price_Move) {getSortIcon("u")}</div>
+                                            <div className="flex items-center justify-end">Res_Gap% (Price_Move) {getSortIcon("u")}</div>
                                         </th>
                                         <th onClick={() => toggleSort("mlGap")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
                                             <div className="flex items-center justify-end">ML_Gap% {getSortIcon("mlGap")}</div>
@@ -417,7 +417,7 @@ export function IntradayBreakoutScanner() {
                                                 {formatNumber(stock.resistance)}
                                             </td>
 
-                                            {/* U (Price_%_Move) */}
+                                            {/* Res_Gap% (Price_%_Move) */}
                                             <td className="px-4 py-3.5 text-xs text-right font-mono whitespace-nowrap">
                                                 <span className={stock.u > 0 ? "text-emerald-400 font-semibold" : stock.u < 0 ? "text-rose-400 font-semibold" : "text-muted-foreground/80"}>
                                                     {formatPercent(stock.u)}
