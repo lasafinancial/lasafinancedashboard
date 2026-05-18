@@ -800,7 +800,7 @@ async function fetchData() {
     try {
       const niftyRes = await sheets.spreadsheets.values.get({
         spreadsheetId: INDICES_SHEET_ID, // DAILY_NIFTY_ANALYSIS lives here
-        range: 'DAILY_NIFTY_ANALYSIS!A1:Z500', // Expanded range for history
+        range: 'DAILY_NIFTY_ANALYSIS!A:Z',
       });
       const niftyRows = niftyRes.data.values || [];
       console.log(`DAILY_NIFTY_ANALYSIS fetch successful. Found ${niftyRows.length} rows.`);
@@ -908,12 +908,48 @@ async function fetchData() {
         }
         if (currentBlock) blocks.push(currentBlock);
 
+        // Parse blocks and filter for the last 30 calendar days
+        const parseBlockDate = (dateStr) => {
+          if (!dateStr) return null;
+          const parts = dateStr.trim().split('-');
+          if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const months = {
+              'jan': 0, 'january': 0, 'feb': 1, 'february': 1, 'mar': 2, 'march': 2,
+              'apr': 3, 'april': 3, 'may': 4, 'jun': 5, 'june': 5,
+              'jul': 6, 'july': 6, 'aug': 7, 'august': 7, 'sep': 8, 'september': 8,
+              'oct': 9, 'october': 9, 'nov': 10, 'november': 10, 'dec': 11, 'december': 11
+            };
+            const month = months[parts[1].toLowerCase()];
+            let year = parseInt(parts[2], 10);
+            if (year < 100) year += 2000;
+            if (month !== undefined && !isNaN(day) && !isNaN(year)) {
+              return new Date(year, month, day);
+            }
+          }
+          const d = new Date(dateStr);
+          return isNaN(d.getTime()) ? null : d;
+        };
+
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+        let filteredBlocks = blocks.filter(b => {
+          const bDate = parseBlockDate(b.summary.date);
+          return bDate && bDate >= thirtyDaysAgo;
+        });
+
+        if (filteredBlocks.length === 0) {
+          filteredBlocks = blocks.slice(-5); // Fallback: last 5 blocks
+        }
+
         // Reverse blocks so the latest (last in sheet) is at index 0
-        blocks.reverse();
+        filteredBlocks.reverse();
 
         // niftyAnalysis will now be an array, or we keep it as an object with a 'history' property
-        niftyAnalysis = { history: blocks };
-        console.log(`Parsed Nifty Analysis: ${blocks.length} date blocks found.`);
+        niftyAnalysis = { history: filteredBlocks };
+        console.log(`Parsed Nifty Analysis: ${filteredBlocks.length} date blocks found (filtered to last 30 days).`);
       }
     } catch (niftyErr) {
       console.warn('Could not fetch DAILY_NIFTY_ANALYSIS:', niftyErr.message);
