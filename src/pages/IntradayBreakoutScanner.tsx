@@ -209,7 +209,7 @@ export function IntradayBreakoutScanner() {
                         <span>ML Gap% &gt; 20</span>
                     </div>
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
-                        <span>U &gt; 5%</span>
+                        <span>Res_Gap% &gt; 5%</span>
                     </div>
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-mono">
                         <span>Sorted: Latest First</span>
@@ -308,7 +308,7 @@ export function IntradayBreakoutScanner() {
                             <p className="text-sm text-muted-foreground max-w-md">
                                 {searchTerm 
                                     ? `No stocks with ticker "${searchTerm}" match the active criteria.`
-                                    : "No stocks in the database currently satisfy the breakout conditions (ML Gap% > 20 AND U > 5%)."}
+                                    : "No stocks in the database currently satisfy the breakout conditions (ML Gap% > 20 AND Res_Gap% > 5%)."}
                             </p>
                         </div>
                     ) : (
