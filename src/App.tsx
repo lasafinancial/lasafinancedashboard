@@ -20,6 +20,7 @@ import NearResistance from "@/pages/NearResistance";
 import SupportReversal from "@/pages/SupportReversal";
 import ReactionZone from "@/pages/ReactionZone";
 import IntradayBreakout from "@/pages/IntradayBreakout";
+import IntradayBreakoutScanner from "@/pages/IntradayBreakoutScanner";
 import IntradayDev from "@/pages/IntradayDev";
 import BreakoutBoardV1 from "@/pages/BreakoutBoardV1";
 import NiftyAnalysis from "@/pages/NiftyAnalysis";
@@ -227,6 +228,7 @@ const AppContent = () => {
             <Route path="/screeners/support-reversal" element={<ProtectedRoute><SupportReversal /></ProtectedRoute>} />
             <Route path="/screeners/reaction-zone" element={<ProtectedRoute><ReactionZone /></ProtectedRoute>} />
             <Route path="/screeners/intraday-breakout" element={<ProtectedRoute><IntradayBreakout /></ProtectedRoute>} />
+            <Route path="/screeners/intraday-breakout-scanner" element={<ProtectedRoute><IntradayBreakoutScanner /></ProtectedRoute>} />
             <Route path="/screeners/nifty-analysis" element={<ProtectedRoute><NiftyAnalysis /></ProtectedRoute>} />
             <Route path="/screeners/intraday-dev" element={<ProtectedRoute><IntradayDev /></ProtectedRoute>} />
             <Route path="/screeners/breakout-v1" element={<ProtectedRoute><BreakoutBoardV1 /></ProtectedRoute>} />

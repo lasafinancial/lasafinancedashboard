@@ -558,6 +558,7 @@ async function fetchData() {
   let dailyNews = [];
   let nifty50Stocks = [];
   let intradayBreakout = [];
+  let intradayBreakoutScanner = [];
   let intradayDev = [];
   let intradayDevChanges = [];
   let playbackSnapshots = [];
@@ -1090,32 +1091,31 @@ async function fetchData() {
       topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
     };
 
-    // --- Start Intraday Breakout Screener ---
+    // --- Start Intraday Breakout Screener & Scanner ---
     try {
       const breakoutRes = await sheets.spreadsheets.values.get({
         spreadsheetId: EOD_SHEET_ID,
-        range: 'intraday-breakout-scanner!A:Q',
+        range: 'intraday-breakout-scanner!A:AB',
       });
       const breakoutRows = breakoutRes.data.values;
       if (breakoutRows && breakoutRows.length > 1) {
         const breakoutData = rowsToObjects(breakoutRows);
 
-        // Logic: Unique rows for last two trading days, de-duplicate Symbol + Time + Date
+        // 1. Old Intraday Breakout (Last 2 Trading Days)
         const allBreakoutDates = [...new Set(breakoutData.map(r => r['Date']).filter(Boolean))];
         const sortedBreakoutDates = allBreakoutDates.sort((a, b) => new Date(b) - new Date(a));
         const lastTwoDates = sortedBreakoutDates.slice(0, 2);
 
-        const seen = new Set();
+        const seenOld = new Set();
         intradayBreakout = breakoutData
           .filter(row => row['Date'] && lastTwoDates.includes(row['Date']))
           .filter(row => {
             const key = `${row['Symbol']}_${row['Time']}_${row['Date']}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
+            if (seenOld.has(key)) return false;
+            seenOld.add(key);
             return true;
           })
           .map(row => {
-            // Robust header lookup
             const getVal = (key, idx) => {
               const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
               return (foundKey ? row[foundKey] : row[idx]) || '';
@@ -1135,7 +1135,45 @@ async function fetchData() {
             };
           })
           .sort((a, b) => {
-            // Sort by Date and Time descending
+            try {
+              const dateA = new Date(`${a.date} ${a.time}`);
+              const dateB = new Date(`${b.date} ${b.time}`);
+              return dateB - dateA;
+            } catch (e) {
+              return 0;
+            }
+          });
+
+        // 2. New Intraday Breakout Scanner (All Data, raw/full)
+        const seenNew = new Set();
+        intradayBreakoutScanner = breakoutData
+          .filter(row => row['Symbol'] && row['Date'])
+          .filter(row => {
+            const key = `${row['Symbol']}_${row['Time']}_${row['Date']}`;
+            if (seenNew.has(key)) return false;
+            seenNew.add(key);
+            return true;
+          })
+          .map(row => {
+            const getVal = (key, idx) => {
+              const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
+              return (foundKey ? row[foundKey] : row[idx]) || '';
+            };
+
+            return {
+              symbol: getVal('Symbol', 0) || 'N/A',
+              date: getVal('Date', 1) || 'N/A',
+              time: getVal('Time', 2) || 'N/A',
+              pattern: getVal('PATTERN', 14) || 'N/A',
+              resGap: getNum(getVal('Res_Gap%', 20)),
+              target: getNum(getVal('Target', 21)),
+              model: getVal('MODEL', 13) || 'N/A',
+              resistance: getNum(getVal('RESISTANCE', 16)),
+              u: getNum(getVal('Price_%_Move', 10)),
+              mlGap: getNum(getVal('ML_GAP%', 27))
+            };
+          })
+          .sort((a, b) => {
             try {
               const dateA = new Date(`${a.date} ${a.time}`);
               const dateB = new Date(`${b.date} ${b.time}`);
@@ -1148,7 +1186,7 @@ async function fetchData() {
     } catch (err) {
       console.warn('Could not fetch intraday breakout data:', err.message);
     }
-    // --- End Intraday Breakout Screener ---
+    // --- End Intraday Breakout Screener & Scanner ---
 
     // --- Start Intraday Summary (Stars & Tiers) ---
     // (intradaySummaryMap already defined at top)
@@ -1433,6 +1471,7 @@ async function fetchData() {
     supportReversal,
     reactionZone,
     intradayBreakout,
+    intradayBreakoutScanner,
     intradayDev,
     intradayDevChanges,
     playbackSnapshots,

@@ -120,6 +120,7 @@ export interface GoogleSheetsData {
   supportReversal?: any[];
   reactionZone: any[];
   intradayBreakout: any[];
+  intradayBreakoutScanner?: any[];
   intradayDev: any[];
   intradayDevChanges?: any[];
   goldenAlerts?: any[];
