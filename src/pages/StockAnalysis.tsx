@@ -247,9 +247,9 @@ const StockAnalysis = () => {
 
   const calculatedTrend = useMemo(() => {
     const history = currentStock?.history || [];
-    if (history.length >= 5) {
+    if (history.length >= 22) {
       const latest = history[history.length - 1];
-      const prev = history[history.length - 5];
+      const prev = history[history.length - 22];
       const isSupportIncreasing = latest.support > prev.support;
       const isResistanceDecreasing = latest.resistance < prev.resistance;
 
@@ -618,9 +618,9 @@ const StockAnalysis = () => {
                     let trendLabel = stock.trend;
                     const history = stock.history || [];
 
-                    if (history.length >= 5) {
+                    if (history.length >= 22) {
                       const latest = history[history.length - 1];
-                      const prev = history[history.length - 5];
+                      const prev = history[history.length - 22];
 
                       // Logic: support increasing (uptrend) or resistance decreasing (downtrend)
                       const isSupportIncreasing = latest.support > prev.support;
