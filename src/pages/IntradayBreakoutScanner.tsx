@@ -43,11 +43,11 @@ export function IntradayBreakoutScanner() {
     const processedStocks = useMemo(() => {
         if (!rawStocks) return [];
         
-        // Apply static filters: ML_Gap% > 20 AND U > 5
+        // Apply static filters: ML_Gap% > 20 AND Res_Gap% > 5
         let data = rawStocks.filter(stock => {
             const ml = stock.mlGap;
-            const uVal = stock.u;
-            return !isNaN(ml) && ml > 20 && !isNaN(uVal) && uVal > 5;
+            const resGap = stock.resGap;
+            return !isNaN(ml) && ml > 20 && !isNaN(resGap) && resGap > 5;
         });
 
         // Apply search term filter

@@ -189,8 +189,8 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Intraday Breakout Scanner</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">ML Setup</span>
+                          <span className="text-sm font-semibold">ML Setup</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Intraday Breakout Scanner</span>
                         </div>
                       </Link>
                       <Link
@@ -411,7 +411,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                               <Link to="/screeners/support-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reversal</Link>
                               <Link to="/screeners/reaction-zone" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reaction Zone</Link>
                               <Link to="/screeners/intraday-breakout" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Breakout</Link>
-                              <Link to="/screeners/intraday-breakout-scanner" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Breakout Scanner</Link>
+                              <Link to="/screeners/intraday-breakout-scanner" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">ML Setup</Link>
                               <Link to="/screeners/nifty-analysis" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Optics</Link>
                               {user?.email === 'lasafinancial@gmail.com' ? (
                                 <Link to="/multibagger" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Dev-MB</Link>
