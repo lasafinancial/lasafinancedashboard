@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
 
-type SortField = "symbol" | "date" | "time" | "pattern" | "resGap" | "target" | "model" | "resistance" | "u" | "mlGap";
+type SortField = "symbol" | "date" | "time" | "close" | "pattern" | "resGap" | "target" | "model" | "resistance" | "u" | "mlGap";
 type SortDirection = "asc" | "desc";
 
 export function IntradayBreakoutScanner() {
@@ -325,6 +325,9 @@ export function IntradayBreakoutScanner() {
                                         <th onClick={() => toggleSort("time")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors">
                                             <div className="flex items-center">Time {getSortIcon("time")}</div>
                                         </th>
+                                        <th onClick={() => toggleSort("close")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
+                                            <div className="flex items-center justify-end">Close {getSortIcon("close")}</div>
+                                        </th>
                                         <th onClick={() => toggleSort("pattern")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors">
                                             <div className="flex items-center">Pattern {getSortIcon("pattern")}</div>
                                         </th>
@@ -341,7 +344,7 @@ export function IntradayBreakoutScanner() {
                                             <div className="flex items-center justify-end">Resistance {getSortIcon("resistance")}</div>
                                         </th>
                                         <th onClick={() => toggleSort("u")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
-                                            <div className="flex items-center justify-end">Res_Gap% (Price_Move) {getSortIcon("u")}</div>
+                                            <div className="flex items-center justify-end">Price_move {getSortIcon("u")}</div>
                                         </th>
                                         <th onClick={() => toggleSort("mlGap")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
                                             <div className="flex items-center justify-end">ML_Gap% {getSortIcon("mlGap")}</div>
@@ -378,10 +381,15 @@ export function IntradayBreakoutScanner() {
                                                 </div>
                                             </td>
 
+                                            {/* Close */}
+                                            <td className="px-4 py-3.5 text-xs text-right font-mono whitespace-nowrap text-white/90">
+                                                {formatNumber(stock.close)}
+                                            </td>
+
                                             {/* Pattern */}
                                             <td className="px-4 py-3.5 text-xs whitespace-nowrap">
                                                 {stock.pattern && stock.pattern !== "N/A" && stock.pattern !== "" ? (
-                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${getPatternStyle(stock.pattern)}`}>
+                                                    <span>
                                                         {stock.pattern}
                                                     </span>
                                                 ) : (
@@ -404,7 +412,7 @@ export function IntradayBreakoutScanner() {
                                             {/* Model */}
                                             <td className="px-4 py-3.5 text-xs whitespace-nowrap">
                                                 {stock.model && stock.model !== "N/A" && stock.model !== "" ? (
-                                                    <span className="border border-primary/30 text-primary px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                                                    <span>
                                                         {stock.model}
                                                     </span>
                                                 ) : (

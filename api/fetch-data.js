@@ -1170,7 +1170,8 @@ async function fetchData() {
               model: getVal('MODEL', 13) || 'N/A',
               resistance: getNum(getVal('RESISTANCE', 16)),
               u: getNum(getVal('Price_%_Move', 10)),
-              mlGap: getNum(getVal('ML_GAP%', 27))
+              mlGap: getNum(getVal('ML_GAP%', 27)),
+              close: getNum(getVal('Close', 6))
             };
           })
           .sort((a, b) => {
