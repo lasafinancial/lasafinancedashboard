@@ -11,7 +11,7 @@ type SortDirection = "asc" | "desc";
 export function IntradayBreakoutScanner() {
     const navigate = useNavigate();
     const { intradayBreakoutScanner: rawStocks, isLoading } = useLiveData();
-    
+
     const [searchTerm, setSearchTerm] = useState("");
     const [sortField, setSortField] = useState<SortField>("date");
     const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -42,26 +42,19 @@ export function IntradayBreakoutScanner() {
     // Filter and Sort Data
     const processedStocks = useMemo(() => {
         if (!rawStocks) return [];
-        
-        // Keep only the oldest entry for each symbol within the last 2 months
-        const oldestBySymbol = new Map();
-        const twoMonthsAgo = new Date();
-        twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-        const twoMonthsAgoTime = twoMonthsAgo.getTime();
 
+        // Keep only the most recent entry for each symbol
+        const latestBySymbol = new Map();
         rawStocks.forEach(stock => {
+            const currentLatest = latestBySymbol.get(stock.symbol);
             const stockDateTime = new Date(`${stock.date} ${stock.time}`).getTime();
             
-            // Only consider entries within the last 2 months
-            if (stockDateTime >= twoMonthsAgoTime) {
-                const currentOldest = oldestBySymbol.get(stock.symbol);
-                if (!currentOldest || stockDateTime < currentOldest.time) {
-                    oldestBySymbol.set(stock.symbol, { stock, time: stockDateTime });
-                }
+            if (!currentLatest || stockDateTime > currentLatest.time) {
+                latestBySymbol.set(stock.symbol, { stock, time: stockDateTime });
             }
         });
         
-        let data = Array.from(oldestBySymbol.values()).map(item => item.stock);
+        let data = Array.from(latestBySymbol.values()).map(item => item.stock);
 
         // Apply static filters: ML_Gap% > 20 AND Res_Gap% > 5
         data = data.filter(stock => {
@@ -307,7 +300,7 @@ export function IntradayBreakoutScanner() {
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 focus:border-primary/50 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all backdrop-blur-md"
                         />
                     </div>
-                    
+
                     <div className="text-xs text-muted-foreground flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5" />
                         <span>Showing {processedStocks.length} records matching filters</span>
@@ -326,7 +319,7 @@ export function IntradayBreakoutScanner() {
                             <AlertCircle className="w-12 h-12 text-muted-foreground/50 mb-3" />
                             <h3 className="text-lg font-bold text-white mb-1">No Breakouts Found</h3>
                             <p className="text-sm text-muted-foreground max-w-md">
-                                {searchTerm 
+                                {searchTerm
                                     ? `No stocks with ticker "${searchTerm}" match the active criteria.`
                                     : "No stocks in the database currently satisfy the breakout conditions (ML Gap% > 20 AND Res_Gap% > 5%)."}
                             </p>
@@ -374,7 +367,7 @@ export function IntradayBreakoutScanner() {
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
                                     {processedStocks.map((stock, idx) => (
-                                        <tr 
+                                        <tr
                                             key={`${stock.symbol}-${stock.date}-${stock.time}-${idx}`}
                                             className="hover:bg-white/[0.02] transition-colors group"
                                         >
