@@ -43,8 +43,21 @@ export function IntradayBreakoutScanner() {
     const processedStocks = useMemo(() => {
         if (!rawStocks) return [];
         
+        // Keep only the most recent entry for each symbol
+        const latestBySymbol = new Map();
+        rawStocks.forEach(stock => {
+            const currentLatest = latestBySymbol.get(stock.symbol);
+            const stockDateTime = new Date(`${stock.date} ${stock.time}`).getTime();
+            
+            if (!currentLatest || stockDateTime > currentLatest.time) {
+                latestBySymbol.set(stock.symbol, { stock, time: stockDateTime });
+            }
+        });
+        
+        let data = Array.from(latestBySymbol.values()).map(item => item.stock);
+
         // Apply static filters: ML_Gap% > 20 AND Res_Gap% > 5
-        let data = rawStocks.filter(stock => {
+        data = data.filter(stock => {
             const ml = stock.mlGap;
             const resGap = stock.resGap;
             return !isNaN(ml) && ml > 20 && !isNaN(resGap) && resGap > 5;
