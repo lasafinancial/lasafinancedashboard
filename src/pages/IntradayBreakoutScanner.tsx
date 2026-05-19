@@ -43,18 +43,25 @@ export function IntradayBreakoutScanner() {
     const processedStocks = useMemo(() => {
         if (!rawStocks) return [];
         
-        // Keep only the most recent entry for each symbol
-        const latestBySymbol = new Map();
+        // Keep only the oldest entry for each symbol within the last 2 months
+        const oldestBySymbol = new Map();
+        const twoMonthsAgo = new Date();
+        twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+        const twoMonthsAgoTime = twoMonthsAgo.getTime();
+
         rawStocks.forEach(stock => {
-            const currentLatest = latestBySymbol.get(stock.symbol);
             const stockDateTime = new Date(`${stock.date} ${stock.time}`).getTime();
             
-            if (!currentLatest || stockDateTime > currentLatest.time) {
-                latestBySymbol.set(stock.symbol, { stock, time: stockDateTime });
+            // Only consider entries within the last 2 months
+            if (stockDateTime >= twoMonthsAgoTime) {
+                const currentOldest = oldestBySymbol.get(stock.symbol);
+                if (!currentOldest || stockDateTime < currentOldest.time) {
+                    oldestBySymbol.set(stock.symbol, { stock, time: stockDateTime });
+                }
             }
         });
         
-        let data = Array.from(latestBySymbol.values()).map(item => item.stock);
+        let data = Array.from(oldestBySymbol.values()).map(item => item.stock);
 
         // Apply static filters: ML_Gap% > 20 AND Res_Gap% > 5
         data = data.filter(stock => {
