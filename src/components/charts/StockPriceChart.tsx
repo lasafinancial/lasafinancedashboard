@@ -44,6 +44,12 @@ const calculateRollingMedian = (values: number[], index: number, windowSize: num
   return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
+const asNum = (v: unknown): number | null => {
+  if (v == null || v === '') return null;
+  const n = typeof v === 'number' ? v : Number(String(v).replace(/,/g, ''));
+  return Number.isFinite(n) ? n : null;
+};
+
 /** Same price points as the plotted price line: point in ±1% band or segment between two plot points cuts the band. */
 const priceLineHitsBalance = (prevPrice: number | null, price: number, target: number): boolean => {
   const low = target * 0.99;
@@ -70,12 +76,13 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         lastWolfeD = rawWolfe;
       }
 
-      const plotPrice = typeof d.price === 'number' && !isNaN(d.price) ? d.price : null;
-      const newTarget = typeof rawProjFvg === 'number' && rawProjFvg > 0 ? rawProjFvg : null;
+      const plotPrice = asNum(d.price);
+      const newTarget = asNum(rawProjFvg);
+      const validTarget = newTarget !== null && newTarget > 0 ? newTarget : null;
 
-      if (activeBalance === null && newTarget !== null) {
-        if (stoppedBalance === null || newTarget !== stoppedBalance) {
-          activeBalance = newTarget;
+      if (activeBalance === null && validTarget !== null) {
+        if (stoppedBalance === null || validTarget !== stoppedBalance) {
+          activeBalance = validTarget;
         }
       }
 
@@ -116,10 +123,20 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
 
   const yDomain = useMemo(() => {
     if (!chartData.length) return ['auto', 'auto'];
-    const prices = chartData.map(d => d.price).filter((p): p is number => p != null && !isNaN(p));
-    if (!prices.length) return ['auto', 'auto'];
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
+    const keys = [
+      'price', 'projFvg', 'support', 'resistance', 'model', 'wolfeD',
+      'priceHist', 'priceLive', 'supportHist', 'supportLive', 'resistanceHist', 'resistanceLive',
+    ];
+    const values: number[] = [];
+    for (const d of chartData) {
+      for (const k of keys) {
+        const v = d[k];
+        if (typeof v === 'number' && !isNaN(v)) values.push(v);
+      }
+    }
+    if (!values.length) return ['auto', 'auto'];
+    const min = Math.min(...values);
+    const max = Math.max(...values);
     const padding = (max - min) * 0.1 || 10;
     return [Math.floor(min - padding), Math.ceil(max + padding)];
   }, [chartData]);
