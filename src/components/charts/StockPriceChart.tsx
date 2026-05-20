@@ -51,6 +51,8 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
     const mlValues = data.map(d => d.mlFutPrice20d);
     let lastWolfeD: number | null = null;
     let lastProjFvg: number | null = null;
+    let projFvgActive = false;
+    let lastValidPrice: number | null = null;
 
     return data.map((d, i) => {
       const { wolfeD: rawWolfe, projFvg: rawProjFvg, ...rest } = d;
@@ -58,8 +60,35 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
       if (rawWolfe && rawWolfe !== 0) {
         lastWolfeD = rawWolfe;
       }
+      
       if (rawProjFvg && rawProjFvg !== 0) {
-        lastProjFvg = rawProjFvg;
+        if (rawProjFvg !== lastProjFvg) {
+          lastProjFvg = rawProjFvg;
+          projFvgActive = true;
+        }
+      }
+
+      let currentProjFvg = projFvgActive ? lastProjFvg : null;
+
+      if (projFvgActive && lastProjFvg !== null && d.price != null) {
+        const margin = lastProjFvg * 0.01;
+        const touched = Math.abs(d.price - lastProjFvg) <= margin;
+        
+        let crossed = false;
+        if (lastValidPrice !== null) {
+          if ((lastValidPrice < lastProjFvg && d.price > lastProjFvg) ||
+              (lastValidPrice > lastProjFvg && d.price < lastProjFvg)) {
+            crossed = true;
+          }
+        }
+
+        if (touched || crossed) {
+          projFvgActive = false;
+        }
+      }
+
+      if (d.price != null) {
+        lastValidPrice = d.price;
       }
 
       const isLive = !!d.isLive;
@@ -70,7 +99,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         isLive,
         model: isLive ? null : calculateRollingMedian(mlValues, i, 10),
         wolfeD: isLive ? null : lastWolfeD,
-        projFvg: isLive ? null : lastProjFvg,
+        projFvg: isLive ? null : currentProjFvg,
         // Segmented keys for rendering - explicitly nulling to prevent overlap
         priceHist: !isLive ? d.price : null,
         priceLive: (isLive || isLastHistorical) ? d.price : null,
