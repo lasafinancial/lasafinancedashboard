@@ -50,7 +50,8 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
   const chartData = useMemo(() => {
     const mlValues = data.map(d => d.mlFutPrice20d);
     let lastWolfeD: number | null = null;
-    let lastProjFvg: number | null = null;
+    let activeProjFvg: number | null = null;
+    let lastSeenProjFvg: number | null = null;
 
     return data.map((d, i) => {
       const { wolfeD: rawWolfe, projFvg: rawProjFvg, ...rest } = d;
@@ -58,8 +59,19 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
       if (rawWolfe && rawWolfe !== 0) {
         lastWolfeD = rawWolfe;
       }
-      if (rawProjFvg && rawProjFvg !== 0) {
-        lastProjFvg = rawProjFvg;
+      
+      if (rawProjFvg && rawProjFvg !== 0 && rawProjFvg !== lastSeenProjFvg) {
+        activeProjFvg = rawProjFvg;
+        lastSeenProjFvg = rawProjFvg;
+      }
+
+      let currentProjFvg = activeProjFvg;
+      if (activeProjFvg !== null) {
+        const price = d.price;
+        if (price != null && price >= activeProjFvg * 0.99 && price <= activeProjFvg * 1.01) {
+          activeProjFvg = null;
+          currentProjFvg = null;
+        }
       }
 
       const isLive = !!d.isLive;
@@ -70,7 +82,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         isLive,
         model: isLive ? null : calculateRollingMedian(mlValues, i, 10),
         wolfeD: isLive ? null : lastWolfeD,
-        projFvg: isLive ? null : lastProjFvg,
+        projFvg: isLive ? null : currentProjFvg,
         // Segmented keys for rendering - explicitly nulling to prevent overlap
         priceHist: !isLive ? d.price : null,
         priceLive: (isLive || isLastHistorical) ? d.price : null,
