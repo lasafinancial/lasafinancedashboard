@@ -44,15 +44,49 @@ const calculateRollingMedian = (values: number[], index: number, windowSize: num
   return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
+/** Normalize sheet/API values so Balance logic works for strings, ints, floats, and comma-formatted numbers. */
+const toFiniteNumber = (v: unknown): number | null => {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  const s = String(v).replace(/,/g, '').trim();
+  if (s === '') return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+};
+
+const levelDiffers = (a: number, b: number) =>
+  Math.abs(a - b) > Math.max(1e-9, Math.abs(a) * 1e-9, Math.abs(b) * 1e-9);
+
+/** Balance line: start on first valid target, flat until ±1% touch/cross vs close, then null until a numerically NEW target appears (same value after a gap must NOT reconnect). */
+const balanceTouchesOrCrossesBand = (
+  prevClose: number | null,
+  close: number,
+  target: number
+): boolean => {
+  if (target === 0) return false;
+  const low = target * 0.99;
+  const high = target * 1.01;
+  const tol = Math.max(1e-9, Math.abs(target) * 1e-12);
+  const inBand = close >= low - tol && close <= high + tol;
+  const segmentCutsBand =
+    prevClose !== null &&
+    Math.min(prevClose, close) <= high + tol &&
+    Math.max(prevClose, close) >= low - tol;
+  return inBand || segmentCutsBand;
+};
+
 const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) => {
   const [localHovered, setLocalHovered] = useState<HoveredData | null>(null);
 
   const chartData = useMemo(() => {
     const mlValues = data.map(d => d.mlFutPrice20d);
     let lastWolfeD: number | null = null;
-    let activeProjFvg: number | null = null;
-    let lastSeenProjFvg: number | null = null;
     let previousPrice: number | null = null;
+
+    type BalancePhase = 'idle' | 'active' | 'after_hit';
+    let balancePhase: BalancePhase = 'idle';
+    let lineTarget: number | null = null;
+    let stoppedAtLevel: number | null = null;
 
     return data.map((d, i) => {
       const { wolfeD: rawWolfe, projFvg: rawProjFvg, ...rest } = d;
@@ -60,35 +94,53 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
       if (rawWolfe && rawWolfe !== 0) {
         lastWolfeD = rawWolfe;
       }
-      
-      if (rawProjFvg && rawProjFvg !== 0 && rawProjFvg !== lastSeenProjFvg) {
-        activeProjFvg = rawProjFvg;
-        lastSeenProjFvg = rawProjFvg;
+
+      const rawBalance = toFiniteNumber(rawProjFvg);
+      const hasBalanceRow = rawBalance !== null && rawBalance !== 0;
+      const close = toFiniteNumber(d.price);
+
+      // --- Arm only on a genuinely new target (never reconnect same level after a hit) ---
+      if (balancePhase === 'idle' && hasBalanceRow) {
+        balancePhase = 'active';
+        lineTarget = rawBalance;
+        stoppedAtLevel = null;
+      } else if (
+        balancePhase === 'after_hit' &&
+        hasBalanceRow &&
+        stoppedAtLevel !== null &&
+        levelDiffers(rawBalance, stoppedAtLevel)
+      ) {
+        balancePhase = 'active';
+        lineTarget = rawBalance;
+        stoppedAtLevel = null;
+      } else if (
+        balancePhase === 'active' &&
+        hasBalanceRow &&
+        lineTarget !== null &&
+        levelDiffers(rawBalance, lineTarget)
+      ) {
+        // Sheet published a new balance level before the old one was hit — switch segment
+        lineTarget = rawBalance;
       }
 
-      let currentProjFvg = activeProjFvg;
-      if (activeProjFvg !== null) {
-        const price = d.price;
-        if (price != null) {
-          const target = activeProjFvg;
-          const withinRange = price >= target * 0.99 && price <= target * 1.01;
-          
-          let crossed = false;
-          if (previousPrice != null) {
-             if (previousPrice < target && price > target) crossed = true;
-             if (previousPrice > target && price < target) crossed = true;
-          }
-
-          if (withinRange || crossed) {
-            activeProjFvg = null;
-            // Keep the stop-point visible; subsequent points stay null
-            currentProjFvg = target;
+      let currentProjFvg: number | null = null;
+      if (balancePhase === 'active' && lineTarget !== null) {
+        if (close === null) {
+          // Avoid drawing a flat balance when close is missing (would look like "never hit")
+          currentProjFvg = null;
+        } else {
+          currentProjFvg = lineTarget;
+          if (balanceTouchesOrCrossesBand(previousPrice, close, lineTarget)) {
+            balancePhase = 'after_hit';
+            stoppedAtLevel = lineTarget;
+            lineTarget = null;
+            currentProjFvg = stoppedAtLevel;
           }
         }
       }
-      
-      if (d.price != null) {
-        previousPrice = d.price;
+
+      if (close !== null) {
+        previousPrice = close;
       }
 
       const isLive = !!d.isLive;
