@@ -81,7 +81,8 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
 
           if (withinRange || crossed) {
             activeProjFvg = null;
-            currentProjFvg = null;
+            // Keep the stop-point visible; subsequent points stay null
+            currentProjFvg = target;
           }
         }
       }
@@ -451,7 +452,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               dot={false}
               strokeDasharray="3 3"
               filter="url(#glow)"
-              connectNulls
+              connectNulls={false}
             />
           </ComposedChart>
         </ResponsiveContainer>
