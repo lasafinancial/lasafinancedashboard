@@ -52,6 +52,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
     let lastWolfeD: number | null = null;
     let activeProjFvg: number | null = null;
     let lastSeenProjFvg: number | null = null;
+    let previousPrice: number | null = null;
 
     return data.map((d, i) => {
       const { wolfeD: rawWolfe, projFvg: rawProjFvg, ...rest } = d;
@@ -68,10 +69,25 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
       let currentProjFvg = activeProjFvg;
       if (activeProjFvg !== null) {
         const price = d.price;
-        if (price != null && price >= activeProjFvg * 0.99 && price <= activeProjFvg * 1.01) {
-          activeProjFvg = null;
-          currentProjFvg = null;
+        if (price != null) {
+          const target = activeProjFvg;
+          const withinRange = price >= target * 0.99 && price <= target * 1.01;
+          
+          let crossed = false;
+          if (previousPrice != null) {
+             if (previousPrice < target && price > target) crossed = true;
+             if (previousPrice > target && price < target) crossed = true;
+          }
+
+          if (withinRange || crossed) {
+            activeProjFvg = null;
+            currentProjFvg = null;
+          }
         }
+      }
+      
+      if (d.price != null) {
+        previousPrice = d.price;
       }
 
       const isLive = !!d.isLive;
