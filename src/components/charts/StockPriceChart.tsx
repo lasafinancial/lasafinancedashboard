@@ -65,6 +65,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
   const chartData = useMemo(() => {
     const mlValues = data.map(d => d.mlFutPrice20d);
     let lastWolfeD: number | null = null;
+    let publishedBalance: number | null = null;
     let prevPlotPrice: number | null = null;
     let activeBalance: number | null = null;
     let stoppedBalance: number | null = null;
@@ -77,20 +78,27 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
       }
 
       const plotPrice = asNum(d.price);
-      const newTarget = asNum(rawProjFvg);
-      const validTarget = newTarget !== null && newTarget > 0 ? newTarget : null;
+      const validTarget = (() => {
+        const n = asNum(rawProjFvg);
+        return n !== null && n > 0 ? n : null;
+      })();
 
-      if (activeBalance === null && validTarget !== null) {
-        if (stoppedBalance === null || validTarget !== stoppedBalance) {
-          activeBalance = validTarget;
-        }
+      if (validTarget !== null) {
+        publishedBalance = validTarget;
       }
 
-      let currentProjFvg: number | null = null;
+      if (activeBalance === null && publishedBalance !== null) {
+        if (stoppedBalance === null || publishedBalance !== stoppedBalance) {
+          activeBalance = publishedBalance;
+        }
+      } else if (activeBalance !== null && validTarget !== null && validTarget !== activeBalance) {
+        activeBalance = validTarget;
+      }
+
+      let balanceLine: number | null = null;
       if (activeBalance !== null && plotPrice !== null) {
-        currentProjFvg = activeBalance;
+        balanceLine = activeBalance;
         if (priceLineHitsBalance(prevPlotPrice, plotPrice, activeBalance)) {
-          currentProjFvg = activeBalance;
           stoppedBalance = activeBalance;
           activeBalance = null;
         }
@@ -103,12 +111,15 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
       const isLive = !!d.isLive;
       const isLastHistorical = !isLive && (i === data.length - 2 && !!data[data.length - 1]?.isLive);
 
+      const { projFvg: _rawProjOmit, ...restWithoutProjFvg } = rest as { projFvg?: unknown; [key: string]: unknown };
+
       const result: any = {
-        ...rest,
+        ...restWithoutProjFvg,
         isLive,
         model: isLive ? null : calculateRollingMedian(mlValues, i, 10),
         wolfeD: isLive ? null : lastWolfeD,
-        projFvg: isLive ? null : currentProjFvg,
+        balanceLine: isLive ? null : balanceLine,
+        projFvg: isLive ? null : balanceLine,
         // Segmented keys for rendering - explicitly nulling to prevent overlap
         priceHist: !isLive ? d.price : null,
         priceLive: (isLive || isLastHistorical) ? d.price : null,
@@ -124,7 +135,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
   const yDomain = useMemo(() => {
     if (!chartData.length) return ['auto', 'auto'];
     const keys = [
-      'price', 'projFvg', 'support', 'resistance', 'model', 'wolfeD',
+      'price', 'balanceLine', 'projFvg', 'support', 'resistance', 'model', 'wolfeD',
       'priceHist', 'priceLive', 'supportHist', 'supportLive', 'resistanceHist', 'resistanceLive',
     ];
     const values: number[] = [];
@@ -151,7 +162,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         resistance: p.resistance ?? null,
         model: p.model ?? null,
         pattern: p.wolfeD ?? null,
-        projFvg: p.projFvg ?? null,
+        projFvg: p.balanceLine ?? p.projFvg ?? null,
       };
       setLocalHovered(hoveredData);
       onHover?.(hoveredData);
@@ -173,7 +184,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         resistance: p.resistance ?? null,
         model: p.model ?? null,
         pattern: p.wolfeD ?? null,
-        projFvg: p.projFvg ?? null,
+        projFvg: p.balanceLine ?? p.projFvg ?? null,
       };
       setLocalHovered(hoveredData);
       onHover?.(hoveredData);
@@ -463,15 +474,15 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
             />
 
             <Line
-              type="monotone"
-              dataKey="projFvg"
+              type="linear"
+              dataKey="balanceLine"
               name="Balance"
-              stroke="#f472b6"
+              stroke="#ec4899"
               strokeWidth={2}
               dot={false}
-              strokeDasharray="3 3"
-              filter="url(#glow)"
-              connectNulls={false}
+              strokeDasharray="4 4"
+              connectNulls
+              isAnimationActive={false}
             />
           </ComposedChart>
         </ResponsiveContainer>
