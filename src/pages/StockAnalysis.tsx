@@ -247,7 +247,12 @@ const StockAnalysis = () => {
 
   const currentSummary = useMemo(() => {
     if (!summaries || !currentStock) return null;
-    return summaries.find((s: any) => s.stock?.toLowerCase() === currentStock.symbol?.toLowerCase());
+    return summaries.find((s: any) => {
+      const summaryStock = s.stock?.trim().toLowerCase();
+      const currentSymbol = currentStock.symbol?.trim().toLowerCase();
+      const currentName = currentStock.name?.trim().toLowerCase();
+      return summaryStock === currentSymbol || summaryStock === currentName;
+    });
   }, [summaries, currentStock]);
 
   const calculatedTrend = useMemo(() => {
@@ -908,14 +913,14 @@ const StockAnalysis = () => {
                 </div>
               </div>
               <div className={`px-3 py-1 rounded-lg border flex items-center gap-2 ${
-                currentSummary.direction.toLowerCase() === 'bullish' 
+                currentSummary.direction?.toLowerCase() === 'bullish' 
                   ? 'bg-success/10 border-success/30 text-success' 
-                  : currentSummary.direction.toLowerCase() === 'bearish'
+                  : currentSummary.direction?.toLowerCase() === 'bearish'
                   ? 'bg-destructive/10 border-destructive/30 text-destructive'
                   : 'bg-warning/10 border-warning/30 text-warning'
               }`}>
                 <Activity className="w-4 h-4" />
-                <span className="text-sm font-bold uppercase tracking-wider">{currentSummary.direction}</span>
+                <span className="text-sm font-bold uppercase tracking-wider">{currentSummary.direction || 'NEUTRAL'}</span>
               </div>
             </div>
 
