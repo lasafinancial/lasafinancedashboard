@@ -328,7 +328,7 @@ async function fetchData() {
     const filteredRows = rawValues.filter((row, i) => {
       if (i === 0) return true; // Keep headers
       const g = (row[groupIdx] || '').toString().toUpperCase();
-      return g === 'LARGECAP' || g === 'MIDCAP' || g === 'INDEX' || g === 'ETF';
+      return g === 'LARGECAP' || g === 'MIDCAP' || g === 'INDEX' || g === 'ETF' || g === 'SMALLCAP';
     });
 
     lasaMasterData = rowsToObjects(filteredRows);
@@ -471,7 +471,7 @@ async function fetchData() {
     if (!dateStr) return;
 
     const group = (row['GROUP'] || '').toString().toUpperCase();
-    if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX' && group !== 'ETF') {
+    if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'INDEX' && group !== 'ETF' && group !== 'SMALLCAP') {
       return;
     }
 
