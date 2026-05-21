@@ -942,6 +942,7 @@ const StockAnalysis = () => {
                         {currentSummary.bias?.replace(/20D\s?/g, '')
                           .split(/(?<=\.)\s+/)
                           .filter(Boolean)
+                          .filter((sentence: string) => !sentence.toLowerCase().includes('signal score'))
                           .map((sentence: string, i: number) => (
                             <li key={i}>{sentence}</li>
                           ))}
