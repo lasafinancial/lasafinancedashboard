@@ -904,7 +904,7 @@ const StockAnalysis = () => {
                 <div className="h-8 w-1 rounded-full bg-primary" />
                 <div>
                   <h3 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
-                    Lasa Summary
+                    Stock Summary
                     <span className="text-[10px] px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 uppercase tracking-widest font-mono">
                       {currentSummary.dataDate}
                     </span>
@@ -927,20 +927,29 @@ const StockAnalysis = () => {
               <table className="w-full text-left text-sm text-foreground">
                 <tbody className="divide-y divide-white/5">
                   <tr className="hover:bg-white/[0.02] transition-colors">
-                    <td className="w-1/3 md:w-1/4 p-4 font-medium text-muted-foreground align-top">Algo Balance</td>
-                    <td className="p-4 font-bold">{currentSummary.algoBalance}</td>
+                    <td className="w-1/3 md:w-1/4 p-4 font-semibold text-cyan-400 align-top border-l-2 border-cyan-500/50 bg-cyan-900/10">Algo Balance</td>
+                    <td className="p-4 font-medium text-sm leading-relaxed">{currentSummary.algoBalance?.replace(/20D\s?/g, '')}</td>
                   </tr>
                   <tr className="hover:bg-white/[0.02] transition-colors">
-                    <td className="w-1/3 md:w-1/4 p-4 font-medium text-muted-foreground align-top">Algo Pattern</td>
-                    <td className="p-4 font-bold">{currentSummary.algoPattern}</td>
+                    <td className="w-1/3 md:w-1/4 p-4 font-semibold text-cyan-400 align-top border-l-2 border-cyan-500/50 bg-cyan-900/10">Algo Pattern</td>
+                    <td className="p-4 font-medium text-sm leading-relaxed">{currentSummary.algoPattern?.replace(/20D\s?/g, '')}</td>
                   </tr>
                   <tr className="hover:bg-white/[0.02] transition-colors">
-                    <td className="w-1/3 md:w-1/4 p-4 font-medium text-muted-foreground align-top">Algo Model</td>
-                    <td className="p-4 font-bold">{currentSummary.algoModel}</td>
+                    <td className="w-1/3 md:w-1/4 p-4 font-semibold text-cyan-400 align-top border-l-2 border-cyan-500/50 bg-cyan-900/10">Algo Model</td>
+                    <td className="p-4 font-medium text-sm leading-relaxed">{currentSummary.algoModel?.replace(/20D\s?/g, '')}</td>
                   </tr>
                   <tr className="hover:bg-white/[0.02] transition-colors">
-                    <td className="w-1/3 md:w-1/4 p-4 font-medium text-muted-foreground align-top">Bias</td>
-                    <td className="p-4 font-bold">{currentSummary.bias}</td>
+                    <td className="w-1/3 md:w-1/4 p-4 font-semibold text-cyan-400 align-top border-l-2 border-cyan-500/50 bg-cyan-900/10">Bias</td>
+                    <td className="p-4 font-medium text-sm leading-relaxed">
+                      <ul className="list-disc list-inside space-y-1.5">
+                        {currentSummary.bias?.replace(/20D\s?/g, '')
+                          .split(/(?<=\.)\s+/)
+                          .filter(Boolean)
+                          .map((sentence: string, i: number) => (
+                            <li key={i}>{sentence}</li>
+                          ))}
+                      </ul>
+                    </td>
                   </tr>
                 </tbody>
               </table>
