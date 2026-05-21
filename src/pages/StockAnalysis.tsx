@@ -660,9 +660,6 @@ const StockAnalysis = () => {
                         </div>
                         <div className="text-right shrink-0">
                           <p className="font-mono text-sm font-medium">₹{stock.price?.toLocaleString()}</p>
-                          <p className={`text-[10px] font-bold tracking-wider ${trendLabel === 'UPTREND' ? 'text-success' : trendLabel === 'DOWNTREND' ? 'text-destructive' : 'text-warning'}`}>
-                            {trendLabel}
-                          </p>
                         </div>
                       </button>
                     );
