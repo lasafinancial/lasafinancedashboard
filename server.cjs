@@ -381,6 +381,7 @@ async function fetchData() {
   let nearResistance = [];  let supportReversal = [];
   let reactionZone = [];
   let dailyNews = [];
+  let summaries = [];
   let intradayBreakout = [];
   let intradayBreakoutScanner = [];
   let intradayDev = [];
@@ -952,6 +953,48 @@ async function fetchData() {
         }
       } catch (newsErr) {
         console.warn('Could not fetch DAILY_NEWS:', newsErr.message);
+      }
+
+      // --- 12b. Fetch Summaries tab (Independent) ---
+      try {
+        const summariesRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: INDICES_SHEET_ID,
+          range: 'Summaries!A:Z',
+        });
+        const summariesRows = summariesRes.data.values || [];
+        if (summariesRows.length > 1) {
+          const headers = summariesRows[0].map(h => (h || '').toString().trim());
+          const stockIdx = headers.findIndex(h => h.toLowerCase() === 'stock');
+          const cmpIdx = headers.findIndex(h => h.toLowerCase() === 'cmp');
+          const dateIdx = headers.findIndex(h => h.toLowerCase() === 'data date');
+          const balanceIdx = headers.findIndex(h => h.toLowerCase() === 'algo balance');
+          const modelIdx = headers.findIndex(h => h.toLowerCase() === 'algo model');
+          const patternIdx = headers.findIndex(h => h.toLowerCase() === 'algo pattern');
+          const biasIdx = headers.findIndex(h => h.toLowerCase() === 'bias');
+          const directionIdx = headers.findIndex(h => h.toLowerCase() === 'direction');
+          const generatedIdx = headers.findIndex(h => h.toLowerCase() === 'generated at');
+
+          const getVal = (row, idx) => idx !== -1 && row[idx] !== undefined ? row[idx] : '';
+
+          for (let i = 1; i < summariesRows.length; i++) {
+            const row = summariesRows[i];
+            if (!row || row.length === 0 || !getVal(row, stockIdx)) continue;
+            summaries.push({
+              stock: getVal(row, stockIdx).toString().trim(),
+              cmp: getVal(row, cmpIdx).toString().trim(),
+              dataDate: getVal(row, dateIdx).toString().trim(),
+              algoBalance: getVal(row, balanceIdx).toString().trim(),
+              algoModel: getVal(row, modelIdx).toString().trim(),
+              algoPattern: getVal(row, patternIdx).toString().trim(),
+              bias: getVal(row, biasIdx).toString().trim(),
+              direction: getVal(row, directionIdx).toString().trim(),
+              generatedAt: getVal(row, generatedIdx).toString().trim()
+            });
+          }
+          console.log(`Fetched ${summaries.length} summaries from Summaries tab.`);
+        }
+      } catch (sumErr) {
+        console.warn('Could not fetch Summaries:', sumErr.message);
       }
 
       // --- 13. Fetch DAILY_NIFTY_ANALYSIS tab (Independent) ---
@@ -1636,6 +1679,7 @@ async function fetchData() {
     playbackSnapshots,
     dailyNews,
     niftyAnalysis,
+    summaries,
     lastUpdated: new Date().toISOString()
   };
 }

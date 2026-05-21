@@ -109,6 +109,18 @@ export interface NiftyAnalysisData {
   }>;
 }
 
+export interface StockSummaryItem {
+  stock: string;
+  cmp: string;
+  dataDate: string;
+  algoBalance: string;
+  algoModel: string;
+  algoPattern: string;
+  bias: string;
+  direction: string;
+  generatedAt: string;
+}
+
 export interface GoogleSheetsData {
   marketMood: MarketMood;
   marketStrength: MarketStrengthItem[];
@@ -128,6 +140,7 @@ export interface GoogleSheetsData {
   dailyNews: DailyNewsItem[];
   niftyAnalysis?: NiftyAnalysisData;
   niftyOptionsData?: any[];
+  summaries?: StockSummaryItem[];
   lastUpdated: string;
 }
 

@@ -29,7 +29,7 @@ const StockAnalysis = () => {
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
   const symbolFromUrl = searchParams.get("symbol");
-  const { stockData: stocksData, isLoading, lastUpdate, nearResistance: nrData } = useLiveData();
+  const { stockData: stocksData, isLoading, lastUpdate, nearResistance: nrData, summaries } = useLiveData();
   const { isFree, isPro, isElite, userData, user } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -244,6 +244,11 @@ const StockAnalysis = () => {
     }
     return fullHistory;
   }, [currentStock, isMobile]);
+
+  const currentSummary = useMemo(() => {
+    if (!summaries || !currentStock) return null;
+    return summaries.find((s: any) => s.stock?.toLowerCase() === currentStock.symbol?.toLowerCase());
+  }, [summaries, currentStock]);
 
   const calculatedTrend = useMemo(() => {
     const history = currentStock?.history || [];
@@ -885,6 +890,59 @@ const StockAnalysis = () => {
         <div className="mb-6 animate-fade-in-up-delay-2">
           <StockPriceChart data={chartData} onHover={setHoveredChartData} symbol={currentStock?.symbol} />
         </div>
+
+        {/* Stock Summary Widget */}
+        {currentSummary && (
+          <div className="glass-card mb-6 animate-fade-in-up-delay-2 p-4 md:p-6 border border-primary/20" style={{ background: 'linear-gradient(135deg, rgba(0,10,25,0.8) 0%, rgba(0,20,40,0.6) 100%)' }}>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-1 rounded-full bg-primary" />
+                <div>
+                  <h3 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
+                    Lasa Summary
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 uppercase tracking-widest font-mono">
+                      {currentSummary.dataDate}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground">AI Generated Analysis</p>
+                </div>
+              </div>
+              <div className={`px-3 py-1 rounded-lg border flex items-center gap-2 ${
+                currentSummary.direction.toLowerCase() === 'bullish' 
+                  ? 'bg-success/10 border-success/30 text-success' 
+                  : currentSummary.direction.toLowerCase() === 'bearish'
+                  ? 'bg-destructive/10 border-destructive/30 text-destructive'
+                  : 'bg-warning/10 border-warning/30 text-warning'
+              }`}>
+                <Activity className="w-4 h-4" />
+                <span className="text-sm font-bold uppercase tracking-wider">{currentSummary.direction}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
+                  <span className="text-sm text-muted-foreground font-medium">Algo Balance</span>
+                  <span className="text-sm font-bold text-foreground">{currentSummary.algoBalance}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
+                  <span className="text-sm text-muted-foreground font-medium">Algo Model</span>
+                  <span className="text-sm font-bold text-foreground">{currentSummary.algoModel}</span>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
+                  <span className="text-sm text-muted-foreground font-medium">Algo Pattern</span>
+                  <span className="text-sm font-bold text-foreground">{currentSummary.algoPattern}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
+                  <span className="text-sm text-muted-foreground font-medium">Bias</span>
+                  <span className="text-sm font-bold text-foreground">{currentSummary.bias}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* TradingView Technical Analysis Widget */}
         <div className="mb-6 animate-fade-in-up-delay-2 rounded-xl overflow-hidden border-none TV-widget-wrapper">
