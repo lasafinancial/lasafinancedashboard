@@ -899,7 +899,7 @@ const StockAnalysis = () => {
         {/* Stock Summary Widget */}
         {currentSummary && (
           <div className="glass-card mb-6 animate-fade-in-up-delay-2 p-4 md:p-6 border border-primary/20" style={{ background: 'linear-gradient(135deg, rgba(0,10,25,0.8) 0%, rgba(0,20,40,0.6) 100%)' }}>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-1 rounded-full bg-primary" />
                 <div>
@@ -912,39 +912,38 @@ const StockAnalysis = () => {
                   <p className="text-xs text-muted-foreground">AI Generated Analysis</p>
                 </div>
               </div>
-              <div className={`px-3 py-1 rounded-lg border flex items-center gap-2 ${
-                currentSummary.direction?.toLowerCase() === 'bullish' 
-                  ? 'bg-success/10 border-success/30 text-success' 
+              <div className={`px-3 py-1 rounded-lg border flex items-center gap-2 ${currentSummary.direction?.toLowerCase() === 'bullish'
+                  ? 'bg-success/10 border-success/30 text-success'
                   : currentSummary.direction?.toLowerCase() === 'bearish'
-                  ? 'bg-destructive/10 border-destructive/30 text-destructive'
-                  : 'bg-warning/10 border-warning/30 text-warning'
-              }`}>
+                    ? 'bg-destructive/10 border-destructive/30 text-destructive'
+                    : 'bg-warning/10 border-warning/30 text-warning'
+                }`}>
                 <Activity className="w-4 h-4" />
                 <span className="text-sm font-bold uppercase tracking-wider">{currentSummary.direction || 'NEUTRAL'}</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
-                  <span className="text-sm text-muted-foreground font-medium">Algo Balance</span>
-                  <span className="text-sm font-bold text-foreground">{currentSummary.algoBalance}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
-                  <span className="text-sm text-muted-foreground font-medium">Algo Model</span>
-                  <span className="text-sm font-bold text-foreground">{currentSummary.algoModel}</span>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
-                  <span className="text-sm text-muted-foreground font-medium">Algo Pattern</span>
-                  <span className="text-sm font-bold text-foreground">{currentSummary.algoPattern}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
-                  <span className="text-sm text-muted-foreground font-medium">Bias</span>
-                  <span className="text-sm font-bold text-foreground">{currentSummary.bias}</span>
-                </div>
-              </div>
+            <div className="overflow-x-auto rounded-xl border border-white/5 bg-black/20">
+              <table className="w-full text-left text-sm text-foreground">
+                <tbody className="divide-y divide-white/5">
+                  <tr className="hover:bg-white/[0.02] transition-colors">
+                    <td className="w-1/3 md:w-1/4 p-4 font-medium text-muted-foreground align-top">Algo Balance</td>
+                    <td className="p-4 font-bold">{currentSummary.algoBalance}</td>
+                  </tr>
+                  <tr className="hover:bg-white/[0.02] transition-colors">
+                    <td className="w-1/3 md:w-1/4 p-4 font-medium text-muted-foreground align-top">Algo Pattern</td>
+                    <td className="p-4 font-bold">{currentSummary.algoPattern}</td>
+                  </tr>
+                  <tr className="hover:bg-white/[0.02] transition-colors">
+                    <td className="w-1/3 md:w-1/4 p-4 font-medium text-muted-foreground align-top">Algo Model</td>
+                    <td className="p-4 font-bold">{currentSummary.algoModel}</td>
+                  </tr>
+                  <tr className="hover:bg-white/[0.02] transition-colors">
+                    <td className="w-1/3 md:w-1/4 p-4 font-medium text-muted-foreground align-top">Bias</td>
+                    <td className="p-4 font-bold">{currentSummary.bias}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         )}
