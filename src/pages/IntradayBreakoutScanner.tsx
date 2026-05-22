@@ -98,64 +98,6 @@ export function IntradayBreakoutScanner() {
         return data;
     }, [rawStocks, searchTerm, sortField, sortDirection]);
 
-    // Calculate metrics based on the latest available date in the dataset
-    const metrics = useMemo(() => {
-        if (!processedStocks || processedStocks.length === 0) {
-            return {
-                totalToday: 0,
-                highestMLStock: "N/A",
-                highestMLVal: null,
-                highestUStock: "N/A",
-                highestUVal: null,
-                latestDate: "N/A"
-            };
-        }
-
-        // Find the absolute latest date present in the dataset
-        const dates = processedStocks.map(x => x.date).filter(Boolean);
-        if (dates.length === 0) {
-            return {
-                totalToday: 0,
-                highestMLStock: "N/A",
-                highestMLVal: null,
-                highestUStock: "N/A",
-                highestUVal: null,
-                latestDate: "N/A"
-            };
-        }
-
-        const sortedDates = [...new Set(dates)].sort((a, b) => new Date(b) - new Date(a));
-        const latestDate = sortedDates[0];
-
-        // Filter stocks matching today (latest date)
-        const stocksToday = processedStocks.filter(x => x.date === latestDate);
-
-        let highestMLStock = "N/A";
-        let highestMLVal = -Infinity;
-        let highestUStock = "N/A";
-        let highestUVal = -Infinity;
-
-        stocksToday.forEach(s => {
-            if (s.mlGap > highestMLVal) {
-                highestMLVal = s.mlGap;
-                highestMLStock = s.symbol;
-            }
-            if (s.u > highestUVal) {
-                highestUVal = s.u;
-                highestUStock = s.symbol;
-            }
-        });
-
-        return {
-            totalToday: stocksToday.length,
-            highestMLStock,
-            highestMLVal: highestMLVal === -Infinity ? null : highestMLVal,
-            highestUStock,
-            highestUVal: highestUVal === -Infinity ? null : highestUVal,
-            latestDate
-        };
-    }, [processedStocks]);
-
     const handleStockClick = (symbol: string) => {
         navigate(`/stocks?symbol=${symbol}`);
     };
@@ -228,65 +170,6 @@ export function IntradayBreakoutScanner() {
                         <span>Sorted: Latest First</span>
                     </div>
                 </motion.div>
-
-                {/* Stats Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.15 }}
-                    >
-                        <GlassCard className="p-5 flex flex-col justify-between min-h-[120px] bg-gradient-to-br from-white/[0.03] to-transparent hover:border-white/10 transition-all border border-white/5">
-                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                                Total Matching ({metrics.latestDate})
-                            </span>
-                            <div className="flex items-baseline gap-2 mt-2">
-                                <span className="text-3xl font-extrabold text-white">{metrics.totalToday}</span>
-                                <span className="text-xs text-muted-foreground">stocks</span>
-                            </div>
-                        </GlassCard>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2 }}
-                    >
-                        <GlassCard className="p-5 flex flex-col justify-between min-h-[120px] bg-gradient-to-br from-white/[0.03] to-transparent hover:border-white/10 transition-all border border-white/5">
-                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                                Highest ML Gap% ({metrics.latestDate})
-                            </span>
-                            <div className="flex items-baseline gap-2 mt-2">
-                                <span className="text-3xl font-extrabold text-primary">{metrics.highestMLStock}</span>
-                                {metrics.highestMLVal !== null && (
-                                    <span className="text-sm font-semibold text-emerald-400">
-                                        ({metrics.highestMLVal}%)
-                                    </span>
-                                )}
-                            </div>
-                        </GlassCard>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.25 }}
-                    >
-                        <GlassCard className="p-5 flex flex-col justify-between min-h-[120px] bg-gradient-to-br from-white/[0.03] to-transparent hover:border-white/10 transition-all border border-white/5">
-                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                                Highest Res_Gap% ({metrics.latestDate})
-                            </span>
-                            <div className="flex items-baseline gap-2 mt-2">
-                                <span className="text-3xl font-extrabold text-accent">{metrics.highestUStock}</span>
-                                {metrics.highestUVal !== null && (
-                                    <span className="text-sm font-semibold text-emerald-400">
-                                        ({metrics.highestUVal.toFixed(2)}%)
-                                    </span>
-                                )}
-                            </div>
-                        </GlassCard>
-                    </motion.div>
-                </div>
 
                 {/* Toolbar */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
