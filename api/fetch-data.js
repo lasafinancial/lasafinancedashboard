@@ -506,7 +506,7 @@ async function fetchData() {
     history[symbol].push({
       dateObj: rowDate,
       dateDisplay: formatDate(rowDate),
-      price: parseFloat(closeStr) || 0,
+      price: (!closeStr || closeStr.includes('#') || isNaN(parseFloat(closeStr))) ? null : parseFloat(closeStr),
       rsi: parseFloat(row['RSI']) || 0,
       trend: row['DAILY_TREND'] || '',
       support: parseFloat(supportStr) || 0,

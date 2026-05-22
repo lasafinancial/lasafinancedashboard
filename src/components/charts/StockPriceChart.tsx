@@ -51,7 +51,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
     const mlValues = data.map(d => d.mlFutPrice20d);
     let lastWolfeD: number | null = null;
     let activeProjFvg: number | null = null;
-    let lastSeenProjFvg: number | null = null;
+    let lastDeactivatedValue: number | null = null;
     let previousPrice: number | null = null;
 
     return data.map((d, i) => {
@@ -61,9 +61,14 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         lastWolfeD = rawWolfe;
       }
       
-      if (rawProjFvg && rawProjFvg !== 0 && rawProjFvg !== lastSeenProjFvg) {
-        activeProjFvg = rawProjFvg;
-        lastSeenProjFvg = rawProjFvg;
+      // NEW BALANCE LOGIC: Only activate when no balance is active AND
+      // the value is genuinely new (>1% different from the last deactivated target)
+      if (activeProjFvg === null && rawProjFvg && rawProjFvg !== 0) {
+        const isGenuinelyNew = lastDeactivatedValue === null ||
+          Math.abs(rawProjFvg - lastDeactivatedValue) / lastDeactivatedValue > 0.01;
+        if (isGenuinelyNew) {
+          activeProjFvg = rawProjFvg;
+        }
       }
 
       let currentProjFvg = activeProjFvg;
@@ -80,6 +85,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
           }
 
           if (withinRange || crossed) {
+            lastDeactivatedValue = activeProjFvg;
             activeProjFvg = null;
             currentProjFvg = null;
           }
@@ -336,7 +342,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
                 stroke: 'hsl(var(--background))',
                 strokeWidth: 2
               }}
-              connectNulls
+              connectNulls={false}
             />
 
             {/* Dotted Live Extension */}
@@ -371,7 +377,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
                 strokeWidth: 2
               }}
               animationDuration={500}
-              connectNulls
+              connectNulls={false}
             />
 
             <Line
@@ -451,7 +457,6 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               dot={false}
               strokeDasharray="3 3"
               filter="url(#glow)"
-              connectNulls
             />
           </ComposedChart>
         </ResponsiveContainer>
