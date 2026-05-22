@@ -57,6 +57,11 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
     return data.map((d, i) => {
       const { wolfeD: rawWolfe, projFvg: rawProjFvg, ...rest } = d;
 
+      // DEFENSIVE: Treat price of 0, null, undefined, NaN as null
+      // No valid stock has price=0; this catches #N/A values converted to 0 by the backend
+      const rawPrice = d.price;
+      const safePrice = (rawPrice == null || rawPrice === 0 || isNaN(rawPrice)) ? null : rawPrice;
+
       if (rawWolfe && rawWolfe !== 0) {
         lastWolfeD = rawWolfe;
       }
@@ -73,15 +78,14 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
 
       let currentProjFvg = activeProjFvg;
       if (activeProjFvg !== null) {
-        const price = d.price;
-        if (price != null) {
+        if (safePrice != null) {
           const target = activeProjFvg;
-          const withinRange = price >= target * 0.99 && price <= target * 1.01;
+          const withinRange = safePrice >= target * 0.99 && safePrice <= target * 1.01;
           
           let crossed = false;
           if (previousPrice != null) {
-             if (previousPrice < target && price > target) crossed = true;
-             if (previousPrice > target && price < target) crossed = true;
+             if (previousPrice < target && safePrice > target) crossed = true;
+             if (previousPrice > target && safePrice < target) crossed = true;
           }
 
           if (withinRange || crossed) {
@@ -92,8 +96,8 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         }
       }
       
-      if (d.price != null) {
-        previousPrice = d.price;
+      if (safePrice != null) {
+        previousPrice = safePrice;
       }
 
       const isLive = !!d.isLive;
@@ -101,13 +105,14 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
 
       const result: any = {
         ...rest,
+        price: safePrice, // Override spread's price with sanitized value
         isLive,
         model: isLive ? null : calculateRollingMedian(mlValues, i, 10),
         wolfeD: isLive ? null : lastWolfeD,
         projFvg: isLive ? null : currentProjFvg,
         // Segmented keys for rendering - explicitly nulling to prevent overlap
-        priceHist: !isLive ? d.price : null,
-        priceLive: (isLive || isLastHistorical) ? d.price : null,
+        priceHist: !isLive ? safePrice : null,
+        priceLive: (isLive || isLastHistorical) ? safePrice : null,
         supportHist: !isLive ? d.support : null,
         supportLive: (isLive || isLastHistorical) ? d.support : null,
         resistanceHist: !isLive ? d.resistance : null,
@@ -119,7 +124,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
 
   const yDomain = useMemo(() => {
     if (!chartData.length) return ['auto', 'auto'];
-    const prices = chartData.map(d => d.price).filter((p): p is number => p != null && !isNaN(p));
+    const prices = chartData.map(d => d.price).filter((p): p is number => p != null && !isNaN(p) && p > 0);
     if (!prices.length) return ['auto', 'auto'];
     const min = Math.min(...prices);
     const max = Math.max(...prices);
@@ -322,9 +327,10 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
 
             <Area
               type="monotone"
-              dataKey="price"
+              dataKey="priceHist"
               stroke="transparent"
               fill="url(#priceGradient)"
+              connectNulls={false}
             />
 
             {/* Solid Historical Price Line */}
