@@ -925,7 +925,13 @@ const StockAnalysis = () => {
                 <tbody className="divide-y divide-white/5">
                   <tr className="hover:bg-white/[0.02] transition-colors">
                     <td className="w-1/3 md:w-1/4 p-4 font-semibold text-cyan-400 align-top border-l-2 border-cyan-500/50 bg-cyan-900/10">Algo Balance</td>
-                    <td className="p-4 font-medium text-sm leading-relaxed">{currentSummary.algoBalance?.replace(/20D\s?/g, '')}</td>
+                    <td className="p-4 font-medium text-sm leading-relaxed">
+                      {analysisResult?.targets?.balance > 0 && analysisResult?.close
+                        ? (analysisResult.targets.balance > analysisResult.close
+                            ? `Active Balance at ₹${analysisResult.targets.balance.toLocaleString()} — acts as an upside magnet.`
+                            : `Active Balance at ₹${analysisResult.targets.balance.toLocaleString()} — acts as a downside magnet if price pulls back.`)
+                        : currentSummary.algoBalance?.replace(/20D\s?/g, '')}
+                    </td>
                   </tr>
                   <tr className="hover:bg-white/[0.02] transition-colors">
                     <td className="w-1/3 md:w-1/4 p-4 font-semibold text-cyan-400 align-top border-l-2 border-cyan-500/50 bg-cyan-900/10">Algo Pattern</td>
@@ -956,12 +962,25 @@ const StockAnalysis = () => {
         )}
 
         {/* TradingView Technical Analysis Widget */}
-        <div className="mb-6 animate-fade-in-up-delay-2 rounded-xl overflow-hidden border-none TV-widget-wrapper">
-          <PremiumProtector requiredTier="pro">
-            <TechnicalAnalysisWidget symbol={`NSE:${currentStock?.symbol}`} height={600} />
-          </PremiumProtector>
-        </div>
-
+        {currentStock?.symbol && (
+          <div className="mb-6 animate-fade-in-up-delay-2 rounded-xl overflow-hidden border-none TV-widget-wrapper">
+            <PremiumProtector requiredTier="pro">
+              <TechnicalAnalysisWidget 
+                symbol={(() => {
+                  let sym = currentStock.symbol.trim().toUpperCase();
+                  if (sym === 'NIFTY') return 'NSE:NIFTY';
+                  if (sym === 'BANKNIFTY') return 'NSE:BANKNIFTY';
+                  if (sym === 'FINNIFTY') return 'NSE:FINNIFTY';
+                  if (sym === 'MIDCPNIFTY') return 'NSE:MIDCPNIFTY';
+                  // Handle M&M and L&T
+                  sym = sym.replace(/&/g, '_');
+                  return `NSE:${sym}`;
+                })()} 
+                height={600} 
+              />
+            </PremiumProtector>
+          </div>
+        )}
         {/* Data Table */}
         <div className="animate-fade-in-up-delay-3">
           <StockStrengthZone data={chartData} />
