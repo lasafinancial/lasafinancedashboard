@@ -49,7 +49,7 @@ export default function LandingPage({ onEnter }: { onEnter: () => void }) {
           ].map((item, i) => (
             <div 
               key={i} 
-              className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors animate-fade-in"
+              className="animate-fade-in flex flex-col items-center text-center"
               style={{ animationDelay: `${(i + 1) * 200}ms` }}
             >
               <div className="text-indigo-400 mb-2">{item.icon}</div>
