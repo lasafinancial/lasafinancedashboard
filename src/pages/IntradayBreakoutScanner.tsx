@@ -4,6 +4,14 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 type SortField = "symbol" | "date" | "time" | "close" | "pattern" | "resGap" | "target" | "model" | "resistance" | "u" | "mlGap";
 type SortDirection = "asc" | "desc";
@@ -190,168 +198,158 @@ export function IntradayBreakoutScanner() {
                     </div>
                 </div>
 
-                {/* Main Table */}
-                <GlassCard className="overflow-hidden border border-white/5 bg-white/[0.01]">
+                {/* Main Table Content */}
+                <div className="bg-white/[0.01] border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm shadow-2xl">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-24 gap-4">
                             <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                            <p className="text-sm text-muted-foreground">Syncing breakout database...</p>
+                            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Syncing breakout database...</p>
                         </div>
                     ) : processedStocks.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-24 text-center">
-                            <AlertCircle className="w-12 h-12 text-muted-foreground/50 mb-3" />
-                            <h3 className="text-lg font-bold text-white mb-1">No Breakouts Found</h3>
-                            <p className="text-sm text-muted-foreground max-w-md">
+                            <AlertCircle className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                            <h3 className="text-[14px] font-black text-white mb-1 uppercase tracking-widest">No Breakouts Found</h3>
+                            <p className="text-[11px] text-muted-foreground max-w-md font-bold">
                                 {searchTerm
                                     ? `No stocks with ticker "${searchTerm}" match the active criteria.`
-                                    : "No stocks in the database currently satisfy the breakout conditions (ML Gap% > 20 AND Res_Gap% > 5%)."}
+                                    : "No stocks in the database currently satisfy the breakout conditions."}
                             </p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="border-b border-white/10 bg-[#020617]/85 backdrop-blur-md sticky top-0 z-50">
-                                        <th onClick={() => toggleSort("symbol")} className="px-5 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors">
+                            <Table>
+                                <TableHeader className="bg-white/[0.03]">
+                                    <TableRow className="border-white/5 hover:bg-transparent">
+                                        <TableHead onClick={() => toggleSort("symbol")} className="w-[120px] text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors">
                                             <div className="flex items-center">Symbol {getSortIcon("symbol")}</div>
-                                        </th>
-                                        <th onClick={() => toggleSort("date")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors">
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("date")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors">
                                             <div className="flex items-center">Date {getSortIcon("date")}</div>
-                                        </th>
-                                        <th onClick={() => toggleSort("time")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors">
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("time")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors">
                                             <div className="flex items-center">Time {getSortIcon("time")}</div>
-                                        </th>
-                                        <th onClick={() => toggleSort("close")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("close")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
                                             <div className="flex items-center justify-end">Close {getSortIcon("close")}</div>
-                                        </th>
-                                        <th onClick={() => toggleSort("pattern")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors">
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("pattern")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors">
                                             <div className="flex items-center">Pattern {getSortIcon("pattern")}</div>
-                                        </th>
-                                        <th onClick={() => toggleSort("resGap")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("resGap")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
                                             <div className="flex items-center justify-end">Res_Gap% {getSortIcon("resGap")}</div>
-                                        </th>
-                                        <th onClick={() => toggleSort("target")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("target")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
                                             <div className="flex items-center justify-end">Target {getSortIcon("target")}</div>
-                                        </th>
-                                        <th onClick={() => toggleSort("model")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors">
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("model")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors">
                                             <div className="flex items-center">Model {getSortIcon("model")}</div>
-                                        </th>
-                                        <th onClick={() => toggleSort("resistance")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("resistance")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
                                             <div className="flex items-center justify-end">Resistance {getSortIcon("resistance")}</div>
-                                        </th>
-                                        <th onClick={() => toggleSort("u")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
-                                            <div className="flex items-center justify-end">Price_move {getSortIcon("u")}</div>
-                                        </th>
-                                        <th onClick={() => toggleSort("mlGap")} className="px-4 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("u")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
+                                            <div className="flex items-center justify-end">Price Move {getSortIcon("u")}</div>
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("mlGap")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
                                             <div className="flex items-center justify-end">ML_Gap% {getSortIcon("mlGap")}</div>
-                                        </th>
-                                        <th className="px-5 py-4"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-white/5">
+                                        </TableHead>
+                                        <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     {processedStocks.map((stock, idx) => (
-                                        <tr
+                                        <TableRow
                                             key={`${stock.symbol}-${stock.date}-${stock.time}-${idx}`}
-                                            className="hover:bg-white/[0.02] transition-colors group"
+                                            className="border-white/5 hover:bg-white/[0.04] transition-colors group"
                                         >
                                             {/* Symbol */}
-                                            <td className="px-5 py-3.5 whitespace-nowrap">
-                                                <span className="px-2.5 py-1 rounded bg-white/5 text-xs text-foreground font-mono font-bold tracking-wide border border-white/5">
+                                            <TableCell className="py-1">
+                                                <span className="text-sm font-black text-white tracking-tight group-hover:text-primary transition-colors">
                                                     {stock.symbol}
                                                 </span>
-                                            </td>
-
+                                            </TableCell>
+                                            
                                             {/* Date */}
-                                            <td className="px-4 py-3.5 text-xs text-foreground/80 whitespace-nowrap">
-                                                <div className="flex items-center gap-1.5">
-                                                    <Calendar className="w-3.5 h-3.5 text-muted-foreground/60" />
-                                                    <span>{stock.date}</span>
-                                                </div>
-                                            </td>
-
+                                            <TableCell className="py-1">
+                                                <span className="text-[10px] text-muted-foreground font-bold font-mono">
+                                                    {stock.date}
+                                                </span>
+                                            </TableCell>
+                                            
                                             {/* Time */}
-                                            <td className="px-4 py-3.5 text-xs text-foreground/80 whitespace-nowrap">
-                                                <div className="flex items-center gap-1.5">
-                                                    <Clock className="w-3.5 h-3.5 text-muted-foreground/60" />
-                                                    <span>{stock.time}</span>
-                                                </div>
-                                            </td>
-
+                                            <TableCell className="py-1">
+                                                <span className="text-[10px] text-muted-foreground font-bold font-mono">
+                                                    {stock.time}
+                                                </span>
+                                            </TableCell>
+                                            
                                             {/* Close */}
-                                            <td className="px-4 py-3.5 text-xs text-right font-mono whitespace-nowrap text-white/90">
-                                                {formatNumber(stock.close)}
-                                            </td>
-
+                                            <TableCell className="py-1 text-right font-black font-mono text-sm">
+                                                ₹{formatNumber(stock.close)}
+                                            </TableCell>
+                                            
                                             {/* Pattern */}
-                                            <td className="px-4 py-3.5 text-xs whitespace-nowrap">
-                                                {stock.pattern && stock.pattern !== "N/A" && stock.pattern !== "" ? (
-                                                    <span>
-                                                        {stock.pattern}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-muted-foreground/40">—</span>
-                                                )}
-                                            </td>
-
+                                            <TableCell className="py-1">
+                                                <span className="text-[10px] font-bold text-white/80">
+                                                    {stock.pattern && stock.pattern !== "N/A" && stock.pattern !== "" ? stock.pattern : "—"}
+                                                </span>
+                                            </TableCell>
+                                            
                                             {/* Res_Gap% */}
-                                            <td className="px-4 py-3.5 text-xs text-right font-mono whitespace-nowrap">
-                                                <span className={stock.resGap > 0 ? "text-emerald-400 font-semibold" : stock.resGap < 0 ? "text-rose-400 font-semibold" : "text-muted-foreground/80"}>
+                                            <TableCell className="py-1 text-right font-bold font-mono text-xs">
+                                                <span className={stock.resGap > 0 ? "text-emerald-400" : stock.resGap < 0 ? "text-rose-400" : "text-white/60"}>
                                                     {formatPercent(stock.resGap)}
                                                 </span>
-                                            </td>
-
+                                            </TableCell>
+                                            
                                             {/* Target */}
-                                            <td className="px-4 py-3.5 text-xs text-right font-mono whitespace-nowrap text-white/90">
-                                                {formatNumber(stock.target)}
-                                            </td>
-
+                                            <TableCell className="py-1 text-right font-bold font-mono text-xs text-orange-400/80">
+                                                {stock.target && stock.target !== 0 ? `₹${formatNumber(stock.target)}` : "—"}
+                                            </TableCell>
+                                            
                                             {/* Model */}
-                                            <td className="px-4 py-3.5 text-xs whitespace-nowrap">
-                                                {stock.model && stock.model !== "N/A" && stock.model !== "" ? (
-                                                    <span>
-                                                        {stock.model}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-muted-foreground/40">—</span>
-                                                )}
-                                            </td>
-
+                                            <TableCell className="py-1">
+                                                <span className="text-[10px] font-bold text-white/80">
+                                                    {stock.model && stock.model !== "N/A" && stock.model !== "" ? stock.model : "—"}
+                                                </span>
+                                            </TableCell>
+                                            
                                             {/* Resistance */}
-                                            <td className="px-4 py-3.5 text-xs text-right font-mono whitespace-nowrap text-white/90">
-                                                {formatNumber(stock.resistance)}
-                                            </td>
-
-                                            {/* Res_Gap% (Price_%_Move) */}
-                                            <td className="px-4 py-3.5 text-xs text-right font-mono whitespace-nowrap">
-                                                <span className={stock.u > 0 ? "text-emerald-400 font-semibold" : stock.u < 0 ? "text-rose-400 font-semibold" : "text-muted-foreground/80"}>
+                                            <TableCell className="py-1 text-right font-bold font-mono text-xs text-red-400/80">
+                                                ₹{formatNumber(stock.resistance)}
+                                            </TableCell>
+                                            
+                                            {/* Price_Move */}
+                                            <TableCell className="py-1 text-right font-bold font-mono text-xs">
+                                                <span className={stock.u > 0 ? "text-emerald-400" : stock.u < 0 ? "text-rose-400" : "text-white/60"}>
                                                     {formatPercent(stock.u)}
                                                 </span>
-                                            </td>
-
+                                            </TableCell>
+                                            
                                             {/* ML_Gap% */}
-                                            <td className="px-4 py-3.5 text-xs text-right font-mono whitespace-nowrap">
-                                                <span className={stock.mlGap > 0 ? "text-emerald-400 font-bold" : stock.mlGap < 0 ? "text-rose-400 font-bold" : "text-muted-foreground/80"}>
+                                            <TableCell className="py-1 text-right font-bold font-mono text-xs">
+                                                <span className={stock.mlGap > 0 ? "text-emerald-400" : stock.mlGap < 0 ? "text-rose-400" : "text-white/60"}>
                                                     {formatPercent(stock.mlGap)}
                                                 </span>
-                                            </td>
-
+                                            </TableCell>
+                                            
                                             {/* Action Button */}
-                                            <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                                            <TableCell className="py-1 text-center">
                                                 <button
                                                     onClick={() => handleStockClick(stock.symbol)}
                                                     className="p-1.5 rounded-lg bg-white/5 hover:bg-primary/20 text-muted-foreground hover:text-white border border-white/5 transition-all outline-none"
                                                     title="View Details"
                                                 >
-                                                    <ArrowUpRight className="w-4 h-4" />
+                                                    <ArrowUpRight className="w-3.5 h-3.5" />
                                                 </button>
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
                                     ))}
-                                </tbody>
-                            </table>
+                                </TableBody>
+                            </Table>
                         </div>
                     )}
-                </GlassCard>
+                </div>
             </div>
         </div>
     );
