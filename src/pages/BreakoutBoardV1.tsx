@@ -108,6 +108,16 @@ export function BreakoutBoardV1() {
             if (!a.isPinned && b.isPinned) return 1;
             if (a.tier === "GOLDEN" && b.tier !== "GOLDEN") return -1;
             if (a.tier !== "GOLDEN" && b.tier === "GOLDEN") return 1;
+            
+            const valA = parseFloat(a.valV);
+            const valB = parseFloat(b.valV);
+            const isAValid = !isNaN(valA);
+            const isBValid = !isNaN(valB);
+
+            if (isAValid && !isBValid) return -1;
+            if (!isAValid && isBValid) return 1;
+            if (isAValid && isBValid && valA !== valB) return valB - valA;
+
             return b.time.localeCompare(a.time);
         });
     }, [stocks, searchTerm, activeFilter, pinnedSymbols, isPlayback, playbackSnapshots, playbackIndex]);
