@@ -455,7 +455,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               name="Pattern"
               stroke="#a855f7"
               strokeWidth={2}
-              dot={<TargetDot dataKey="wolfeD" stroke="#a855f7" />}
+              dot={false}
               strokeDasharray="3 3"
               filter="url(#glow)"
               connectNulls
