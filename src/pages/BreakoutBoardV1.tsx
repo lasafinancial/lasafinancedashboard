@@ -108,7 +108,7 @@ export function BreakoutBoardV1() {
             if (!a.isPinned && b.isPinned) return 1;
             if (a.tier === "GOLDEN" && b.tier !== "GOLDEN") return -1;
             if (a.tier !== "GOLDEN" && b.tier === "GOLDEN") return 1;
-            
+
             const valA = parseFloat(a.valV);
             const valB = parseFloat(b.valV);
             const isAValid = !isNaN(valA);
