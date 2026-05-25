@@ -109,7 +109,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         isLive,
         model: isLive ? null : calculateRollingMedian(mlValues, i, 10),
         wolfeD: isLive ? null : lastWolfeD,
-        projFvg: isLive ? null : currentProjFvg,
+        projFvg: currentProjFvg,
         // Segmented keys for rendering - explicitly nulling to prevent overlap
         priceHist: !isLive ? safePrice : null,
         priceLive: (isLive || isLastHistorical) ? safePrice : null,
@@ -463,6 +463,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               dot={false}
               strokeDasharray="3 3"
               filter="url(#glow)"
+              connectNulls
             />
           </ComposedChart>
         </ResponsiveContainer>
