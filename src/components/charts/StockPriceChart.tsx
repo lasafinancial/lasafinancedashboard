@@ -35,6 +35,14 @@ const CustomDot = (props: any) => {
   );
 };
 
+const TargetDot = (props: any) => {
+  const { cx, cy, payload, dataKey, stroke } = props;
+  if (!payload || payload[dataKey] == null) return null;
+  return (
+    <line x1={cx - 8} y1={cy} x2={cx + 8} y2={cy} stroke={stroke} strokeWidth={3} />
+  );
+};
+
 const calculateRollingMedian = (values: number[], index: number, windowSize: number): number | null => {
   const start = Math.max(0, index - windowSize + 1);
   const window = values.slice(start, index + 1).filter(v => v != null && !isNaN(v));
@@ -65,7 +73,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
       if (rawWolfe && rawWolfe !== 0) {
         lastWolfeD = rawWolfe;
       }
-      
+
       // NEW BALANCE LOGIC: Only activate when no balance is active AND
       // the value is genuinely new (>1% different from the last deactivated target)
       if (activeProjFvg === null && rawProjFvg && rawProjFvg !== 0) {
@@ -81,21 +89,20 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         if (safePrice != null) {
           const target = activeProjFvg;
           const withinRange = safePrice >= target * 0.99 && safePrice <= target * 1.01;
-          
+
           let crossed = false;
           if (previousPrice != null) {
-             if (previousPrice < target && safePrice > target) crossed = true;
-             if (previousPrice > target && safePrice < target) crossed = true;
+            if (previousPrice < target && safePrice > target) crossed = true;
+            if (previousPrice > target && safePrice < target) crossed = true;
           }
 
           if (withinRange || crossed) {
             lastDeactivatedValue = activeProjFvg;
             activeProjFvg = null;
-            currentProjFvg = null;
           }
         }
       }
-      
+
       if (safePrice != null) {
         previousPrice = safePrice;
       }
@@ -103,9 +110,9 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
       const isLive = !!d.isLive;
       const isLastHistorical = !isLive && (i === data.length - 2 && !!data[data.length - 1]?.isLive);
 
-      const result: any = {
+      return {
         ...rest,
-        price: safePrice, // Override spread's price with sanitized value
+        price: safePrice,
         isLive,
         model: isLive ? null : calculateRollingMedian(mlValues, i, 10),
         wolfeD: isLive ? null : lastWolfeD,
@@ -448,7 +455,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               name="Pattern"
               stroke="#a855f7"
               strokeWidth={2}
-              dot={false}
+              dot={<TargetDot dataKey="wolfeD" stroke="#a855f7" />}
               strokeDasharray="3 3"
               filter="url(#glow)"
               connectNulls
@@ -460,10 +467,10 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               name="Balance"
               stroke="#f472b6"
               strokeWidth={2}
-              dot={false}
+              dot={<TargetDot dataKey="projFvg" stroke="#f472b6" />}
               strokeDasharray="3 3"
               filter="url(#glow)"
-              connectNulls
+              connectNulls={false}
             />
           </ComposedChart>
         </ResponsiveContainer>
