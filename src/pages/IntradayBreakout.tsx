@@ -13,6 +13,14 @@ import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { useAuth } from "@/context/AuthContext";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 // Updated type to match backend keys exactly
 type SortField = "symbol" | "date" | "time" | "close" | "Volume_multiplie" | "Price_%_Move" | "BALANCE" | "MODEL" | "PATTERN" | "RESISTANCE";
@@ -168,103 +176,124 @@ export function IntradayBreakout() {
                         <p className="text-sm text-muted-foreground">Check back during market hours for fresh signals.</p>
                     </div>
                 ) : (
-                    <div className="flex flex-col h-[calc(100vh-280px)] bg-white/[0.01] border border-white/5 rounded-2xl overflow-hidden shadow-2xl transition-all hover:border-white/10">
-                        <div className="overflow-auto scroll-smooth h-full custom-scrollbar">
-                            <div className="min-w-[1300px] flex flex-col gap-2 relative">
-                                {/* Header */}
-                                <div className="sticky top-0 z-50 bg-[#020617]/80 backdrop-blur-md border-b border-white/10 px-4 py-4 flex items-center text-[10px] font-bold text-white/75 uppercase tracking-wider shadow-md">
-                                    <div className="flex-[1.2] cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("symbol")}>
-                                        Symbol {sortField === "symbol" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("date")}>
-                                        <Calendar className="w-3 h-3 mr-1" />
-                                        Date {sortField === "date" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("time")}>
-                                        <Clock className="w-3 h-3 mr-1" />
-                                        Time {sortField === "time" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1 text-right justify-end" onClick={() => toggleSort("close")}>
-                                        Price {sortField === "close" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1 text-right justify-end" onClick={() => toggleSort("Volume_multiplie")}>
-                                        Vol Mul {sortField === "Volume_multiplie" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1 text-right justify-end" onClick={() => toggleSort("Price_%_Move")}>
-                                        Move % {sortField === "Price_%_Move" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1 text-right justify-end" onClick={() => toggleSort("BALANCE")}>
-                                        Balance {sortField === "BALANCE" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1 text-right justify-end" onClick={() => toggleSort("MODEL")}>
-                                        Model {sortField === "MODEL" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1 text-right justify-end" onClick={() => toggleSort("PATTERN")}>
-                                        Pattern {sortField === "PATTERN" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1 text-right justify-end pr-4" onClick={() => toggleSort("RESISTANCE")}>
-                                        Resistance {sortField === "RESISTANCE" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                    </div>
-                                    <div className="flex-[0.4]"></div>
-                                </div>
-
-                                {/* List Body */}
-                                <div className="flex flex-col gap-2 p-2">
+                    <div className="bg-white/[0.01] border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm shadow-2xl">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader className="bg-white/[0.03]">
+                                    <TableRow className="border-white/5 hover:bg-transparent">
+                                        <TableHead onClick={() => toggleSort("symbol")} className="w-[120px] text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors">
+                                            <div className="flex items-center">Symbol {sortField === "symbol" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}</div>
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("date")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors">
+                                            <div className="flex items-center">Date {sortField === "date" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}</div>
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("time")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors">
+                                            <div className="flex items-center">Time {sortField === "time" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}</div>
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("close")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
+                                            <div className="flex items-center justify-end">Price {sortField === "close" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}</div>
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("Volume_multiplie")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
+                                            <div className="flex items-center justify-end">Vol Mul {sortField === "Volume_multiplie" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}</div>
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("Price_%_Move")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
+                                            <div className="flex items-center justify-end">Move % {sortField === "Price_%_Move" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}</div>
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("BALANCE")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
+                                            <div className="flex items-center justify-end">Balance {sortField === "BALANCE" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}</div>
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("MODEL")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
+                                            <div className="flex items-center justify-end">Model {sortField === "MODEL" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}</div>
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("PATTERN")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
+                                            <div className="flex items-center justify-end">Pattern {sortField === "PATTERN" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}</div>
+                                        </TableHead>
+                                        <TableHead onClick={() => toggleSort("RESISTANCE")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
+                                            <div className="flex items-center justify-end">Resistance {sortField === "RESISTANCE" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}</div>
+                                        </TableHead>
+                                        <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium Feature" description="Upgrade to view all Intraday Breakout data.">
                                         {(isFree ? processedStocks.slice(0, 8) : processedStocks).map((stock, idx) => (
-                                            <motion.div
+                                            <TableRow
                                                 key={`${stock.symbol}-${stock.time}-${idx}`}
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: idx * 0.02 }}
+                                                className="border-white/5 hover:bg-white/[0.04] transition-colors group"
                                             >
-                                                <GlassCard className="p-0 border-white/5 hover:border-primary/30 transition-all duration-300 group-hover:bg-white/[0.03]">
-                                                    <div className="flex items-center w-full px-4 py-4">
-                                                        <div className="flex-[1.2] font-bold text-sm md:text-base text-primary tracking-tight">
-                                                            {stock.symbol}
-                                                        </div>
-                                                        <div className="flex-1 text-xs text-foreground/70 font-medium">
-                                                            {stock.date}
-                                                        </div>
-                                                        <div className="flex-1 text-xs font-semibold text-foreground/90 tabular-nums">
-                                                            {stock.time}
-                                                        </div>
-                                                        <div className="flex-1 text-right font-bold tabular-nums text-sm">
-                                                            ₹{formatNumber(stock.close)}
-                                                        </div>
-                                                        <div className="flex-1 text-right font-bold tabular-nums text-primary/90 text-sm">
-                                                            {Number(stock.Volume_multiplie).toFixed(2)}x
-                                                        </div>
-                                                        <div className={`flex-1 text-right font-bold tabular-nums text-sm ${stock['Price_%_Move'] >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                            {stock['Price_%_Move'] > 0 ? '+' : ''}{formatPercent(stock['Price_%_Move'])}
-                                                        </div>
-                                                        <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
-                                                            {stock.BALANCE || '—'}
-                                                        </div>
-                                                        <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
-                                                            {stock.MODEL || '—'}
-                                                        </div>
-                                                        <div className="flex-1 text-right text-[10px] md:text-xs font-semibold text-foreground/75 tabular-nums">
-                                                            {stock.PATTERN || '—'}
-                                                        </div>
-                                                        <div className="flex-1 text-right text-[10px] md:text-xs font-bold text-red-400 tabular-nums pr-4">
-                                                            {stock.RESISTANCE || '—'}
-                                                        </div>
-                                                        <div className="flex-[0.4] flex justify-end">
-                                                            <button
-                                                                onClick={() => handleStockClick(stock.symbol)}
-                                                                className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all group-hover:scale-110"
-                                                            >
-                                                                <ArrowUpRight className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </GlassCard>
-                                            </motion.div>
+                                                {/* Symbol */}
+                                                <TableCell className="py-1">
+                                                    <span className="text-sm font-black text-white tracking-tight group-hover:text-primary transition-colors">
+                                                        {stock.symbol}
+                                                    </span>
+                                                </TableCell>
+
+                                                {/* Date */}
+                                                <TableCell className="py-1">
+                                                    <span className="text-[10px] text-muted-foreground font-bold font-mono">
+                                                        {stock.date}
+                                                    </span>
+                                                </TableCell>
+
+                                                {/* Time */}
+                                                <TableCell className="py-1">
+                                                    <span className="text-[10px] text-muted-foreground font-bold font-mono">
+                                                        {stock.time}
+                                                    </span>
+                                                </TableCell>
+
+                                                {/* Price */}
+                                                <TableCell className="py-1 text-right font-black font-mono text-sm">
+                                                    ₹{formatNumber(stock.close)}
+                                                </TableCell>
+
+                                                {/* Vol Mul */}
+                                                <TableCell className="py-1 text-right font-bold font-mono text-xs text-primary/90">
+                                                    {Number(stock.Volume_multiplie).toFixed(2)}x
+                                                </TableCell>
+
+                                                {/* Move % */}
+                                                <TableCell className="py-1 text-right font-bold font-mono text-xs">
+                                                    <span className={stock['Price_%_Move'] > 0 ? "text-emerald-400" : stock['Price_%_Move'] < 0 ? "text-rose-400" : "text-white/60"}>
+                                                        {stock['Price_%_Move'] > 0 ? '+' : ''}{formatPercent(stock['Price_%_Move'])}
+                                                    </span>
+                                                </TableCell>
+
+                                                {/* Balance */}
+                                                <TableCell className="py-1 text-right font-bold font-mono text-xs text-white/80">
+                                                    {stock.BALANCE || '—'}
+                                                </TableCell>
+
+                                                {/* Model */}
+                                                <TableCell className="py-1 text-right font-bold font-mono text-xs text-white/80">
+                                                    {stock.MODEL || '—'}
+                                                </TableCell>
+
+                                                {/* Pattern */}
+                                                <TableCell className="py-1 text-right font-bold font-mono text-xs text-white/80">
+                                                    {stock.PATTERN || '—'}
+                                                </TableCell>
+
+                                                {/* Resistance */}
+                                                <TableCell className="py-1 text-right font-bold font-mono text-xs text-red-400/80">
+                                                    {stock.RESISTANCE || '—'}
+                                                </TableCell>
+
+                                                {/* Action */}
+                                                <TableCell className="py-1 text-center">
+                                                    <button
+                                                        onClick={() => handleStockClick(stock.symbol)}
+                                                        className="p-1.5 rounded-lg bg-white/5 hover:bg-primary/20 text-muted-foreground hover:text-white border border-white/5 transition-all outline-none"
+                                                        title="View Details"
+                                                    >
+                                                        <ArrowUpRight className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </TableCell>
+                                            </TableRow>
                                         ))}
                                     </PremiumProtector>
-                                </div>
-                            </div>
+                                </TableBody>
+                            </Table>
                         </div>
                     </div>
                 )}

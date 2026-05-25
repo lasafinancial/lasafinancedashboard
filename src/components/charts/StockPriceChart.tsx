@@ -74,13 +74,14 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
         lastWolfeD = rawWolfe;
       }
 
-      // NEW BALANCE LOGIC: Only activate when no balance is active AND
-      // the value is genuinely new (>1% different from the last deactivated target)
-      if (activeProjFvg === null && rawProjFvg && rawProjFvg !== 0) {
-        const isGenuinelyNew = lastDeactivatedValue === null ||
-          Math.abs(rawProjFvg - lastDeactivatedValue) / lastDeactivatedValue > 0.01;
-        if (isGenuinelyNew) {
-          activeProjFvg = rawProjFvg;
+      // NEW BALANCE LOGIC: Update active balance if a new, different balance appears
+      if (rawProjFvg && rawProjFvg !== 0) {
+        if (activeProjFvg === null || (Math.abs(rawProjFvg - activeProjFvg) / activeProjFvg > 0.01)) {
+          const isGenuinelyNew = lastDeactivatedValue === null ||
+            Math.abs(rawProjFvg - lastDeactivatedValue) / lastDeactivatedValue > 0.01;
+          if (isGenuinelyNew) {
+            activeProjFvg = rawProjFvg;
+          }
         }
       }
 
