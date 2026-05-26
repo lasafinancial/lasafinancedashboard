@@ -1319,6 +1319,7 @@ async function fetchData() {
           const sym = (latest['Symbol'] || latest[0] || 'N/A').toString().trim().toUpperCase();
           const latestState = (latest['State'] || latest['N (State)'] || latest[12] || 'STRONG').toString().toUpperCase();
           const summary = intradaySummaryMap[sym] || {};
+          const scannerData = intradayBreakoutScanner.find(s => s.symbol.toUpperCase() === sym) || {};
 
           // Find the LATEST non-empty value for each field (in case of truncated rows)
           const findLatest = (idx) => {
@@ -1343,9 +1344,10 @@ async function fetchData() {
             isGreen: (findLatest(7) || '').toString(),
             tier: summary.tier || (findLatest(12) ? 'MODERN' : 'DEVELOPING'),
             stars: summary.stars || '',
-            targetPrice: summary.targetPrice || 0,
+            targetPrice: scannerData.target || summary.targetPrice || 0,
             summaryTarget: summary.target || '',
-            resistance: summary.resistance || 0,
+            resistance: scannerData.resistance || summary.resistance || 0,
+            MODEL: scannerData.model || 0,
             state: latestState,
             event: (findLatest(13) || '').toString(),
             note: (findLatest(15) || '').toString(),
@@ -1395,6 +1397,7 @@ async function fetchData() {
           const stocksAtTime = Object.values(snapshotState).map(latest => {
             const sym = (latest[0] || 'N/A').toString().trim().toUpperCase();
             const summary = intradaySummaryMap[sym] || {};
+            const scannerData = intradayBreakoutScanner.find(s => s.symbol.toUpperCase() === sym) || {};
             // Indices: 0:Sym, 1:Time, 5:Close, 9:EMA9, 10:EMA63, 11:Crossover, 12:State, 14:Reason, 17:Target
             return {
               symbol: sym,
@@ -1404,9 +1407,10 @@ async function fetchData() {
               state: (latest[12] || 'STRONG').toString().toUpperCase(),
               tier: summary.tier || 'DEVELOPING',
               stars: summary.stars || '',
-              targetPrice: summary.targetPrice || 0,
+              targetPrice: scannerData.target || summary.targetPrice || 0,
               summaryTarget: summary.target || '',
-              resistance: summary.resistance || 0,
+              resistance: scannerData.resistance || summary.resistance || 0,
+              MODEL: scannerData.model || 0,
               event: (latest[13] || '').toString(),
               note: (latest[15] || '').toString(),
               entry: getNum(latest[15]),
