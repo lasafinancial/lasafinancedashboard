@@ -309,17 +309,19 @@ const StockAnalysis = () => {
     }
 
     // -- CALCULATE SMOOTHED ML TARGET (10D MEDIAN) TO MATCH CHART --
-    const historicalMlValues = history
-      .filter((d: any) => !d.isLive)
-      .map((d: any) => d.mlFutPrice20d)
-      .filter((v: number) => v != null && !isNaN(v) && v > 0);
-      
+    const historicalData = history.filter((d: any) => !d.isLive);
+    const lastIndex = historicalData.length - 1;
+    const mlValues = historicalData.map((d: any) => d.mlFutPrice20d);
+    
     let smoothedMlTgt = 0;
-    if (historicalMlValues.length > 0) {
-      const window = historicalMlValues.slice(-10);
-      const sorted = [...window].sort((a, b) => a - b);
-      const mid = Math.floor(sorted.length / 2);
-      smoothedMlTgt = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    if (lastIndex >= 0) {
+      const start = Math.max(0, lastIndex - 10 + 1); // 10-day rolling window
+      const window = mlValues.slice(start, lastIndex + 1).filter((v: number) => v != null && !isNaN(v) && v > 0);
+      if (window.length > 0) {
+        const sorted = [...window].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        smoothedMlTgt = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      }
     }
 
     const close = latest.price;
