@@ -219,14 +219,49 @@ async function fetchData() {
 
   const sheets = google.sheets({ version: 'v4', auth });
 
+  // --- BATCH FETCHING START ---
+  console.log('Starting Batch 1 Fetches...');
+  const safeFetch = (req) => sheets.spreadsheets.values.get(req).catch(e => { console.warn('Fetch error for', req.range, e.message); return { data: { values: [] } }; });
+  
+  const [
+    goldenRes,
+    lasaMasterRes,
+    swingRes,
+    currentRes,
+    indicesRes,
+    newsRes
+  ] = await Promise.all([
+    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'golden'" }),
+    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FJ' }),
+    safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }),
+    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FJ" }),
+    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }),
+    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' })
+  ]);
+
+  console.log('Starting Batch 2 Fetches...');
+  const [
+    summariesRes,
+    niftyRes,
+    breakoutRes,
+    summaryRes,
+    devRes
+  ] = await Promise.all([
+    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Summaries!A:Z' }),
+    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NIFTY_ANALYSIS!A:Z' }),
+    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'intraday-breakout-scanner!A:AB' }),
+    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-summary'!A1:Z500" }),
+    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-commentry'!A1:T5000" })
+  ]);
+  console.log('Batch fetching complete.');
+  // --- BATCH FETCHING END ---
+
+
   // --- Golden Alerts Fetch (Moved to top for reliability) ---
   let goldenAlerts = [];
   let intradaySummaryMap = {}; // Hoisted for global access within fetchData
   try {
-    const goldenRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: EOD_SHEET_ID,
-      range: "'golden'",
-    });
+    
     const goldenRows = goldenRes.data.values;
     console.log(`[GOLDEN] Raw fetch result: ${goldenRows ? goldenRows.length : 0} rows`);
     if (goldenRows && goldenRows.length > 0) {
@@ -317,10 +352,7 @@ async function fetchData() {
 
   let lasaMasterData = [];
   try {
-    const lasaMasterRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: EOD_SHEET_ID,
-      range: 'lasa-master!A:FJ',
-    });
+    
 
     // Filter rows BEFORE converting to large object array to save memory
     const rawValues = lasaMasterRes.data.values || [];
@@ -386,10 +418,7 @@ async function fetchData() {
 
   console.log('Fetching Swing DATA sheet...');
   try {
-    const swingRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SWING_SHEET_ID,
-      range: 'DATA',
-    });
+    
     var dataRows = rowsToObjects(swingRes.data.values);
   } catch (err) {
     console.warn('Failed to fetch Swing DATA, using empty:', err.message);
@@ -567,10 +596,7 @@ async function fetchData() {
   let currentPriceMap = new Map();
   let currentChangePercentMap = new Map();
   try {
-    const currentRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: EOD_SHEET_ID,
-      range: "'current'!A1:FJ",
-    });
+    
     const currentRows = currentRes.data.values || [];
     currentData = rowsToObjects(currentRows);
 
@@ -728,10 +754,7 @@ async function fetchData() {
     const indexStockIdSets = {};
 
     try {
-      const indicesRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: INDICES_SHEET_ID,
-        range: 'Sheet1!A:Z',
-      });
+      
       const indicesRows = indicesRes.data.values || [];
       if (indicesRows.length > 2) {
         // Headers are in row 2 (index 1)
@@ -757,10 +780,7 @@ async function fetchData() {
 
     // --- 12. Fetch DAILY_NEWS tab (Independent) ---
     try {
-      const newsRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: INDICES_SHEET_ID,
-        range: 'DAILY_NEWS!A:Z',
-      });
+      
       const newsRows = newsRes.data.values || [];
       if (newsRows.length > 1) {
         // Headers are in row 1
@@ -800,10 +820,7 @@ async function fetchData() {
 
     // --- 12b. Fetch Summaries tab (Independent) ---
     try {
-      const summariesRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: INDICES_SHEET_ID,
-        range: 'Summaries!A:Z',
-      });
+      
       const summariesRows = summariesRes.data.values || [];
       if (summariesRows.length > 1) {
         const headers = summariesRows[0].map(h => (h || '').toString().trim());
@@ -842,10 +859,7 @@ async function fetchData() {
 
     // --- 13. Fetch DAILY_NIFTY_ANALYSIS tab (Independent) ---
     try {
-      const niftyRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: INDICES_SHEET_ID, // DAILY_NIFTY_ANALYSIS lives here
-        range: 'DAILY_NIFTY_ANALYSIS!A:Z',
-      });
+      
       const niftyRows = niftyRes.data.values || [];
       console.log(`DAILY_NIFTY_ANALYSIS fetch successful. Found ${niftyRows.length} rows.`);
 
@@ -1136,10 +1150,7 @@ async function fetchData() {
 
     // --- Start Intraday Breakout Screener & Scanner ---
     try {
-      const breakoutRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: 'intraday-breakout-scanner!A:AB',
-      });
+      
       const breakoutRows = breakoutRes.data.values;
       if (breakoutRows && breakoutRows.length > 1) {
         const breakoutData = rowsToObjects(breakoutRows);
@@ -1235,10 +1246,7 @@ async function fetchData() {
     // --- Start Intraday Summary (Stars & Tiers) ---
     // (intradaySummaryMap already defined at top)
     try {
-      const summaryRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: "'intraday-summary'!A1:Z500",
-      });
+      
       const summaryRows = summaryRes.data.values;
       if (summaryRows && summaryRows.length > 1) {
         summaryRows.slice(1).forEach(row => {
@@ -1268,10 +1276,7 @@ async function fetchData() {
 
     // --- Start Intraday Dev (Commentary) Screener ---
     try {
-      const devRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: "'intraday-commentry'!A1:T5000",
-      });
+      
       const devRows = devRes.data.values;
       if (devRows && devRows.length > 1) {
         const rawDevData = rowsToObjects(devRows);
