@@ -28,7 +28,7 @@ type SortDirection = "asc" | "desc";
 
 export function IntradayBreakout() {
     const navigate = useNavigate();
-    const { intradayBreakout: stocks, isLoading } = useLiveData();
+    const { intradayBreakout: stocks, isLoading, stockData } = useLiveData();
     const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [sortField, setSortField] = useState<SortField>("time");
@@ -281,13 +281,15 @@ export function IntradayBreakout() {
 
                                                 {/* Action */}
                                                 <TableCell className="py-1 text-center">
-                                                    <button
-                                                        onClick={() => handleStockClick(stock.symbol)}
-                                                        className="p-1.5 rounded-lg bg-white/5 hover:bg-primary/20 text-muted-foreground hover:text-white border border-white/5 transition-all outline-none"
-                                                        title="View Details"
-                                                    >
-                                                        <ArrowUpRight className="w-3.5 h-3.5" />
-                                                    </button>
+                                                    {stockData?.some(s => s.symbol === stock.symbol) ? (
+                                                        <button
+                                                            onClick={() => handleStockClick(stock.symbol)}
+                                                            className="p-1.5 rounded-lg bg-white/5 hover:bg-primary/20 text-muted-foreground hover:text-white border border-white/5 transition-all outline-none"
+                                                            title="View Details"
+                                                        >
+                                                            <ArrowUpRight className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    ) : null}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
