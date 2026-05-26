@@ -53,7 +53,7 @@ const screenerOptions = [
     },
     {
         path: "/screeners/intraday-breakout",
-        label: "Intraday Breakout",
+        label: "Intraday Volume Breakout",
         description: "High-intensity momentum breakouts with volume confirmation captured during the last two trading days.",
         icon: Rocket,
         color: "text-orange-400",
@@ -113,7 +113,7 @@ export function Screeners() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {screenerOptions.map((option) => {
                         const Icon = option.icon;
-                        const isPremiumScreener = option.label === "Reaction Zone" || option.label === "Intraday Breakout";
+                        const isPremiumScreener = option.label === "Reaction Zone" || option.label === "Intraday Volume Breakout";
 
                         const CardContent = (
                             <Link key={option.path} to={option.path} className="group h-full block">

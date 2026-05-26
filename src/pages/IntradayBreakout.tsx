@@ -118,7 +118,7 @@ export function IntradayBreakout() {
                             </div>
                             <div className="flex items-center gap-3">
                                 <h1 className="text-3xl font-bold tracking-tight">
-                                    Intraday <span className="gradient-text italic">Breakout</span>
+                                    Intraday Volume <span className="gradient-text italic">Breakout</span>
                                 </h1>
                                 <Dialog>
                                     <DialogTrigger asChild>
@@ -128,7 +128,7 @@ export function IntradayBreakout() {
                                     </DialogTrigger>
                                     <DialogContent className="max-w-2xl bg-[#0f172a]/95 backdrop-blur-xl border-white/10 text-white">
                                         <DialogHeader>
-                                            <DialogTitle className="text-2xl font-bold gradient-text">Intraday Breakout Scanner</DialogTitle>
+                                            <DialogTitle className="text-2xl font-bold gradient-text">Intraday Volume Breakout Scanner</DialogTitle>
                                         </DialogHeader>
                                         <div className="space-y-4 text-sm text-gray-300 mt-4 leading-relaxed">
                                             <p>This scanner tracks stocks showing high-intensity breakouts during market hours, combining volume spikes with significant price movements.</p>
@@ -215,7 +215,7 @@ export function IntradayBreakout() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium Feature" description="Upgrade to view all Intraday Breakout data.">
+                                    <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium Feature" description="Upgrade to view all Intraday Volume Breakout data.">
                                         {(isFree ? processedStocks.slice(0, 8) : processedStocks).map((stock, idx) => (
                                             <TableRow
                                                 key={`${stock.symbol}-${stock.time}-${idx}`}
