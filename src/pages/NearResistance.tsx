@@ -16,6 +16,14 @@ import { useLiveData } from "@/hooks/useLiveData";
 import { NearResistanceStock } from "@/lib/googleSheetsService";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { useAuth } from "@/context/AuthContext";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 type SortField = keyof NearResistanceStock;
 type SortDirection = "asc" | "desc";
@@ -247,103 +255,108 @@ export function NearResistance() {
                             <p className="text-sm text-muted-foreground">Try adjusting your search or check back later.</p>
                         </div>
                     ) : (
-                        <div className="flex flex-col h-[calc(100vh-280px)] bg-white/[0.01] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-                            <div className="overflow-auto scroll-smooth h-full custom-scrollbar">
-                                <div className="min-w-[1200px] flex flex-col gap-2 relative">
-                                    {/* Header */}
-                                    <div className="sticky top-0 z-50 bg-[#020617] border-b border-white/10 px-3 py-3 md:px-4 md:py-4 flex items-center text-xs font-bold text-white/75 uppercase tracking-wider shadow-md">
-                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dEma200Status")}>
-                                            EMA200 {sortField === "dEma200Status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                        </div>
-                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("mlTargetPercent")}>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div className="flex items-center gap-1">
-                                                        Model % {sortField === "mlTargetPercent" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                                        <Info className="w-3 h-3 ml-0.5 opacity-50" />
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent className="w-64 p-3 bg-background border border-white/10 rounded-lg shadow-2xl z-[100] normal-case tracking-normal">
-                                                    <p className="text-[10px] text-muted-foreground/90 leading-relaxed font-medium">
-                                                        Model % measures the relative distance between the current market price and a model-derived reference level based on historical price structure.
-                                                        It is a positional metric used to understand price location within a model framework and does not indicate probability, direction, or potential returns.
-                                                    </p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </div>
-                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("id")}>
-                                            Stocks {sortField === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                        </div>
-                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("closePrice")}>
-                                            Price {sortField === "closePrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                        </div>
-                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("resistance")}>
-                                            Resistance {sortField === "resistance" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                        </div>
-                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("support")}>
-                                            Support {sortField === "support" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                        </div>
-                                        <div className="flex-1 cursor-pointer hover:text-primary transition-colors flex items-center gap-1" onClick={() => toggleSort("dBreakoutPrice")}>
-                                            Breakout {sortField === "dBreakoutPrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                        </div>
-                                        <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoFG")}>
-                                            Balance {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                        </div>
-                                        <div className="flex-1 text-right cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoM")}>
-                                            Model {sortField === "algoM" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                        </div>
-                                        <div className="flex-1 text-right pr-4 cursor-pointer hover:text-primary transition-colors flex items-center justify-end gap-1" onClick={() => toggleSort("algoW")}>
-                                            Pattern {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                        </div>
-                                        <div className="flex-[0.5]"></div>
-                                    </div>
-
-                                    {/* Rows */}
-                                    <div className="flex flex-col gap-2 p-2">
+                        <div className="bg-white/[0.01] border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm shadow-2xl">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-white/[0.03]">
+                                        <TableRow className="border-white/5 hover:bg-transparent">
+                                            <TableHead className="w-[100px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("dEma200Status")}>
+                                                EMA200 {sortField === "dEma200Status" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("mlTargetPercent")}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <span className="flex items-center justify-center gap-1">
+                                                            Model % {sortField === "mlTargetPercent" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                                            <Info className="w-3 h-3 opacity-50" />
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="w-64 p-3 bg-background border border-white/10 rounded-lg shadow-2xl z-[100] normal-case tracking-normal">
+                                                        <p className="text-[10px] text-muted-foreground/90 leading-relaxed font-medium">
+                                                            Model % measures the relative distance between the current market price and a model-derived reference level based on historical price structure.
+                                                            It is a positional metric used to understand price location within a model framework and does not indicate probability, direction, or potential returns.
+                                                        </p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("id")}>
+                                                Symbol {sortField === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("closePrice")}>
+                                                Price {sortField === "closePrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("resistance")}>
+                                                Resistance {sortField === "resistance" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("support")}>
+                                                Support {sortField === "support" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("dBreakoutPrice")}>
+                                                Breakout {sortField === "dBreakoutPrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("algoFG")}>
+                                                Balance {sortField === "algoFG" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("algoM")}>
+                                                Model {sortField === "algoM" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("algoW")}>
+                                                Pattern {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
+                                            <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
                                         <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium Feature" description="Upgrade to view all Near Resistance data.">
                                             {(isFree ? processedStocks.slice(0, 8) : processedStocks).map((stock) => (
-                                                <motion.div
-                                                    layout
-                                                    initial={{ opacity: 0, scale: 0.98 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    key={stock.id}
-                                                    className="group"
-                                                >
-                                                    <GlassCard className="p-0 border-white/5 hover:border-primary/30 transition-all duration-300 group-hover:bg-white/[0.03]">
-                                                        <div className="flex items-center w-full px-3 py-3 md:px-4 md:py-4">
-                                                            <div className="flex-1">
-                                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stock.dEma200Status === 'ABOVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
-                                                                    {stock.dEma200Status}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex-1 font-bold text-primary tabular-nums">{formatPercent(stock.mlTargetPercent)}</div>
-                                                            <div className="flex-1 flex items-center gap-2">
-                                                                <span className="font-bold tracking-tight text-sm md:text-base">
-                                                                    {stock.id.replace(/\D/g, '') || stock.id.replace(/[\[\]\(\):-]/g, '')}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex-1 font-semibold tabular-nums text-sm md:text-base">₹{formatNumber(stock.closePrice)}</div>
-                                                            <div className="flex-1 text-red-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.resistance)}</div>
-                                                            <div className="flex-1 text-emerald-400 font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.support)}</div>
-                                                            <div className="flex-1 font-medium tabular-nums text-muted-foreground text-sm md:text-base">₹{formatNumber(stock.dBreakoutPrice)}</div>
-                                                            <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">{formatNumber(stock.algoFG)}</div>
-                                                            <div className="flex-1 text-right font-medium tabular-nums text-sm md:text-base">₹{formatNumber(stock.algoM)}</div>
-                                                            <div className="flex-1 text-right font-medium tabular-nums text-muted-foreground text-sm md:text-base pr-4">₹{formatNumber(stock.algoW)}</div>
-                                                            <div className="flex-[0.5] flex justify-end">
-                                                                <button
-                                                                    onClick={() => handleStockClick(stock.id)}
-                                                                    className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all group-hover:scale-110"
-                                                                >
-                                                                    <ArrowUpRight className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </GlassCard>
-                                                </motion.div>
+                                                <TableRow key={stock.id} className="border-white/5 hover:bg-white/[0.04] transition-colors group">
+                                                    <TableCell className="py-2 text-center">
+                                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${stock.dEma200Status === 'ABOVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                                            {stock.dEma200Status}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-center font-bold text-primary tabular-nums text-xs">
+                                                        {formatPercent(stock.mlTargetPercent)}
+                                                    </TableCell>
+                                                    <TableCell className="py-2">
+                                                        <span className="text-sm font-black text-white tracking-tight group-hover:text-primary transition-colors">
+                                                            {stock.id.replace(/\D/g, '') || stock.id.replace(/[\[\]\(\):-]/g, '')}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right font-black tabular-nums text-sm">
+                                                        ₹{formatNumber(stock.closePrice)}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right text-red-400 font-bold tabular-nums text-xs">
+                                                        ₹{formatNumber(stock.resistance)}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right text-emerald-400 font-bold tabular-nums text-xs">
+                                                        ₹{formatNumber(stock.support)}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right font-medium tabular-nums text-muted-foreground text-xs">
+                                                        ₹{formatNumber(stock.dBreakoutPrice)}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right font-medium tabular-nums text-xs">
+                                                        {formatNumber(stock.algoFG)}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right font-medium tabular-nums text-xs">
+                                                        ₹{formatNumber(stock.algoM)}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right font-medium tabular-nums text-muted-foreground text-xs">
+                                                        ₹{formatNumber(stock.algoW)}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-center">
+                                                        <button
+                                                            onClick={() => handleStockClick(stock.id)}
+                                                            className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all"
+                                                        >
+                                                            <ArrowUpRight className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </TableCell>
+                                                </TableRow>
                                             ))}
                                         </PremiumProtector>
-                                    </div>
-                                </div>
+                                    </TableBody>
+                                </Table>
                             </div>
                         </div>
                     )
