@@ -308,11 +308,25 @@ const StockAnalysis = () => {
       if (lastValidSupport > 0 && lastValidResist > 0 && lastValidFvg > 0 && lastValidMl > 0 && lastValidWolfeBull > 0) break;
     }
 
+    // -- CALCULATE SMOOTHED ML TARGET (10D MEDIAN) TO MATCH CHART --
+    const historicalMlValues = history
+      .filter((d: any) => !d.isLive)
+      .map((d: any) => d.mlFutPrice20d)
+      .filter((v: number) => v != null && !isNaN(v) && v > 0);
+      
+    let smoothedMlTgt = 0;
+    if (historicalMlValues.length > 0) {
+      const window = historicalMlValues.slice(-10);
+      const sorted = [...window].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      smoothedMlTgt = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+
     const close = latest.price;
     const support = latest.support || lastValidSupport;
     const resist = latest.resistance || lastValidResist;
-    const mlTgt = latest.mlFutPrice20d || lastValidMl;
-    const mlDiff = latest.mlCurrentDiff;
+    const mlTgt = smoothedMlTgt || lastValidMl;
+    const mlDiff = mlTgt > 0 ? pctDiff(close, mlTgt) : 0;
     const wRsi = currentStock.rsi || 50;
     const balance = latest.projFvg || lastValidFvg;
 
