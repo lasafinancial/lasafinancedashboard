@@ -124,16 +124,6 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                     >
                       <div className="absolute -top-2 left-0 w-full h-2 bg-transparent" /> { /* Bridge the gap */}
                       <Link
-                        to="/screeners/intraday-dev"
-                        onClick={() => setIsScreenersOpen(false)}
-                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item text-left"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Breakout Board</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Status Based</span>
-                        </div>
-                      </Link>
-                      <Link
                         to="/screeners/breakout-v1"
                         onClick={() => setIsScreenersOpen(false)}
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
@@ -190,7 +180,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                       >
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold">ML Setup</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Intraday Breakout Scanner</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Intraday Volume Breakout</span>
                         </div>
                       </Link>
                       <Link
@@ -405,7 +395,6 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                               <span className="font-medium">Screeners</span>
                             </Link>
                             <div className="pl-12 space-y-1 border-l border-white/5 ml-6">
-                              <Link to="/screeners/intraday-dev" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout Board</Link>
                               <Link to="/screeners/breakout-v1" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout Board v1</Link>
                               <Link to="/screeners/near-resistance" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout</Link>
                               <Link to="/screeners/support-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reversal</Link>

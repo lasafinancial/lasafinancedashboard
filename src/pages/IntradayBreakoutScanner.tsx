@@ -144,7 +144,7 @@ export function IntradayBreakoutScanner() {
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-3xl font-bold tracking-tight text-white">
-                                Intraday Breakout Scanner
+                                ML Setup
                             </h1>
                             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                                 <span className="relative flex h-2 w-2">

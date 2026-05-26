@@ -161,7 +161,7 @@ export default function DailyNews() {
                                         key={`${date}-${item.stock}-${idx}`}
                                         className="
                       bg-secondary/20 hover:bg-secondary/40 border border-border/50 
-                      rounded-2xl p-6 transition-all duration-300 hover:shadow-lg hover:border-white/10
+                      rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:border-white/10
                       group relative overflow-hidden
                     "
                                     >
@@ -176,7 +176,7 @@ export default function DailyNews() {
                                         <div className="flex justify-between items-start gap-4 mb-4 relative z-10">
                                             <div>
                                                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                    <span className="font-bold text-lg text-primary">{item.stock}</span>
+                                                    <span className="font-bold text-base text-primary">{item.stock}</span>
                                                     <span className="text-muted-foreground text-sm flex items-center gap-2">
                                                         <span className="w-1 h-1 rounded-full bg-white/20" />
                                                         {item.company}
@@ -194,12 +194,12 @@ export default function DailyNews() {
                                         </div>
 
                                         <div className="relative z-10">
-                                            <h3 className="text-foreground font-medium text-base mb-3 leading-snug">
+                                            <h3 className="text-foreground font-medium text-sm mb-3 leading-snug">
                                                 {item.news}
                                             </h3>
 
                                             {item.reason && (
-                                                <div className="bg-background/50 rounded-xl p-4 mb-4 border border-white/5 text-sm text-muted-foreground leading-relaxed">
+                                                <div className="bg-background/50 rounded-xl p-3 mb-4 border border-white/5 text-xs text-muted-foreground leading-relaxed">
                                                     <span className="font-semibold text-foreground/80 mb-1 block">Why it matters:</span>
                                                     {item.reason}
                                                 </div>
