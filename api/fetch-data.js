@@ -414,7 +414,7 @@ async function fetchData() {
       date: formatDate(new Date(dateStr)),
       ...sentiment
     };
-  });
+  }).filter(t => !(t.bullish === 0 && t.bearish === 0));
 
   console.log('Fetching Swing DATA sheet...');
   try {
@@ -638,6 +638,7 @@ async function fetchData() {
 
       // Add current live point to trend
       const liveDate = formatDate(new Date());
+      marketMood.trend = marketMood.trend.filter(t => t.date !== liveDate);
       marketMood.trend.push({
         date: `Live (${liveDate})`,
         ...sentiment
