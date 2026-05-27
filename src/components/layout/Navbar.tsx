@@ -305,25 +305,21 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-white/10" />
-                {(user?.email === 'm.tharan@bcah.christuniversity.in' || user?.email === 'lasafinancial@gmail.com' || user?.phoneNumber === '+919555151691' || user?.phoneNumber === '919555151691') && (
-                  <>
-                    <Link to="/pricing">
-                      <DropdownMenuItem className="focus:bg-primary/10 cursor-pointer py-2.5">
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Account Profile</span>
-                      </DropdownMenuItem>
-                    </Link>
-                    <Link to="/pricing">
-                      <DropdownMenuItem
-                        className="focus:bg-success/10 cursor-pointer py-2.5 text-success font-medium"
-                      >
-                        <Crown className="mr-2 h-4 w-4" />
-                        <span>Upgrade to Pro</span>
-                      </DropdownMenuItem>
-                    </Link>
-                    <DropdownMenuSeparator className="bg-white/10" />
-                  </>
-                )}
+                <Link to="/pricing">
+                  <DropdownMenuItem className="focus:bg-primary/10 cursor-pointer py-2.5">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Account Profile</span>
+                  </DropdownMenuItem>
+                </Link>
+                <Link to="/pricing">
+                  <DropdownMenuItem
+                    className="focus:bg-success/10 cursor-pointer py-2.5 text-success font-medium"
+                  >
+                    <Crown className="mr-2 h-4 w-4" />
+                    <span>Upgrade to Pro</span>
+                  </DropdownMenuItem>
+                </Link>
+                <DropdownMenuSeparator className="bg-white/10" />
 
                 {/* Admin Quick Action (previously static buttons) */}
                 <DropdownMenuItem

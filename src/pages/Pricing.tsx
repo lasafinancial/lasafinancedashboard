@@ -5,13 +5,7 @@ import { Check, Info, ShieldAlert } from 'lucide-react';
 
 export const Pricing = () => {
     const { user } = useAuth();
-    const isAdmin = user?.email === 'm.tharan@bcah.christuniversity.in' || user?.email === 'lasafinancial@gmail.com' || user?.phoneNumber === '+919555151691' || user?.phoneNumber === '919555151691';
-
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-
-    if (!isAdmin) {
-        return <Navigate to="/" replace />;
-    }
 
     return (
         <div className="min-h-screen bg-[#020617] text-white selection:bg-primary/30 py-20 px-4 md:px-8 font-sans">
