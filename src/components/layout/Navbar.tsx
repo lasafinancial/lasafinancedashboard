@@ -26,7 +26,7 @@ interface NavbarProps {
 
 const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
   const location = useLocation();
-  const { user, userData, logout } = useAuth();
+  const { user, userData, logout, isElite, isPro } = useAuth();
   const { isEnabled, isLoading, isSupported, toggleNotifications } = useNotifications();
   const [isSending, setIsSending] = useState(false);
   const [isScreenersOpen, setIsScreenersOpen] = useState(false);
@@ -289,7 +289,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                       {userData?.name || "User"}
                     </span>
                     <span className="text-[10px] text-muted-foreground uppercase tracking-tight">
-                      {userData?.tier === 'pro' ? 'Pro Member' : 'Free Tier'}
+                      {isElite ? 'Elite Member' : isPro ? 'Pro Member' : 'Free Tier'}
                     </span>
                   </div>
                   <ChevronDown className="h-3 w-3 opacity-50 group-hover:opacity-100 transition-opacity" />
