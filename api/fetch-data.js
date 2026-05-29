@@ -221,7 +221,10 @@ async function fetchData() {
 
   // --- BATCH FETCHING START ---
   console.log('Starting Batch 1 Fetches...');
-  const safeFetch = (req) => sheets.spreadsheets.values.get(req).catch(e => { console.warn('Fetch error for', req.range, e.message); return { data: { values: [] } }; });
+  const safeFetch = (req) => sheets.spreadsheets.values.get(req).catch(e => { 
+    console.error(`CRITICAL: Fetch error for ${req.range}`, e.message); 
+    throw new Error(`Failed to fetch sheet range: ${req.range}`); 
+  });
   
   const [
     goldenRes,
