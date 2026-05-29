@@ -18,22 +18,6 @@ interface StockPriceChartProps {
   symbol?: string;
 }
 
-const CustomDot = (props: any) => {
-  const { cx, cy, payload } = props;
-  if (!payload || payload.resistanceSlopeDownward === undefined) return null;
-
-  const isDownward = String(payload.resistanceSlopeDownward).toLowerCase() === 'true';
-
-  return (
-    <g transform={`translate(${cx - 6}, ${cy - 6})`}>
-      {isDownward ? (
-        <path d="M12 17V7M12 17L7 12M12 17L17 12" stroke="#ef4444" strokeWidth="2" fill="none" />
-      ) : (
-        <path d="M12 7V17M12 7L7 12M12 7L17 12" stroke="#22c55e" strokeWidth="2" fill="none" />
-      )}
-    </g>
-  );
-};
 
 const TargetDot = (props: any) => {
   const { cx, cy, payload, dataKey, stroke } = props;
@@ -348,7 +332,6 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               name="Price"
               stroke="hsl(var(--chart-primary))"
               strokeWidth={3}
-              dot={<CustomDot />}
               filter="url(#glow)"
               activeDot={{
                 r: 6,
