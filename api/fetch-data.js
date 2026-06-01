@@ -1250,8 +1250,10 @@ async function fetchData() {
     // --- Start Intraday Summary (Stars & Tiers) ---
     // (intradaySummaryMap already defined at top)
     try {
-      
       const summaryRows = summaryRes.data.values;
+      if (!summaryRows || summaryRows.length <= 1) {
+        throw new Error('Intraday Summary is empty (likely mid-update). Failing to preserve frontend cache.');
+      }
       if (summaryRows && summaryRows.length > 1) {
         summaryRows.slice(1).forEach(row => {
           const symbol = (row[1] || '').toString().trim().toUpperCase(); // Column B
@@ -1276,12 +1278,15 @@ async function fetchData() {
       }
     } catch (err) {
       console.warn('Could not fetch intraday-summary data:', err.message);
+      throw err;
     }
 
     // --- Start Intraday Dev (Commentary) Screener ---
     try {
-      
       const devRows = devRes.data.values;
+      if (!devRows || devRows.length <= 1) {
+        throw new Error('Intraday Commentary is empty (likely mid-update). Failing to preserve frontend cache.');
+      }
       if (devRows && devRows.length > 1) {
         const rawDevData = rowsToObjects(devRows);
         const symbolStates = {};
@@ -1451,6 +1456,7 @@ async function fetchData() {
       }
     } catch (err) {
       console.warn('Could not fetch intraday dev data:', err.message);
+      throw err;
     }
     // --- End Intraday Dev Screener ---
 
