@@ -254,7 +254,7 @@ async function fetchData() {
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NIFTY_ANALYSIS!A:Z' }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'intraday-breakout-scanner!A:AB' }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-summary'!A1:Z500" }),
-    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-commentry'!A1:T5000" })
+    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-commentry'!A1:W5000" })
   ]);
   console.log('Batch fetching complete.');
   // --- BATCH FETCHING END ---

@@ -1445,7 +1445,7 @@ async function fetchData() {
     try {
       const devRes = await sheets.spreadsheets.values.get({
         spreadsheetId: EOD_SHEET_ID,
-        range: "'intraday-commentry'!A1:T5000",
+        range: "'intraday-commentry'!A1:W5000",
       });
       const devRows = devRes.data.values;
       console.log(`[INTRADAY-DEV] Fetched ${devRows ? devRows.length : 0} rows from "intraday commentery" sheet`);
