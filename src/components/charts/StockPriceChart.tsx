@@ -350,23 +350,7 @@ const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) =
               stroke="hsl(var(--chart-primary))"
               strokeWidth={3}
               strokeDasharray="10 6"
-              dot={({ cx, cy, index }) => {
-                // Only show a dot for the very last point in the chart data
-                if (index === chartData.length - 1) {
-                  return (
-                    <circle
-                      key={`live-dot-${index}`}
-                      cx={cx}
-                      cy={cy}
-                      r={4}
-                      fill="white"
-                      stroke="hsl(var(--chart-primary))"
-                      strokeWidth={2}
-                    />
-                  );
-                }
-                return null;
-              }}
+              dot={false}
               activeDot={{
                 r: 6,
                 fill: 'white',
