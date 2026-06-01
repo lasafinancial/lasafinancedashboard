@@ -239,9 +239,9 @@ export function BreakoutBoardV1() {
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Price</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Resistance</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Model</TableHead>
+                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest">Projection / Note</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">BO Today</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Tier</TableHead>
-                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest">Projection / Note</TableHead>
                                     <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -286,6 +286,12 @@ export function BreakoutBoardV1() {
                                                 <TableCell className="py-1 text-right font-bold font-mono text-xs text-orange-400/80">
                                                     ₹{formatNumber(stock.MODEL || stock.targetPrice || stock.target)}
                                                 </TableCell>
+                                                <TableCell className="py-1 max-w-[300px]">
+                                                    <div className="flex flex-col gap-0 leading-tight">
+                                                        <span className="text-[10px] font-bold text-white/80 italic line-clamp-1">{stock.reasons || stock.note || 'No commentary available.'}</span>
+                                                        {stock.targetStr && <span className="text-[9px] font-black text-orange-500/70 tracking-widest uppercase">{stock.targetStr}</span>}
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell className="py-1 text-center">
                                                     <span className={`text-[10px] font-black px-1.5 py-0 rounded ${stock.valV ? 'bg-primary/10 text-primary border border-primary/20' : 'text-white/20'}`}>
                                                         {stock.valV || '—'}
@@ -297,12 +303,6 @@ export function BreakoutBoardV1() {
                                                         <span className={`text-[8px] font-black tracking-tighter uppercase ${stock.tier === 'GOLDEN' ? 'text-yellow-500' : 'text-white/40'}`}>
                                                             {stock.tier}
                                                         </span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="py-1 max-w-[300px]">
-                                                    <div className="flex flex-col gap-0 leading-tight">
-                                                        <span className="text-[10px] font-bold text-white/80 italic line-clamp-1">{stock.reasons || stock.note || 'No commentary available.'}</span>
-                                                        {stock.targetStr && <span className="text-[9px] font-black text-orange-500/70 tracking-widest uppercase">{stock.targetStr}</span>}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="py-1 text-center">
