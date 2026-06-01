@@ -1605,7 +1605,7 @@ async function fetchData() {
               emaCrossover: (latest[11] || '').toString().trim(),
               targetStr: (latest[17] || '').toString().trim(),
               reasons: (latest[14] || '').toString().trim(),
-              valV: (latest[19] !== undefined && latest[19] !== null && latest[19] !== '') ? latest[19].toString().trim() : (summary.valV || ''),
+              valV: (latest[21] !== undefined && latest[21] !== null && latest[21] !== '') ? latest[21].toString().trim() : ((latest[20] !== undefined && latest[20] !== null && latest[20] !== '') ? latest[20].toString().trim() : (summary.valV || '')),
               valW: summary.valW || ''
             };
           });
