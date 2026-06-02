@@ -1370,12 +1370,13 @@ async function fetchData() {
             emaCrossover: findLatest(11),
             targetStr: findLatest(17),
             reasons: findLatest(14),
-            valV: summary.valV || '',
-            valW: summary.valW || '',
+            valV: (latest[20] !== undefined && latest[20] !== null && latest[20] !== '') ? latest[20].toString().trim() : (summary.valV || ''),
+            valW: (latest[21] !== undefined && latest[21] !== null && latest[21] !== '') ? latest[21].toString().trim() : (summary.valW || ''),
             allSignals: symbolRows.length,
             recentChanges: recentChanges.filter(c => c.symbol === sym)
           };
         });
+        if (intradayDev.length === 0) throw new Error('Intraday Commentary parsed 0 valid stocks.');
         // Sort all changes by time descending so the latest signals from ANY stock appear at top
         const parseTime = (t) => {
           try {
