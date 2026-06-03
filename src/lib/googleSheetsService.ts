@@ -205,6 +205,37 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
       console.warn('Could not fetch nifty options data:', e);
     }
 
+    // --- FALLBACK-TO-CACHE RESILIENCE LAYER ---
+    // If the backend Google Sheets are momentarily empty due to an update,
+    // prevent the frontend from rendering an empty "No Data Found" state.
+    if (cachedData) {
+      const arraysToProtect: (keyof GoogleSheetsData)[] = [
+        'intradayDev',
+        'intradayBreakoutScanner',
+        'goldenAlerts',
+        'nearResistance',
+        'supportReversal',
+        'reactionZone',
+        'stockData',
+        'dailyNews',
+        'summaries',
+        'playbackSnapshots'
+      ];
+
+      arraysToProtect.forEach(key => {
+        // If the new array is empty but we have old cached data, keep the old data!
+        if (
+          Array.isArray(data[key]) && 
+          (data[key] as any[]).length === 0 && 
+          Array.isArray(cachedData![key]) && 
+          (cachedData![key] as any[]).length > 0
+        ) {
+          console.warn(`[Resilience] ${key} returned empty. Falling back to cached data.`);
+          (data as any)[key] = cachedData![key];
+        }
+      });
+    }
+
     cachedData = data;
     lastFetchTime = now;
 
