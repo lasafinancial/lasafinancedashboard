@@ -10,7 +10,6 @@ import {
   ChevronUp,
   Info,
   Clock,
-  Download,
   Activity,
 } from "lucide-react";
 import {
@@ -83,12 +82,6 @@ export function IntradayReversal() {
     );
   };
 
-  // Filter to only today's data for the stat counter
-  const todayStr = (() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  })();
-
   const processedStocks = useMemo(() => {
     if (!stocks) return [];
     let data = [...stocks];
@@ -117,43 +110,8 @@ export function IntradayReversal() {
     return data;
   }, [stocks, searchTerm, sortField, sortDirection]);
 
-  const todayCount = useMemo(() => {
-    if (!stocks) return 0;
-    return stocks.filter((s) => s.date && s.date.includes(todayStr)).length;
-  }, [stocks, todayStr]);
-
   const handleStockClick = (symbol: string) => {
     navigate(`/stocks?symbol=${symbol}`);
-  };
-
-  const handleExport = () => {
-    if (!processedStocks.length) return;
-    const headers = [
-      "Symbol",
-      "Reversal Detected At",
-      "Breakout Time",
-      "Breakout Price",
-      "HA Close",
-      "% Drop from High",
-      "Candles since Breakout",
-    ];
-    const rows = processedStocks.map((s) => [
-      s.symbol,
-      s.reversalDetectedAt,
-      s.breakoutTime,
-      s.breakoutPrice,
-      s.haClose,
-      s.dropFromHigh,
-      s.candlesSinceBreakout,
-    ]);
-    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `intraday-reversal-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const thClass =
@@ -256,73 +214,12 @@ export function IntradayReversal() {
                   className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/40 transition-all text-sm backdrop-blur-md"
                 />
               </div>
-              <button
-                onClick={handleExport}
-                disabled={!processedStocks.length}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-violet-500/10 hover:border-violet-500/30 text-muted-foreground hover:text-violet-300 transition-all text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Download className="w-4 h-4" />
-                Export CSV
-              </button>
+
             </div>
           </div>
         </motion.div>
 
-        {/* Stat Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8"
-        >
-          {/* Reversals Today */}
-          <div className="bg-white/[0.02] border border-violet-500/20 rounded-2xl p-4 backdrop-blur-sm shadow-xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-violet-400/70 mb-1">
-              Reversals Today
-            </p>
-            <p className="text-3xl font-black tracking-tight text-violet-300">
-              {isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin inline-block" />
-              ) : (
-                todayCount
-              )}
-            </p>
-            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-wider">
-              Intraday signals detected
-            </p>
-          </div>
 
-          {/* Total Signals */}
-          <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-4 backdrop-blur-sm shadow-xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-1">
-              Total Signals
-            </p>
-            <p className="text-3xl font-black tracking-tight">
-              {isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin inline-block" />
-              ) : (
-                processedStocks.length
-              )}
-            </p>
-            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-wider">
-              Showing in table
-            </p>
-          </div>
-
-          {/* Last Refresh */}
-          <div className="col-span-2 md:col-span-1 bg-white/[0.02] border border-white/10 rounded-2xl p-4 backdrop-blur-sm shadow-xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-1">
-              Last Refresh
-            </p>
-            <p className="text-xl font-black tracking-tight font-mono flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-400" />
-              {lastUpdate}
-            </p>
-            <p className="text-[10px] text-white/30 mt-1 uppercase tracking-wider">
-              Auto-refreshes every 90s
-            </p>
-          </div>
-        </motion.div>
 
         {/* Table Section */}
         {isLoading ? (
@@ -503,19 +400,20 @@ export function IntradayReversal() {
                 </TableBody>
               </Table>
             </div>
-            {/* Footer row count */}
-            <div className="px-4 py-2 border-t border-white/5 flex items-center justify-between">
+            {/* Bottom Stats Footer */}
+            <div className="px-4 py-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-4">
               <p className="text-[11px] text-white/30 font-mono">
                 {processedStocks.length} signal{processedStocks.length !== 1 ? "s" : ""} found
               </p>
-              <div className="flex items-center gap-1.5">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
-                </span>
-                <p className="text-[11px] text-emerald-400/60 font-mono uppercase tracking-wider">
-                  Live
-                </p>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Feed: Connected
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+                  <Clock className="w-3 h-3" />
+                  Last Sync: {lastUpdate}
+                </div>
               </div>
             </div>
           </motion.div>
