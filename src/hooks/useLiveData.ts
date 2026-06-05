@@ -29,6 +29,7 @@ export function useLiveData() {
   const [reactionZone, setReactionZone] = useState<any[]>(cached ? cached.reactionZone || [] : []);
   const [intradayBreakout, setIntradayBreakout] = useState<any[]>(cached ? cached.intradayBreakout || [] : []);
   const [intradayBreakoutScanner, setIntradayBreakoutScanner] = useState<any[]>(cached ? (cached as any).intradayBreakoutScanner || [] : []);
+  const [intradayReversal, setIntradayReversal] = useState<any[]>(cached ? cached.intradayReversal || [] : []);
   const [intradayDev, setIntradayDev] = useState<any[]>(cached ? cached.intradayDev || [] : []);
   const [intradayDevChanges, setIntradayDevChanges] = useState<any[]>(cached ? cached.intradayDevChanges || [] : []);
   const [goldenAlerts, setGoldenAlerts] = useState<any[]>(cached ? (cached as any).goldenAlerts || [] : []);
@@ -54,6 +55,7 @@ export function useLiveData() {
       setReactionZone(data.reactionZone || []);
       setIntradayBreakout(data.intradayBreakout || []);
       setIntradayBreakoutScanner((data as any).intradayBreakoutScanner || []);
+      setIntradayReversal(data.intradayReversal || []);
       setIntradayDev(data.intradayDev || []);
       setIntradayDevChanges(data.intradayDevChanges || []);
       setGoldenAlerts((data as any).goldenAlerts || []);
@@ -88,6 +90,7 @@ export function useLiveData() {
     reactionZone,
     intradayBreakout,
     intradayBreakoutScanner,
+    intradayReversal,
     intradayDev,
     intradayDevChanges,
     goldenAlerts,

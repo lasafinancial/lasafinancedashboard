@@ -1,5 +1,5 @@
 // Enhanced Screeners Page
-import { Filter, ChevronDown, TrendingUp, ArrowUpRight, Search, Zap, Crosshair, BarChart2, Rocket } from "lucide-react";
+import { Filter, ChevronDown, TrendingUp, ArrowUpRight, Search, Zap, Crosshair, BarChart2, Rocket, Activity } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { Link, useNavigate } from "react-router-dom";
@@ -60,6 +60,16 @@ const screenerOptions = [
         bgColor: "bg-orange-400/10",
         borderColor: "group-hover:border-orange-400/50",
         gradient: "from-orange-400/20 to-transparent"
+    },
+    {
+        path: "/screeners/intraday-reversal",
+        label: "Intraday Reversal",
+        description: "Live pullback-to-reversal detection using Heikin-Ashi analysis. Catches stocks reversing after an intraday breakout.",
+        icon: Activity,
+        color: "text-violet-400",
+        bgColor: "bg-violet-400/10",
+        borderColor: "group-hover:border-violet-400/50",
+        gradient: "from-violet-400/20 to-transparent"
     }
     // Multibagger Hidden per boss request
     /* {

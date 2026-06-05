@@ -384,6 +384,7 @@ async function fetchData() {
   let summaries = [];
   let intradayBreakout = [];
   let intradayBreakoutScanner = [];
+  let intradayReversal = [];
   let intradayDev = [];
   let goldenAlerts = [];
   let playbackSnapshots = [];
@@ -1405,6 +1406,49 @@ async function fetchData() {
     }
     // --- End Intraday Breakout Screener & Scanner ---
 
+    // --- Start Intraday Reversal Screener ---
+    try {
+      const reversalRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: EOD_SHEET_ID,
+        range: "'intraday reversal live test'!A:I",
+      });
+      const reversalRows = reversalRes.data.values;
+      if (reversalRows && reversalRows.length > 1) {
+        const headers = reversalRows[0].map(h => (h || '').toString().trim());
+        const dateIdx = headers.indexOf('Date');
+        const detectedIdx = headers.indexOf('Reversal Detected at');
+        const symbolIdx = headers.indexOf('Symbol');
+        const breakoutTimeIdx = headers.indexOf('Breakout Time');
+        const breakoutPriceIdx = headers.indexOf('Breakout Price');
+        const haCloseIdx = headers.indexOf('HA Close');
+        const dropIdx = headers.indexOf('% Drop from High');
+        const candlesIdx = headers.indexOf('Candles since Breakout');
+        const candleTimeIdx = headers.indexOf('Reversal Candle Time');
+
+        const getVal = (row, idx) => idx !== -1 && row[idx] !== undefined ? row[idx] : '';
+
+        for (let i = 1; i < reversalRows.length; i++) {
+          const row = reversalRows[i];
+          if (!row || row.length === 0 || !getVal(row, symbolIdx)) continue;
+          intradayReversal.push({
+            date: getVal(row, dateIdx).toString().trim(),
+            reversalDetectedAt: getVal(row, detectedIdx).toString().trim(),
+            symbol: getVal(row, symbolIdx).toString().trim().toUpperCase(),
+            breakoutTime: getVal(row, breakoutTimeIdx).toString().trim(),
+            breakoutPrice: getNum(getVal(row, breakoutPriceIdx)),
+            haClose: getNum(getVal(row, haCloseIdx)),
+            dropFromHigh: getNum(getVal(row, dropIdx)),
+            candlesSinceBreakout: getNum(getVal(row, candlesIdx)),
+            reversalCandleTime: getVal(row, candleTimeIdx).toString().trim()
+          });
+        }
+        console.log(`Fetched ${intradayReversal.length} records from intraday reversal live test.`);
+      }
+    } catch (err) {
+      console.warn('Could not fetch intraday reversal data:', err.message);
+    }
+    // --- End Intraday Reversal Screener ---
+
     // --- Start Intraday Summary (Stars & Tiers) ---
     let intradaySummaryMap = {};
     try {
@@ -1675,6 +1719,7 @@ async function fetchData() {
     reactionZone,
     intradayBreakout,
     intradayBreakoutScanner,
+    intradayReversal,
     intradayDev,
     intradayDevChanges: globalIntradayChanges,
     goldenAlerts,

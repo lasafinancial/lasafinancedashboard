@@ -75,6 +75,18 @@ export interface NearResistanceStock {
   algoW: number;
 }
 
+export interface IntradayReversalStock {
+  date: string;
+  reversalDetectedAt: string;
+  symbol: string;
+  breakoutTime: string;
+  breakoutPrice: number;
+  haClose: number;
+  dropFromHigh: number;
+  candlesSinceBreakout: number;
+  reversalCandleTime: string;
+}
+
 export interface DailyNewsItem {
   date: string;
   stock: string;
@@ -133,6 +145,7 @@ export interface GoogleSheetsData {
   reactionZone: any[];
   intradayBreakout: any[];
   intradayBreakoutScanner?: any[];
+  intradayReversal?: IntradayReversalStock[];
   intradayDev: any[];
   intradayDevChanges?: any[];
   goldenAlerts?: any[];
@@ -210,6 +223,7 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
     // prevent the frontend from rendering an empty "No Data Found" state.
     if (cachedData) {
       const arraysToProtect: (keyof GoogleSheetsData)[] = [
+        'intradayReversal',
         'intradayDev',
         'intradayBreakoutScanner',
         'goldenAlerts',
