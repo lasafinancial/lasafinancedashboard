@@ -40,12 +40,15 @@ type SortField =
   | "breakoutPrice"
   | "haClose"
   | "dropFromHigh"
-  | "candlesSinceBreakout";
+  | "candlesSinceBreakout"
+  | "MODEL"
+  | "RESISTANCE"
+  | "BALANCE";
 type SortDirection = "asc" | "desc";
 
 export function IntradayReversal() {
   const navigate = useNavigate();
-  const { intradayReversal: stocks, isLoading, stockData, lastUpdate } = useLiveData();
+  const { intradayReversal: stocks, intradayBreakout, isLoading, stockData, lastUpdate } = useLiveData();
   const { isFree } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("reversalDetectedAt");
@@ -84,7 +87,15 @@ export function IntradayReversal() {
 
   const processedStocks = useMemo(() => {
     if (!stocks) return [];
-    let data = [...stocks];
+    let data = stocks.map((stock) => {
+      const boData = intradayBreakout?.find((bo) => bo.symbol === stock.symbol);
+      return {
+        ...stock,
+        MODEL: boData?.MODEL || "—",
+        RESISTANCE: boData?.RESISTANCE || "—",
+        BALANCE: boData?.BALANCE || "—",
+      };
+    });
 
     if (searchTerm) {
       data = data.filter((stock) =>
@@ -269,10 +280,12 @@ export function IntradayReversal() {
                       Reversal Detected At <SortIcon field="reversalDetectedAt" />
                     </TableHead>
                     <TableHead
-                      onClick={() => toggleSort("breakoutTime")}
-                      className={thClass}
+                      onClick={() => toggleSort("haClose")}
+                      className={`${thClass} text-right`}
                     >
-                      Breakout Time <SortIcon field="breakoutTime" />
+                      <span className="flex items-center justify-end">
+                        HA Close <SortIcon field="haClose" />
+                      </span>
                     </TableHead>
                     <TableHead
                       onClick={() => toggleSort("breakoutPrice")}
@@ -283,12 +296,10 @@ export function IntradayReversal() {
                       </span>
                     </TableHead>
                     <TableHead
-                      onClick={() => toggleSort("haClose")}
-                      className={`${thClass} text-right`}
+                      onClick={() => toggleSort("breakoutTime")}
+                      className={thClass}
                     >
-                      <span className="flex items-center justify-end">
-                        HA Close <SortIcon field="haClose" />
-                      </span>
+                      Breakout Time <SortIcon field="breakoutTime" />
                     </TableHead>
                     <TableHead
                       onClick={() => toggleSort("dropFromHigh")}
@@ -304,6 +315,30 @@ export function IntradayReversal() {
                     >
                       <span className="flex items-center justify-end">
                         Candles <SortIcon field="candlesSinceBreakout" />
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      onClick={() => toggleSort("MODEL")}
+                      className={`${thClass} text-right`}
+                    >
+                      <span className="flex items-center justify-end">
+                        Model <SortIcon field="MODEL" />
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      onClick={() => toggleSort("RESISTANCE")}
+                      className={`${thClass} text-right`}
+                    >
+                      <span className="flex items-center justify-end">
+                        Resistance <SortIcon field="RESISTANCE" />
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      onClick={() => toggleSort("BALANCE")}
+                      className={`${thClass} text-right`}
+                    >
+                      <span className="flex items-center justify-end">
+                        Balance <SortIcon field="BALANCE" />
                       </span>
                     </TableHead>
                     <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">
@@ -338,11 +373,9 @@ export function IntradayReversal() {
                             </span>
                           </TableCell>
 
-                          {/* Breakout Time */}
-                          <TableCell className="py-2">
-                            <span className="text-[11px] text-white/50 font-mono">
-                              {stock.breakoutTime || "—"}
-                            </span>
+                          {/* HA Close */}
+                          <TableCell className="py-2 text-right font-bold font-mono text-xs text-emerald-400/90">
+                            {stock.haClose ? `₹${formatNumber(stock.haClose)}` : "—"}
                           </TableCell>
 
                           {/* Breakout Price */}
@@ -350,9 +383,11 @@ export function IntradayReversal() {
                             {stock.breakoutPrice ? `₹${formatNumber(stock.breakoutPrice)}` : "—"}
                           </TableCell>
 
-                          {/* HA Close */}
-                          <TableCell className="py-2 text-right font-bold font-mono text-xs text-emerald-400/90">
-                            {stock.haClose ? `₹${formatNumber(stock.haClose)}` : "—"}
+                          {/* Breakout Time */}
+                          <TableCell className="py-2">
+                            <span className="text-[11px] text-white/50 font-mono">
+                              {stock.breakoutTime || "—"}
+                            </span>
                           </TableCell>
 
                           {/* % Drop from High */}
@@ -377,6 +412,21 @@ export function IntradayReversal() {
                             <span className="bg-white/5 border border-white/10 px-2 py-0.5 rounded text-white/70">
                               {stock.candlesSinceBreakout || "—"}
                             </span>
+                          </TableCell>
+
+                          {/* Model */}
+                          <TableCell className="py-2 text-right font-bold font-mono text-xs text-orange-400/80">
+                            {typeof (stock as any).MODEL === 'number' ? `₹${formatNumber((stock as any).MODEL)}` : (stock as any).MODEL}
+                          </TableCell>
+
+                          {/* Resistance */}
+                          <TableCell className="py-2 text-right font-bold font-mono text-xs text-red-400/80">
+                            {typeof (stock as any).RESISTANCE === 'number' ? `₹${formatNumber((stock as any).RESISTANCE)}` : (stock as any).RESISTANCE}
+                          </TableCell>
+
+                          {/* Balance */}
+                          <TableCell className="py-2 text-right font-bold font-mono text-xs text-blue-400/80">
+                            {typeof (stock as any).BALANCE === 'number' ? `₹${formatNumber((stock as any).BALANCE)}` : (stock as any).BALANCE}
                           </TableCell>
 
                           {/* Action */}
