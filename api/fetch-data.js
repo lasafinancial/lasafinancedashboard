@@ -237,7 +237,7 @@ async function fetchData() {
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'golden'" }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }),
     safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }),
-    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FZ" }),
+    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FJ" }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' })
   ]);
@@ -601,6 +601,7 @@ async function fetchData() {
   let niftyAnalysis = { history: [] };
   let currentPriceMap = new Map();
   let currentChangePercentMap = new Map();
+  let currentObvSignalMap = new Map();
   try {
     
     const currentRows = currentRes.data.values || [];
@@ -615,6 +616,9 @@ async function fetchData() {
 
         const changePct = (parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0) * 100;
         currentChangePercentMap.set(sym, changePct);
+
+        const obvSignal = (row['OBV_SIGNAL'] || row[colToIdx('FO')] || '').toString().trim();
+        currentObvSignalMap.set(sym, obvSignal);
       }
     });
 
@@ -1225,201 +1229,6 @@ async function fetchData() {
               symbol: getVal('Symbol', 0) || 'N/A',
               date: getVal('Date', 1) || 'N/A',
               time: getVal('Time', 2) || 'N/A',
-'NIFTY PHARMA': 'NIFTYPHARMA',
-      'NIFTY METAL': 'NIFTYMETAL',
-      'NIFTY FMCG': 'NIFTYFMCG',
-      'NIFTY INFRA': 'NIFTYINFRA',
-      'NIFTY PSU BANK': 'NIFTYPSUBANK',
-      'NIFTY PVT BANK': 'NIFTYPVTBANK',
-      'NIFTY CPSE': 'NIFTYCPSE',
-      'NIFTY 500': 'NIFTY500'
-    };
-
-    const indexNames = useIndicesSheet ? Object.keys(indexStockIdSets) : Object.keys(indexColumns);
-    const indexStocksMap = {};
-    indexNames.forEach(idx => {
-      indexStocksMap[idx] = { stocks: [], bullish: 0, bearish: 0 };
-    });
-
-    // Build a lookup: stockId/stockName (uppercase) -> row data
-    const latestLasaData = lasaMasterData.filter(row => row['DATE'] === latestDate);
-    const stocksSource = currentData.length > 0 ? currentData : latestLasaData;
-    const currentDataById = {};
-    stocksSource.forEach(row => {
-      const id = (row['ID'] || '').toString().trim().toUpperCase();
-      const name = (row['STOCK_NAME'] || '').toString().trim().toUpperCase();
-      if (id) currentDataById[id] = row;
-      if (name && name !== id) currentDataById[name] = row;
-    });
-
-    if (useIndicesSheet) {
-      // New approach: iterate over each index's known stock IDs and look them up in current data
-      indexNames.forEach(indexName => {
-        const idSet = indexStockIdSets[indexName];
-        idSet.forEach(stockIdUpper => {
-          const targetId = symbolAliasMap[stockIdUpper] || stockIdUpper;
-          const row = currentDataById[targetId];
-          if (!row) return;
-          const stockName = row['STOCK_NAME'] || stockIdUpper;
-          const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-          const stockId = row['ID'] || stockName;
-          const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
-          const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
-          const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
-
-          indexStocksMap[indexName].stocks.push({
-            id: stockId,
-            stockName,
-            price: closePrice,
-            status: dynamicStatus,
-            upperRange,
-            lowerRange
-          });
-          if (dynamicStatus === 'BULLISH') indexStocksMap[indexName].bullish++;
-          if (dynamicStatus === 'BEARISH') indexStocksMap[indexName].bearish++;
-        });
-      });
-    } else {
-      // Old fallback: column-flag approach
-      stocksSource.forEach(row => {
-        const stockName = row['STOCK_NAME'];
-        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
-        const stockId = row['ID'] || stockName;
-        const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
-        const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
-        if (!stockName) return;
-        const dynamicStatus = getDynamicStatus(closePrice, lowerRange, upperRange);
-        Object.keys(indexColumns).forEach(indexName => {
-          const colName = indexColumns[indexName];
-          const val = row[colName];
-          if (val && val.toString().trim() !== '' && val.toString().toUpperCase() !== 'FALSE') {
-            indexStocksMap[indexName].stocks.push({ id: stockId, stockName, price: closePrice, status: dynamicStatus, upperRange, lowerRange });
-            if (dynamicStatus === 'BULLISH') indexStocksMap[indexName].bullish++;
-            if (dynamicStatus === 'BEARISH') indexStocksMap[indexName].bearish++;
-          }
-        });
-      });
-    }
-
-    // Extract nifty50Stocks for the dedicated NIFTY 50 page
-    nifty50Stocks = (indexStocksMap['NIFTY 50'] || { stocks: [] }).stocks;
-
-    indexPerformance = Object.keys(indexStocksMap).map(indexName => {
-      const data = indexStocksMap[indexName];
-      // Apply alias mapping to stock IDs before processing
-      const processedStocks = data.stocks.map(stock => {
-        const aliasedId = symbolAliasMap[stock.id] || stock.id;
-        // If the aliased ID points to a different stock, we might want to use its data
-        // For now, we'll just update the ID in the stock object if an alias exists
-        return { ...stock, id: aliasedId };
-      });
-
-      const total = processedStocks.length;
-      const bullishCount = processedStocks.filter(s => s.status === 'BULLISH').length;
-      const bearishCount = processedStocks.filter(s => s.status === 'BEARISH').length;
-      const strengthScore = total > 0 ? Math.round((bullishCount / total) * 100) : 50;
-
-      return {
-        name: indexName,
-        stocksCount: total,
-        bullishCount: bullishCount,
-        bearishCount: bearishCount,
-        strengthScore,
-        stocks: data.stocks
-      };
-    }).filter(idx => idx.stocksCount > 0).sort((a, b) => b.strengthScore - a.strengthScore);
-
-    const stocks = currentData
-      .filter(row => {
-        if (!row['STOCK_NAME'] || row['CHANGE_PERCENT'] === undefined || row['CHANGE_PERCENT'] === '') return false;
-        const group = (row['GROUP'] || '').toString().toUpperCase();
-        return group === 'LARGECAP' || group === 'MIDCAP';
-      })
-      .map(row => ({
-        id: row['ID'] || row[colToIdx('C')] || row['STOCK_NAME'] || row[colToIdx('D')],
-        stockName: row['STOCK_NAME'] || row[colToIdx('D')],
-        changePercent: parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
-        closePrice: parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0
-      }))
-      .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
-
-    const sortedByChange = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
-
-    topMovers = {
-      topGainers: sortedByChange.filter(s => s.changePercent > 0).slice(0, 10),
-      topLosers: sortedByChange.filter(s => s.changePercent < 0).slice(-10).reverse()
-    };
-
-    // --- Start Intraday Breakout Screener & Scanner ---
-    try {
-      
-      const breakoutRows = breakoutRes.data.values;
-      if (breakoutRows && breakoutRows.length > 1) {
-        const breakoutData = rowsToObjects(breakoutRows);
-
-        // 1. Old Intraday Breakout (Last 2 Trading Days)
-        const allBreakoutDates = [...new Set(breakoutData.map(r => r['Date']).filter(Boolean))];
-        const sortedBreakoutDates = allBreakoutDates.sort((a, b) => new Date(b) - new Date(a));
-        const lastTwoDates = sortedBreakoutDates.slice(0, 2);
-
-        const seenOld = new Set();
-        intradayBreakout = breakoutData
-          .filter(row => row['Date'] && lastTwoDates.includes(row['Date']))
-          .filter(row => {
-            const key = `${row['Symbol']}_${row['Time']}_${row['Date']}`;
-            if (seenOld.has(key)) return false;
-            seenOld.add(key);
-            return true;
-          })
-          .map(row => {
-            const getVal = (key, idx) => {
-              const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
-              return (foundKey ? row[foundKey] : row[idx]) || '';
-            };
-
-            return {
-              symbol: getVal('Symbol', 0) || 'N/A',
-              date: getVal('Date', 1) || 'N/A',
-              time: getVal('Time', 2) || 'N/A',
-              close: getNum(getVal('Close', 6)),
-              Volume_multiplie: getNum(getVal('Volume_multiplie', 9)),
-              'Price_%_Move': getNum(getVal('Price_%_Move', 10)),
-              BALANCE: getVal('BALANCE', 12) || 'N/A',
-              MODEL: getVal('MODEL', 13) || 'N/A',
-              PATTERN: getVal('PATTERN', 14) || 'N/A',
-              RESISTANCE: getVal('RESISTANCE', 16) || 'N/A'
-            };
-          })
-          .sort((a, b) => {
-            try {
-              const dateA = new Date(`${a.date} ${a.time}`);
-              const dateB = new Date(`${b.date} ${b.time}`);
-              return dateB - dateA;
-            } catch (e) {
-              return 0;
-            }
-          });
-
-        // 2. New Intraday Breakout Scanner (All Data, raw/full)
-        const seenNew = new Set();
-        intradayBreakoutScanner = breakoutData
-          .filter(row => row['Symbol'] && row['Date'])
-          .filter(row => {
-            const key = `${row['Symbol']}_${row['Time']}_${row['Date']}`;
-            if (seenNew.has(key)) return false;
-            seenNew.add(key);
-            return true;
-          })
-          .map(row => {
-            const getVal = (key, idx) => {
-              const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
-              return (foundKey ? row[foundKey] : row[idx]) || '';
-            };
-
-            return {
-              symbol: getVal('Symbol', 0) || 'N/A',
-              date: getVal('Date', 1) || 'N/A',
-              time: getVal('Time', 2) || 'N/A',
               pattern: getVal('PATTERN', 14) || 'N/A',
               resGap: getNum(getVal('Res_Gap%', 20)),
               target: getNum(getVal('Target', 21)),
@@ -1617,6 +1426,9 @@ async function fetchData() {
           };
         });
         if (intradayDev.length === 0) throw new Error('Intraday Commentary parsed 0 valid stocks.');
+        // Sort all changes by time descending so the latest signals from ANY stock appear at top
+        const parseTime = (t) => {
+          try {
             const [h, m] = t.split(':').map(Number);
             return h * 60 + m;
           } catch { return 0; }
