@@ -605,37 +605,34 @@ async function fetchData() {
   let currentChangePercentMap = new Map();
   let currentObvSignalMap = new Map();
 
-  
+  // Fetch OBV_SIGNAL exclusively from 'allstocks' tab as requested
   try {
-    // Collect from all possible sources to be completely bulletproof
-    const sources = [
-      { name: 'allstocks', data: allstocksRes ? (allstocksRes.data.values || []) : [] },
-      { name: 'lasaMaster', data: lasaMasterRes ? (lasaMasterRes.data.values || []) : [] },
-      { name: 'current', data: currentRes ? (currentRes.data.values || []) : [] }
-    ];
+    const allstocksData = allstocksRes ? (allstocksRes.data.values || []) : [];
+    if (allstocksData.length > 1) {
+      const headers = allstocksData[0].map(h => (h || '').toString().trim().toUpperCase());
+      
+      let idIdx = headers.indexOf('SYMBOL');
+      if (idIdx === -1) idIdx = headers.indexOf('ID');
+      if (idIdx === -1) idIdx = colToIdx('C'); // Fallback to C
 
-    sources.forEach(source => {
-      if (source.data.length > 1) {
-        const parsed = rowsToObjects(source.data);
-        parsed.forEach(row => {
-          const sym = (row['ID'] || row[colToIdx('C')] || '').toString().trim().toUpperCase();
-          if (sym) {
-            const obvSignal = (row['OBV_SIGNAL'] || row[colToIdx('FO')] || '').toString().trim();
-            // If we found a valid signal, set it (this overrides empty/missing ones)
-            if (obvSignal && obvSignal !== '—' && obvSignal !== 'NO DATA' && obvSignal !== '#N/A') {
-              currentObvSignalMap.set(sym, obvSignal);
-            } else if (!currentObvSignalMap.has(sym)) {
-               // Initialize with '—' or 'NO DATA' if it's the first time we see the symbol
-               currentObvSignalMap.set(sym, obvSignal || '—');
-            }
+      let obvIdx = headers.indexOf('OBV_SIGNAL');
+      if (obvIdx === -1) obvIdx = colToIdx('FO'); // Fallback to FO
+
+      for (let i = 1; i < allstocksData.length; i++) {
+        const rawRow = allstocksData[i];
+        const sym = (rawRow[idIdx] || rawRow[colToIdx('C')] || rawRow[colToIdx('A')] || '').toString().trim().toUpperCase();
+        if (sym) {
+          const obvSignal = (rawRow[obvIdx] || '').toString().trim();
+          if (obvSignal) {
+            currentObvSignalMap.set(sym, obvSignal);
           }
-        });
+        }
       }
-    });
+      console.log(`[OBV_SIGNAL] Extracted signals for ${currentObvSignalMap.size} stocks from allstocks tab.`);
+    }
   } catch (err) {
-    console.warn('Failed to parse sources for OBV signal:', err.message);
+    console.warn('Failed to parse allstocks for OBV signal:', err.message);
   }
-
 
   try {
     
