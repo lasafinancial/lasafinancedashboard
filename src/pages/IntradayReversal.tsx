@@ -86,8 +86,21 @@ export function IntradayReversal() {
   };
 
   const processedStocks = useMemo(() => {
-    if (!stocks) return [];
-    let data = stocks.map((stock) => {
+    if (!stocks || stocks.length === 0) return [];
+
+    // Filter to show only the latest date available in the dataset
+    const allDates = [...new Set(stocks.map((s) => s.date).filter(Boolean))];
+    let filteredStocks = stocks;
+    
+    if (allDates.length > 0) {
+      const sortedDates = allDates.sort((a, b) => {
+        return new Date(b as string).getTime() - new Date(a as string).getTime();
+      });
+      const latestDate = sortedDates[0];
+      filteredStocks = stocks.filter((s) => s.date === latestDate);
+    }
+
+    let data = filteredStocks.map((stock) => {
       const boData = intradayBreakout?.find((bo) => bo.symbol === stock.symbol);
       return {
         ...stock,
@@ -104,6 +117,13 @@ export function IntradayReversal() {
     }
 
     data.sort((a, b) => {
+      // Special time-based sorting for reversalDetectedAt (already filtered by latest date)
+      if (sortField === "reversalDetectedAt") {
+        const valA = String(a.reversalDetectedAt || "");
+        const valB = String(b.reversalDetectedAt || "");
+        return sortDirection === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+
       const valA = (a as any)[sortField];
       const valB = (b as any)[sortField];
 
@@ -119,7 +139,7 @@ export function IntradayReversal() {
     });
 
     return data;
-  }, [stocks, searchTerm, sortField, sortDirection]);
+  }, [stocks, intradayBreakout, searchTerm, sortField, sortDirection]);
 
   const handleStockClick = (symbol: string) => {
     navigate(`/stocks?symbol=${symbol}`);
