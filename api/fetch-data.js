@@ -231,6 +231,7 @@ async function fetchData() {
     lasaMasterRes,
     swingRes,
     currentRes,
+    allstocksRes,
     indicesRes,
     newsRes
   ] = await Promise.all([
@@ -238,6 +239,7 @@ async function fetchData() {
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }),
     safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FZ" }),
+    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'allstocks'!A1:FZ" }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' })
   ]);
@@ -602,6 +604,22 @@ async function fetchData() {
   let currentPriceMap = new Map();
   let currentChangePercentMap = new Map();
   let currentObvSignalMap = new Map();
+
+  try {
+    const allstocksRows = allstocksRes.data.values || [];
+    const allstocksData = rowsToObjects(allstocksRows);
+    allstocksData.forEach(row => {
+      // Use ID or fallback to column C
+      const sym = (row['ID'] || row[colToIdx('C')] || '').toString().trim().toUpperCase();
+      if (sym) {
+        const obvSignal = (row['OBV_SIGNAL'] || row[colToIdx('FO')] || '').toString().trim();
+        currentObvSignalMap.set(sym, obvSignal);
+      }
+    });
+  } catch (err) {
+    console.warn('Failed to parse allstocks for OBV signal:', err.message);
+  }
+
   try {
     
     const currentRows = currentRes.data.values || [];
@@ -617,8 +635,7 @@ async function fetchData() {
         const changePct = (parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0) * 100;
         currentChangePercentMap.set(sym, changePct);
 
-        const obvSignal = (row['OBV_SIGNAL'] || row[colToIdx('FO')] || '').toString().trim();
-        currentObvSignalMap.set(sym, obvSignal);
+        
       }
     });
 
