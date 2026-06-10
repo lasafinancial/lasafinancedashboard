@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/table";
 
 type SortField =
+  | "date"
   | "symbol"
   | "reversalDetectedAt"
   | "breakoutTime"
@@ -288,6 +289,12 @@ export function IntradayReversal() {
                 <TableHeader className="bg-white/[0.03]">
                   <TableRow className="border-white/5 hover:bg-transparent">
                     <TableHead
+                      onClick={() => toggleSort("date")}
+                      className={thClass}
+                    >
+                      Date <SortIcon field="date" />
+                    </TableHead>
+                    <TableHead
                       onClick={() => toggleSort("symbol")}
                       className={thClass}
                     >
@@ -379,6 +386,13 @@ export function IntradayReversal() {
                           key={`${stock.symbol}-${stock.reversalDetectedAt}-${idx}`}
                           className="border-white/5 hover:bg-white/[0.04] transition-colors group"
                         >
+                          {/* Date */}
+                          <TableCell className="py-2">
+                            <span className="text-[11px] text-white/50 font-mono">
+                              {stock.date || "—"}
+                            </span>
+                          </TableCell>
+
                           {/* Symbol */}
                           <TableCell className="py-2">
                             <span className="text-sm font-black text-white tracking-tight group-hover:text-violet-300 transition-colors">
