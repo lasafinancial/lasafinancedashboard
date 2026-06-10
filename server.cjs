@@ -1880,7 +1880,7 @@ app.all('/api/send-market-mood', async (req, res) => {
 
     const currentRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
-      range: "'current'!A1:FJ",
+      range: "'current'!A1:FZ",
     });
 
     const rows = currentRes.data.values;
