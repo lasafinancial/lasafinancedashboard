@@ -502,7 +502,7 @@ async function fetchData() {
     console.log('Fetching all data from lasa-master...');
     const lasaMasterRes = await sheets.spreadsheets.values.get({
       spreadsheetId: EOD_SHEET_ID,
-      range: 'lasa-master!A:FJ',
+      range: 'lasa-master!A:FZ',
     });
 
     // Filter rows BEFORE converting to large object array to save memory
@@ -730,7 +730,7 @@ async function fetchData() {
     try {
       const currentRes = await sheets.spreadsheets.values.get({
         spreadsheetId: EOD_SHEET_ID,
-        range: "'current'!A1:FJ",
+        range: "'current'!A:FZ",
       });
       const currentRows = currentRes.data.values || [];
       const currentData = rowsToObjects(currentRows);
@@ -1786,7 +1786,7 @@ app.get('/api/multibagger', async (req, res) => {
 
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: EOD_SHEET_ID,
-        range: "'current'!A:FJ",
+        range: "'current'!A:FZ",
       });
       rows = response.data.values;
     }

@@ -368,6 +368,9 @@ export function IntradayReversal() {
                         Balance <SortIcon field="BALANCE" />
                       </span>
                     </TableHead>
+                    <TableHead className="w-[80px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">
+                      OBV
+                    </TableHead>
                     <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">
                       View
                     </TableHead>
@@ -461,6 +464,13 @@ export function IntradayReversal() {
                           {/* Balance */}
                           <TableCell className="py-2 text-right font-bold font-mono text-xs text-blue-400/80">
                             {typeof (stock as any).BALANCE === 'number' ? `₹${formatNumber((stock as any).BALANCE)}` : (stock as any).BALANCE}
+                          </TableCell>
+
+                          {/* OBV Signal */}
+                          <TableCell className="py-2 text-center">
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${stock.obvSignal === 'Bullish' || stock.obvSignal === 'BULLISH' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : stock.obvSignal === 'Bearish' || stock.obvSignal === 'BEARISH' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'text-white/40'}`}>
+                              {stock.obvSignal || '—'}
+                            </span>
                           </TableCell>
 
                           {/* Action */}
