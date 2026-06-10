@@ -3,6 +3,7 @@ import { google } from 'googleapis';
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
 const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';
+const ALLSTOCKS_SHEET_ID = '1uibGhhv6Zdil2aWk17fcq1U-csYUffBdQv3Relrgfog';
 
 function isMarketOpen() {
   const now = new Date();
@@ -239,7 +240,7 @@ async function fetchData() {
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }),
     safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FZ" }),
-    sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'allstocks'!A1:FZ" }).catch(e => { console.warn('Failed to fetch allstocks tab:', e.message); return { data: { values: [] } }; }),
+    sheets.spreadsheets.values.get({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'allstocks'!A1:FZ" }).catch(e => { console.warn('Failed to fetch allstocks tab:', e.message); return { data: { values: [] } }; }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' })
   ]);
