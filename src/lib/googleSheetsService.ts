@@ -85,6 +85,8 @@ export interface IntradayReversalStock {
   dropFromHigh: number;
   candlesSinceBreakout: number;
   reversalCandleTime: string;
+  obvSignal?: string;
+  fr?: string;
 }
 
 export interface DailyNewsItem {

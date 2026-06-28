@@ -13,7 +13,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-type SortField = "symbol" | "date" | "time" | "close" | "pattern" | "resGap" | "target" | "model" | "resistance" | "u" | "mlGap";
+type SortField = "symbol" | "date" | "time" | "close" | "pattern" | "resGap" | "target" | "model" | "resistance" | "u" | "mlGap" | "fr";
 type SortDirection = "asc" | "desc";
 
 export function IntradayBreakoutScanner() {
@@ -253,6 +253,9 @@ export function IntradayBreakoutScanner() {
                                         <TableHead onClick={() => toggleSort("mlGap")} className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors text-right">
                                             <div className="flex items-center justify-end">ML_Gap% {getSortIcon("mlGap")}</div>
                                         </TableHead>
+                                        <TableHead onClick={() => toggleSort("fr")} className="w-[80px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors">
+                                            <div className="flex items-center justify-center">FR {getSortIcon("fr")}</div>
+                                        </TableHead>
                                         <TableHead className="w-[80px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">OBV</TableHead>
                                         <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
                                     </TableRow>
@@ -331,6 +334,13 @@ export function IntradayBreakoutScanner() {
                                             <TableCell className="py-1 text-right font-bold font-mono text-xs">
                                                 <span className={stock.mlGap > 0 ? "text-emerald-400" : stock.mlGap < 0 ? "text-rose-400" : "text-white/60"}>
                                                     {formatPercent(stock.mlGap)}
+                                                </span>
+                                            </TableCell>
+                                            
+                                            {/* FR */}
+                                            <TableCell className="py-1 text-center font-bold font-mono text-xs">
+                                                <span className="text-white/80">
+                                                    {stock.fr || '—'}
                                                 </span>
                                             </TableCell>
                                             

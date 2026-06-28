@@ -44,7 +44,8 @@ type SortField =
   | "candlesSinceBreakout"
   | "MODEL"
   | "RESISTANCE"
-  | "BALANCE";
+  | "BALANCE"
+  | "fr";
 type SortDirection = "asc" | "desc";
 
 export function IntradayReversal() {
@@ -368,6 +369,9 @@ export function IntradayReversal() {
                         Balance <SortIcon field="BALANCE" />
                       </span>
                     </TableHead>
+                    <TableHead className="w-[80px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("fr")}>
+                      FR <SortIcon field="fr" />
+                    </TableHead>
                     <TableHead className="w-[80px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">
                       OBV
                     </TableHead>
@@ -464,6 +468,11 @@ export function IntradayReversal() {
                           {/* Balance */}
                           <TableCell className="py-2 text-right font-bold font-mono text-xs text-blue-400/80">
                             {typeof (stock as any).BALANCE === 'number' ? `₹${formatNumber((stock as any).BALANCE)}` : (stock as any).BALANCE}
+                          </TableCell>
+
+                          {/* FR */}
+                          <TableCell className="py-2 text-center font-bold font-mono text-xs text-white/80">
+                            {stock.fr || "—"}
                           </TableCell>
 
                           {/* OBV Signal */}
