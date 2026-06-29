@@ -1462,6 +1462,7 @@ async function fetchData() {
             valV: (latest[20] !== undefined && latest[20] !== null && latest[20] !== '') ? latest[20].toString().trim() : (summary.valV || ''),
             valW: (latest[21] !== undefined && latest[21] !== null && latest[21] !== '') ? latest[21].toString().trim() : (summary.valW || ''),
             obvSignal: currentObvSignalMap.get(sym) || '—',
+            fr: currentFrMap.get(sym) || '—',
             allSignals: symbolRows.length,
             recentChanges: recentChanges.filter(c => c.symbol === sym)
           };

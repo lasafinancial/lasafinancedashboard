@@ -242,6 +242,7 @@ export function BreakoutBoardV1() {
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest pl-10">Projection / Note</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">BO Today</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Tier</TableHead>
+                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Obv Breakout</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">OBV</TableHead>
                                     <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
                                 </TableRow>
@@ -305,6 +306,11 @@ export function BreakoutBoardV1() {
                                                             {stock.tier}
                                                         </span>
                                                     </div>
+                                                </TableCell>
+                                                <TableCell className="py-1 text-center font-bold font-mono text-xs">
+                                                    <span className="text-white/80">
+                                                        {stock.fr || '—'}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="py-1 text-center">
                                                     <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${stock.obvSignal === 'ACCUMULATION' || stock.obvSignal === 'Bullish' || stock.obvSignal === 'BULLISH' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : stock.obvSignal === 'DISTRIBUTION' || stock.obvSignal === 'Bearish' || stock.obvSignal === 'BEARISH' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'text-white/40'}`}>
