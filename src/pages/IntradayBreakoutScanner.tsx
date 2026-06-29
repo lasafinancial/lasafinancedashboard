@@ -254,7 +254,7 @@ export function IntradayBreakoutScanner() {
                                             <div className="flex items-center justify-end">ML_Gap% {getSortIcon("mlGap")}</div>
                                         </TableHead>
                                         <TableHead onClick={() => toggleSort("fr")} className="w-[80px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors">
-                                            <div className="flex items-center justify-center">FR {getSortIcon("fr")}</div>
+                                            <div className="flex items-center justify-center">Obv Breakout {getSortIcon("fr")}</div>
                                         </TableHead>
                                         <TableHead className="w-[80px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">OBV</TableHead>
                                         <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>

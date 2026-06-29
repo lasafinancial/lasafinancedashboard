@@ -370,7 +370,7 @@ export function IntradayReversal() {
                       </span>
                     </TableHead>
                     <TableHead className="w-[80px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("fr")}>
-                      FR <SortIcon field="fr" />
+                      Obv Breakout <SortIcon field="fr" />
                     </TableHead>
                     <TableHead className="w-[80px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">
                       OBV
