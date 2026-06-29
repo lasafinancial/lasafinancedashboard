@@ -30,7 +30,7 @@ type SortDirection = "asc" | "desc";
 
 export function NearResistance() {
     const navigate = useNavigate();
-    const { nearResistance: stocks, isLoading } = useLiveData();
+    const { nearResistance: stocks, intradayBreakoutScanner, isLoading } = useLiveData();
     const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [sortField, setSortField] = useState<SortField>("dEma200Status");
@@ -61,8 +61,15 @@ export function NearResistance() {
     };
 
     const processedStocks = useMemo(() => {
-        if (!stocks) return [];
-        let data = [...stocks];
+        let data = (stocks || []).map(stock => {
+            const cleanId = stock.id.replace(/[\[\]\(\):-]/g, '').trim();
+            const scannerData = intradayBreakoutScanner?.find(s => s.symbol === cleanId || s.symbol === stock.id);
+            return {
+                ...stock,
+                fr: scannerData?.fr || "—",
+                obvSignal: scannerData?.obvSignal || "—"
+            };
+        });
 
         if (searchTerm) {
             data = data.filter(stock =>
@@ -115,7 +122,7 @@ export function NearResistance() {
         });
 
         return data;
-    }, [stocks, searchTerm, sortField, sortDirection]);
+    }, [stocks, intradayBreakoutScanner, searchTerm, sortField, sortDirection]);
 
     const handleStockClick = (symbol: string) => {
         navigate(`/stocks?symbol=${symbol}`);
@@ -303,6 +310,12 @@ export function NearResistance() {
                                             <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("algoW")}>
                                                 Pattern {sortField === "algoW" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
                                             </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("fr")}>
+                                                Obv Daily {sortField === "fr" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
+                                            <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("obvSignal")}>
+                                                Obv Weekly {sortField === "obvSignal" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                                            </TableHead>
                                             <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -343,6 +356,16 @@ export function NearResistance() {
                                                     </TableCell>
                                                     <TableCell className="py-2 text-right font-medium tabular-nums text-muted-foreground text-xs">
                                                         ₹{formatNumber(stock.algoW)}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-center">
+                                                        <span className="text-white/80 bg-white/10 px-2 py-0.5 rounded-md font-bold font-mono text-xs">
+                                                            {stock.fr}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-center">
+                                                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${stock.obvSignal === 'ACCUMULATION' || stock.obvSignal === 'Bullish' || stock.obvSignal === 'BULLISH' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : stock.obvSignal === 'DISTRIBUTION' || stock.obvSignal === 'Bearish' || stock.obvSignal === 'BEARISH' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'text-white/40'}`}>
+                                                            {stock.obvSignal}
+                                                        </span>
                                                     </TableCell>
                                                     <TableCell className="py-2 text-center">
                                                         <button

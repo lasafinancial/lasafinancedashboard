@@ -73,6 +73,8 @@ export interface NearResistanceStock {
   algoFG: number;
   algoM: number;
   algoW: number;
+  fr?: string;
+  obvSignal?: string;
 }
 
 export interface IntradayReversalStock {
