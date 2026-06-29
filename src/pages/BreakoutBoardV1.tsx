@@ -25,6 +25,8 @@ export function BreakoutBoardV1() {
     const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
+    const [sortField, setSortField] = useState<string | null>(null);
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
     const [pinnedSymbols, setPinnedSymbols] = useState<string[]>(() => {
         const saved = localStorage.getItem("lasa_intraday_pinned");
         return saved ? JSON.parse(saved) : [];
@@ -76,6 +78,24 @@ export function BreakoutBoardV1() {
         navigate(`/stocks?symbol=${symbol}`);
     };
 
+    const toggleSort = (field: string) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+        } else {
+            setSortField(field);
+            setSortDirection("desc");
+        }
+    };
+
+    const SortIcon = ({ field }: { field: string }) => {
+        if (sortField !== field) return null;
+        return sortDirection === "asc" ? (
+            <ChevronUp className="w-3 h-3 ml-1 inline-block" />
+        ) : (
+            <ChevronDown className="w-3 h-3 ml-1 inline-block" />
+        );
+    };
+
     const filteredStocks = useMemo(() => {
         let sourceData = stocks || [];
         if (isPlayback && playbackSnapshots && playbackSnapshots.length > 0) {
@@ -104,6 +124,13 @@ export function BreakoutBoardV1() {
         }
 
         return data.sort((a, b) => {
+            if (sortField === "fr") {
+                const valA = String(a.fr || "").toLowerCase();
+                const valB = String(b.fr || "").toLowerCase();
+                if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+                if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+            }
+
             if (a.isPinned && !b.isPinned) return -1;
             if (!a.isPinned && b.isPinned) return 1;
             if (a.tier === "GOLDEN" && b.tier !== "GOLDEN") return -1;
@@ -120,7 +147,7 @@ export function BreakoutBoardV1() {
 
             return b.time.localeCompare(a.time);
         });
-    }, [stocks, searchTerm, activeFilter, pinnedSymbols, isPlayback, playbackSnapshots, playbackIndex]);
+    }, [stocks, searchTerm, activeFilter, pinnedSymbols, isPlayback, playbackSnapshots, playbackIndex, sortField, sortDirection]);
 
     const renderStars = (stars: string) => {
         if (!stars) return null;
@@ -242,7 +269,7 @@ export function BreakoutBoardV1() {
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest pl-10">Projection / Note</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">BO Today</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Tier</TableHead>
-                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Obv Breakout</TableHead>
+                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("fr")}>Obv Breakout <SortIcon field="fr" /></TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">OBV</TableHead>
                                     <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
                                 </TableRow>
