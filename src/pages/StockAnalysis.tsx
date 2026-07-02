@@ -965,6 +965,7 @@ const StockAnalysis = () => {
                           .split(/(?<=\.)\s+/)
                           .filter(Boolean)
                           .filter((sentence: string) => !sentence.toLowerCase().includes('signal score'))
+                          .filter((sentence: string) => !/^(bullish|bearish|mixed|neutral|trending)\.?$/i.test(sentence.trim()))
                           .map((sentence: string, i: number) => (
                             <li key={i}>{sentence}</li>
                           ))}
