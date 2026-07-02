@@ -957,7 +957,20 @@ const StockAnalysis = () => {
                     <td className="w-1/3 md:w-1/4 p-4 font-semibold text-cyan-400 align-top border-l-2 border-cyan-500/50 bg-cyan-900/10">Algo Model</td>
                     <td className="p-4 font-medium text-sm leading-relaxed">{currentSummary.algoModel?.replace(/20D\s?/g, '')}</td>
                   </tr>
-
+                  <tr className="hover:bg-white/[0.02] transition-colors">
+                    <td className="w-1/3 md:w-1/4 p-4 font-semibold text-cyan-400 align-top border-l-2 border-cyan-500/50 bg-cyan-900/10">Bias</td>
+                    <td className="p-4 font-medium text-sm leading-relaxed">
+                      <ul className="list-disc list-inside space-y-1.5">
+                        {currentSummary.bias?.replace(/20D\s?/g, '')
+                          .split(/(?<=\.)\s+/)
+                          .filter(Boolean)
+                          .filter((sentence: string) => !sentence.toLowerCase().includes('signal score'))
+                          .map((sentence: string, i: number) => (
+                            <li key={i}>{sentence}</li>
+                          ))}
+                      </ul>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
