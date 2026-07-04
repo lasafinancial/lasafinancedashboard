@@ -67,7 +67,7 @@ export function ObvAccumulation() {
             const boData = intradayBreakout?.find((bo) => bo.symbol === item.stock.symbol);
             return {
                 ...item.stock,
-                balance: boData?.BALANCE || "—"
+                balance: item.stock.BALANCE || item.stock.balance || boData?.BALANCE || "—"
             };
         });
 
@@ -111,16 +111,7 @@ export function ObvAccumulation() {
         return sortDirection === "asc" ? <ChevronUp className="w-3.5 h-3.5 ml-1 inline text-primary" /> : <ChevronDown className="w-3.5 h-3.5 ml-1 inline text-primary" />;
     };
 
-    const tabs = [
-        "Intraday Reversal Scan",
-        "Trend Breakout Scan",
-        "Model Gap Scan",
-        "Support Proximity Scan",
-        "OBV Accumulation Scan",
-        "Breakout Monitor",
-        "Intraday Volume Scan",
-        "Reaction Zone"
-    ];
+
 
     const sortText = `${sortField.toUpperCase()} ${sortDirection === 'asc' ? 'A-Z ▴' : 'Z-A ▾'}`;
 
@@ -134,21 +125,7 @@ export function ObvAccumulation() {
                     </p>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex flex-wrap justify-center gap-3 mb-10">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab}
-                            className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-all border ${
-                                tab === "OBV Accumulation Scan"
-                                    ? "bg-[#020617] border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
-                                    : "bg-[#0f172a] border-white/5 text-muted-foreground hover:text-white hover:border-white/20"
-                            }`}
-                        >
-                            {tab}
-                        </button>
-                    ))}
-                </div>
+
 
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
