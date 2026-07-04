@@ -25,6 +25,7 @@ import IntradayReversal from "@/pages/IntradayReversal";
 import IntradayDev from "@/pages/IntradayDev";
 import BreakoutBoardV1 from "@/pages/BreakoutBoardV1";
 import ObvBreakout from "@/pages/ObvBreakout";
+import ObvAccumulation from "@/pages/ObvAccumulation";
 import NiftyAnalysis from "@/pages/NiftyAnalysis";
 import Nifty50 from "@/pages/Nifty50";
 import DailyNews from "@/pages/DailyNews";
@@ -236,6 +237,7 @@ const AppContent = () => {
             <Route path="/screeners/intraday-dev" element={<ProtectedRoute><IntradayDev /></ProtectedRoute>} />
             <Route path="/screeners/breakout-v1" element={<ProtectedRoute><BreakoutBoardV1 /></ProtectedRoute>} />
             <Route path="/screeners/obv-breakout" element={<ProtectedRoute><ObvBreakout /></ProtectedRoute>} />
+            <Route path="/screeners/obv-accumulation" element={<ProtectedRoute><ObvAccumulation /></ProtectedRoute>} />
             <Route path="/nifty50" element={<ProtectedRoute><Nifty50 /></ProtectedRoute>} />
             <Route path="/daily-news" element={<ProtectedRoute><DailyNews /></ProtectedRoute>} />
             <Route path="/backtests" element={<ProtectedRoute><Backtests /></ProtectedRoute>} />

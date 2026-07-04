@@ -80,6 +80,16 @@ const screenerOptions = [
         bgColor: "bg-emerald-400/10",
         borderColor: "group-hover:border-emerald-400/50",
         gradient: "from-emerald-400/20 to-transparent"
+    },
+    {
+        path: "/screeners/obv-accumulation",
+        label: "OBV Accumulation Scan",
+        description: "Stocks whose On-Balance Volume shows daily breakout and weekly accumulation conditions.",
+        icon: BarChart2,
+        color: "text-emerald-400",
+        bgColor: "bg-emerald-400/10",
+        borderColor: "group-hover:border-emerald-400/50",
+        gradient: "from-emerald-400/20 to-transparent"
     }
     // Multibagger Hidden per boss request
     /* {
