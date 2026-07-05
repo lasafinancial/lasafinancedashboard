@@ -2,11 +2,13 @@ import { ShieldAlert, Info, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLocation } from "react-router-dom";
 
 export function StickyFooter() {
     const isMobile = useIsMobile();
     const [isVisible, setIsVisible] = useState(true);
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const location = useLocation();
 
     useEffect(() => {
         if (isMobile) {
@@ -16,6 +18,10 @@ export function StickyFooter() {
             return () => clearTimeout(timer);
         }
     }, [isMobile]);
+
+    if (location.pathname === "/screeners/obv-accumulation") {
+        return null;
+    }
 
     return (
         <AnimatePresence>
