@@ -386,13 +386,13 @@ export function ObvAccumulation() {
                             Methodology — OBV Accumulation Scan
                         </DialogTitle>
                         <p className="text-xs text-muted-foreground mt-1">
-                            LASA Finance · Research Methodology Document · Version 1.0 · Effective 05 July 2026
+                            LASA Finance · Research Methodology Document
                         </p>
                     </DialogHeader>
 
                     <div className="space-y-6 text-sm leading-relaxed text-gray-300 font-sans">
                         <div className="p-4 rounded-xl bg-[#0f172a]/50 border border-white/5 text-xs text-muted-foreground leading-relaxed">
-                            Prepared under the supervision of <span className="text-white font-medium">[Analyst Name]</span>, SEBI Registered Research Analyst, Regn. No. INH0000XXXXX.
+                            Version 1.0 · Effective [date] · Prepared under the supervision of <span className="text-white font-medium">[Analyst Name]</span>, SEBI Registered Research Analyst, Regn. No. INH0000XXXXX
                         </div>
 
                         <div>
@@ -406,16 +406,16 @@ export function ObvAccumulation() {
                             <h3 className="text-base font-bold text-white mb-2">2. Universe and Data</h3>
                             <ul className="list-disc pl-5 space-y-2">
                                 <li>
-                                    <strong className="text-white">Universe:</strong> All constituents of the Nifty 500 index, updated semi-annually on index reconstitution.
+                                    <strong className="text-white">Universe:</strong> All constituents of the Nifty 500 index, updated [frequency of universe refresh, e.g., on each index reconstitution].
                                 </li>
                                 <li>
-                                    <strong className="text-white">Data source:</strong> End-of-day price and volume data from the National Stock Exchange of India (NSE), obtained via Google Sheets data import.
+                                    <strong className="text-white">Data source:</strong> End-of-day price and volume data from the National Stock Exchange of India (NSE), obtained via [data vendor name].
                                 </li>
                                 <li>
-                                    <strong className="text-white">Adjustments:</strong> Prices and volumes are adjusted for corporate actions (splits, bonuses) using exchange-provided historical adjustments.
+                                    <strong className="text-white">Adjustments:</strong> Prices and volumes are [adjusted / not adjusted] for corporate actions (splits, bonuses) using [method/source].
                                 </li>
                                 <li>
-                                    <strong className="text-white">Exclusions:</strong> Stocks are excluded from a given scan when data is unavailable or the stock is suspended.
+                                    <strong className="text-white">Exclusions:</strong> Stocks are excluded from a given scan when [e.g., data is unavailable, the stock was suspended, listing history is shorter than the required lookback of N days].
                                 </li>
                             </ul>
                         </div>
@@ -427,10 +427,10 @@ export function ObvAccumulation() {
                                     <strong className="text-white">On-Balance Volume (OBV).</strong> A cumulative volume measure computed daily: the day's total traded volume is added to the running total when the stock closes higher than the previous close, subtracted when it closes lower, and left unchanged when the close is flat. OBV tracks whether volume is flowing into or out of a stock over time.
                                 </p>
                                 <p>
-                                    <strong className="text-white">Daily OBV breakout.</strong> A daily OBV breakout is recorded when the stock's daily OBV closes above its highest value of the preceding 20 trading days. Parameters: [N = 20].
+                                    <strong className="text-white">Daily OBV breakout.</strong> A daily OBV breakout is recorded when [EXACT ENGINE RULE — e.g., "the stock's daily OBV closes above its highest value of the preceding N trading days"]. Parameters: [N = __].
                                 </p>
                                 <p>
-                                    <strong className="text-white">Weekly OBV accumulation.</strong> A stock is classified as being in weekly accumulation when its weekly OBV has closed above its 10-week moving average for the most recent 4 consecutive weeks. Parameters: [M = 10, K = 4]. The label "accumulation" reflects the conventional interpretation of rising OBV; it is a description of observed volume behaviour, not a statement about future prices.
+                                    <strong className="text-white">Weekly OBV accumulation.</strong> A stock is classified as being in weekly accumulation when [EXACT ENGINE RULE — e.g., "its weekly OBV has closed above its M-week moving average for the most recent K consecutive weeks"]. Parameters: [M = __, K = __]. The label "accumulation" reflects the conventional interpretation of rising OBV; it is a description of observed volume behaviour, not a statement about future prices.
                                 </p>
                             </div>
                         </div>
@@ -445,7 +445,7 @@ export function ObvAccumulation() {
                                 <li>The weekly OBV accumulation condition (Section 3) is met as of the most recent completed week.</li>
                             </ul>
                             <p className="mt-2">
-                                The rule set is fixed and applied identically to every stock in the universe. No stock is added to, removed from, or reordered within the results manually. The default display order is alphabetical by symbol; users may re-sort by any column.
+                                The rule set is fixed and applied identically to every stock in the universe. No stock is added to, removed from, or reordered within the results manually. The default display order is [alphabetical by symbol]; users may re-sort by any column.
                             </p>
                         </div>
 
@@ -459,7 +459,7 @@ export function ObvAccumulation() {
                         <div>
                             <h3 className="text-base font-bold text-white mb-2">6. Frequency and Records</h3>
                             <ul className="list-disc pl-5 space-y-1">
-                                <li><strong className="text-white">Computation:</strong> Once daily after market close at 15:30 IST.</li>
+                                <li><strong className="text-white">Computation:</strong> [Once daily after market close at HH:MM IST / every N minutes during market hours].</li>
                                 <li><strong className="text-white">Publication:</strong> Each scan run is assigned a Scan ID (format: OBV-ACC-YYYYMMDD-N) and timestamped in IST.</li>
                                 <li><strong className="text-white">Records:</strong> Every published scan output is archived unmodified and retained for a minimum of five years, in accordance with the record-keeping requirements applicable to research analysts.</li>
                             </ul>
@@ -469,7 +469,7 @@ export function ObvAccumulation() {
                             <h3 className="text-base font-bold text-white mb-2">7. Limitations</h3>
                             <ul className="list-disc pl-5 space-y-2">
                                 <li>OBV conditions describe historical volume behaviour. In our testing, a meaningful share of detected conditions were not followed by upward price movement; a stock appearing in this scan can decline.</li>
-                                <li>Forward-tracked performance statistics for this scan are under compilation and will be published when a statistically meaningful sample across market regimes is available.</li>
+                                <li>[If forward-tracked statistics exist, state them factually, e.g.: "Across the tracked period DD-MM-YYYY to DD-MM-YYYY, X% of detections were followed by a close above the detection price within N sessions, measured across all detections including those that exited the universe." If no validated statistics exist yet, state: "Forward-tracked performance statistics for this scan are under compilation and will be published when a statistically meaningful sample across market regimes is available."]</li>
                                 <li>OBV can be distorted by single large-volume sessions (block deals, index events) and is less informative in illiquid stocks.</li>
                                 <li>Results depend on the accuracy of exchange data and the corporate-action adjustments described in Section 2.</li>
                                 <li>Model projections shown alongside scan results are generated by a separate model documented in [Methodology — Model Projections] and carry their own limitations.</li>
@@ -479,7 +479,7 @@ export function ObvAccumulation() {
                         <div>
                             <h3 className="text-base font-bold text-white mb-2">8. Governance and Changes</h3>
                             <p>
-                                This methodology is reviewed semi-annually by [Analyst Name], who is responsible for the research produced by this scan. Any change to the rule set, parameters, universe, or data source results in a new version of this document with the effective date stated; prior versions are retained. Scan outputs generated by AI/algorithmic systems remain the responsibility of the research analyst.
+                                This methodology is reviewed [quarterly / semi-annually] by [Analyst Name], who is responsible for the research produced by this scan. Any change to the rule set, parameters, universe, or data source results in a new version of this document with the effective date stated; prior versions are retained. Scan outputs generated by AI/algorithmic systems remain the responsibility of the research analyst.
                             </p>
                         </div>
 
