@@ -98,7 +98,7 @@ function isMarketOpen() {
   const now = new Date();
   const istDateString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
   const istDate = new Date(istDateString);
-  const day = istDate.getDay(); 
+  const day = istDate.getDay();
   const timeInMinutes = istDate.getHours() * 60 + istDate.getMinutes();
   return (day >= 1 && day <= 5) && (timeInMinutes >= 9 * 60 + 15 && timeInMinutes <= 15 * 60 + 30);
 }
@@ -378,7 +378,7 @@ async function fetchData() {
   let stockData = [];
   let topMovers = { topGainers: [], topLosers: [] };
   let indexPerformance = [];
-  let nearResistance = [];  let supportReversal = [];
+  let nearResistance = []; let supportReversal = [];
   let reactionZone = [];
   let dailyNews = [];
   let summaries = [];
@@ -2240,7 +2240,7 @@ app.get('/api/nifty-options-data', async (req, res) => {
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     });
     const sheets = google.sheets({ version: 'v4', auth });
-    
+
     let rows = [];
     let fetchSuccessful = false;
     const tabsToTry = ["'Nifty-Options'", "'Sheet1'", "'Options'"];

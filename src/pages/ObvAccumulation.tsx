@@ -206,7 +206,7 @@ export function ObvAccumulation() {
                             >
                                 <div className="pt-4 space-y-5 text-[14px] text-gray-300/90 leading-relaxed">
                                     <p>
-                                        Every trading day, the engine evaluates all Nifty-500 stocks against fixed On-Balance Volume conditions: a daily OBV breakout and weekly OBV accumulation, as defined in the documented methodology. Stocks appear when both conditions are met. Nothing is added, removed, or reordered manually. Model gaps may be positive or negative — OBV conditions say nothing about model distance.
+                                        Every trading day, the engine evaluates all Top 1000 Stocks against fixed On-Balance Volume conditions: a daily OBV breakout and weekly OBV accumulation, as defined in the documented methodology. Stocks appear when both conditions are met. Nothing is added, removed, or reordered manually. Model gaps may be positive or negative — OBV conditions say nothing about model distance.
                                     </p>
                                     
                                     <div>
