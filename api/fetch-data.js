@@ -607,7 +607,9 @@ async function fetchData() {
   let currentObvSignalMap = new Map();
   let currentFrMap = new Map();
 
-  // Fetch OBV_SIGNAL exclusively from 'allstocks' tab as requested
+  let currentAllStocksPriceMap = new Map();
+
+  // Fetch OBV_SIGNAL and CLOSE_PRICE exclusively from 'allstocks' tab as requested
   try {
     const allstocksData = allstocksRes ? (allstocksRes.data.values || []) : [];
     if (allstocksData.length > 1) {
@@ -621,6 +623,10 @@ async function fetchData() {
       if (obvIdx === -1) obvIdx = colToIdx('FO'); // Fallback to FO
       
       let frIdx = colToIdx('FR');
+      
+      let closeIdx = headers.indexOf('CLOSE_PRICE');
+      if (closeIdx === -1) closeIdx = headers.indexOf('LTP');
+      if (closeIdx === -1) closeIdx = colToIdx('E'); // Fallback to E
 
       for (let i = 1; i < allstocksData.length; i++) {
         const rawRow = allstocksData[i];
@@ -634,9 +640,13 @@ async function fetchData() {
           if (frValue) {
             currentFrMap.set(sym, frValue);
           }
+          const cp = parseFloat((rawRow[closeIdx] || '0').toString().replace(/,/g, ''));
+          if (!isNaN(cp)) {
+            currentAllStocksPriceMap.set(sym, cp);
+          }
         }
       }
-      console.log(`[OBV_SIGNAL] Extracted signals for ${currentObvSignalMap.size} stocks from allstocks tab.`);
+      console.log(`[OBV_SIGNAL] Extracted signals for ${currentObvSignalMap.size} stocks and prices for ${currentAllStocksPriceMap.size} from allstocks tab.`);
     }
   } catch (err) {
     console.warn('Failed to parse allstocks for OBV signal:', err.message);
@@ -1275,7 +1285,7 @@ async function fetchData() {
               resistance: getNum(getVal('RESISTANCE', 16)),
               u: getNum(getVal('Price_%_Move', 10)),
               mlGap: getNum(getVal('ML_GAP%', 27)),
-              close: getNum(getVal('Close', 6)),
+              close: currentAllStocksPriceMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksPriceMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : getNum(getVal('Close', 6)),
               obvSignal: currentObvSignalMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) || '—',
               fr: currentFrMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) || '—'
             };
