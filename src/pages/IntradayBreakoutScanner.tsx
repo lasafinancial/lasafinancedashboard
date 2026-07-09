@@ -313,7 +313,7 @@ export function IntradayBreakoutScanner() {
                                             
                                             {/* Model */}
                                             <TableCell className="py-1">
-                                                <span className="text-[10px] font-bold text-white/80">
+                                                <span className="text-xs font-bold font-mono text-white/80">
                                                     {stock.model && stock.model !== "N/A" && stock.model !== "" ? stock.model : "—"}
                                                 </span>
                                             </TableCell>
