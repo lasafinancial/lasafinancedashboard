@@ -134,7 +134,7 @@ export function NewBreakouts() {
             // Only include if within 15 days
             if (daysSinceNew < 0 || daysSinceNew > 15) return;
 
-            // Use the latest scanner entry for current dynamic values (close, resistance, target)
+            // Use the latest scanner entry ONLY for the live current price
             const latestEntry = appearances[appearances.length - 1].entry;
 
             data.push({
@@ -142,12 +142,12 @@ export function NewBreakouts() {
                 time: newBadgeEntry.time || 'N/A',
                 close: latestEntry.close || 0,
                 boPrice: newBadgeEntry.boPrice || 0,
-                resistance: latestEntry.resistance || 0,
-                MODEL: latestEntry.model || 0,
-                target: latestEntry.target || 0,
-                obvSignal: latestEntry.obvSignal || '—',
-                fr: latestEntry.fr || '—',
-                priceMove: latestEntry.u || 0,
+                resistance: newBadgeEntry.resistance || 0,
+                MODEL: newBadgeEntry.model || 0,
+                target: newBadgeEntry.target || 0,
+                obvSignal: newBadgeEntry.obvSignal || '—',
+                fr: newBadgeEntry.fr || '—',
+                priceMove: newBadgeEntry.u || 0,
                 isPinned: pinnedSymbols.includes(sym),
                 latestNewBadgeDate: lnbd,
                 latestNewBadgeTime,
