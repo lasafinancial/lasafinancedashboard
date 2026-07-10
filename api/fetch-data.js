@@ -1286,6 +1286,7 @@ async function fetchData() {
               u: getNum(getVal('Price_%_Move', 10)),
               mlGap: getNum(getVal('ML_GAP%', 27)),
               close: currentAllStocksPriceMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksPriceMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : getNum(getVal('Close', 6)),
+              boPrice: getNum(getVal('Close', 6)),
               obvSignal: currentObvSignalMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) || '—',
               fr: currentFrMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) || '—'
             };

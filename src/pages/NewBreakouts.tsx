@@ -139,6 +139,7 @@ export function NewBreakouts() {
                 symbol: sym,
                 time: latestEntry.time || 'N/A',
                 close: latestEntry.close || 0,
+                boPrice: latestEntry.boPrice || 0,
                 resistance: latestEntry.resistance || 0,
                 MODEL: latestEntry.model || 0,
                 target: latestEntry.target || 0,
@@ -259,6 +260,7 @@ export function NewBreakouts() {
                                     <TableHead className="w-[150px] text-[11px] font-black text-white/60 uppercase tracking-widest">Symbol</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("boDate")}>BO Date <SortIcon field="boDate" /></TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Price</TableHead>
+                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">BO Price</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Resistance</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Model</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("fr")}>Obv Breakout <SortIcon field="fr" /></TableHead>
@@ -303,6 +305,9 @@ export function NewBreakouts() {
                                                 </TableCell>
                                                 <TableCell className="py-1 text-right font-black font-mono text-sm">
                                                     ₹{formatNumber(stock.close)}
+                                                </TableCell>
+                                                <TableCell className="py-1 text-right font-bold font-mono text-xs text-blue-300">
+                                                    ₹{formatNumber(stock.boPrice)}
                                                 </TableCell>
                                                 <TableCell className="py-1 text-right font-bold font-mono text-xs text-red-400/80">
                                                     ₹{formatNumber(stock.resistance)}
