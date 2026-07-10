@@ -21,7 +21,7 @@ type FilterType = "ALL" | "WATCHLIST" | "STAR3" | "STAR2" | "ENTRY_READY" | "EXI
 
 export function BreakoutBoardV1() {
     const navigate = useNavigate();
-    const { intradayDev: stocks, goldenAlerts, playbackSnapshots, lastUpdate, refresh, isLoading } = useLiveData();
+    const { intradayDev: stocks, goldenAlerts, playbackSnapshots, lastUpdate, refresh, isLoading, stockData } = useLiveData();
     const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
@@ -271,6 +271,7 @@ export function BreakoutBoardV1() {
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Tier</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("fr")}>Obv Breakout <SortIcon field="fr" /></TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">OBV</TableHead>
+                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">% Price Inc</TableHead>
                                     <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -349,6 +350,11 @@ export function BreakoutBoardV1() {
                                                         {stock.obvSignal || '—'}
                                                     </span>
                                                 </TableCell>
+                                                <TableCell className="py-1 text-right font-bold font-mono text-xs">
+                                                    <span className={stock.priceMove > 0 ? "text-emerald-400" : stock.priceMove < 0 ? "text-rose-400" : "text-white/60"}>
+                                                        {stock.priceMove !== undefined && stock.priceMove !== null && !isNaN(stock.priceMove) ? `${stock.priceMove > 0 ? '+' : ''}${stock.priceMove.toFixed(2)}%` : '—'}
+                                                    </span>
+                                                </TableCell>
                                                 <TableCell className="py-1 text-center">
                                                     <div className="flex items-center justify-center gap-0.5">
                                                         <Button
@@ -359,14 +365,16 @@ export function BreakoutBoardV1() {
                                                         >
                                                             <Pin className={`w-3.5 h-3.5 ${stock.isPinned ? 'fill-current' : ''}`} />
                                                         </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7 text-primary/40 hover:text-primary hover:bg-primary/10"
-                                                            onClick={() => handleStockClick(stock.symbol)}
-                                                        >
-                                                            <BarChart2 className="w-3.5 h-3.5" />
-                                                        </Button>
+                                                        {stockData?.some((s: any) => s.symbol === stock.symbol) && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 text-primary/40 hover:text-primary hover:bg-primary/10"
+                                                                onClick={() => handleStockClick(stock.symbol)}
+                                                            >
+                                                                <BarChart2 className="w-3.5 h-3.5" />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>

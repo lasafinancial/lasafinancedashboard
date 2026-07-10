@@ -337,12 +337,14 @@ export function ObvAccumulation() {
                                                 
                                                 {/* Action Button */}
                                                 <TableCell className="py-4 text-center">
-                                                    <button
-                                                        onClick={() => handleStockClick(stock.symbol)}
-                                                        className="text-cyan-400 hover:text-cyan-300 transition-colors p-1"
-                                                    >
-                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17l9.2-9.2M17 17V7H7"/></svg>
-                                                    </button>
+                                                    {stockData?.some(s => s.symbol === stock.symbol) ? (
+                                                        <button
+                                                            onClick={() => handleStockClick(stock.symbol)}
+                                                            className="text-cyan-400 hover:text-cyan-300 transition-colors p-1"
+                                                        >
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17l9.2-9.2M17 17V7H7"/></svg>
+                                                        </button>
+                                                    ) : null}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

@@ -30,7 +30,7 @@ type SortDirection = "asc" | "desc";
 
 export function NearResistance() {
     const navigate = useNavigate();
-    const { nearResistance: stocks, intradayBreakoutScanner, isLoading } = useLiveData();
+    const { nearResistance: stocks, intradayBreakoutScanner, isLoading, stockData } = useLiveData();
     const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [sortField, setSortField] = useState<SortField>("dEma200Status");
@@ -368,12 +368,14 @@ export function NearResistance() {
                                                         </span>
                                                     </TableCell>
                                                     <TableCell className="py-2 text-center">
-                                                        <button
-                                                            onClick={() => handleStockClick(stock.id)}
-                                                            className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all"
-                                                        >
-                                                            <ArrowUpRight className="w-3.5 h-3.5" />
-                                                        </button>
+                                                        {stockData?.some((s: any) => s.symbol === stock.id) && (
+                                                            <button
+                                                                onClick={() => handleStockClick(stock.id)}
+                                                                className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all"
+                                                            >
+                                                                <ArrowUpRight className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
                                                     </TableCell>
                                                 </TableRow>
                                             ))}

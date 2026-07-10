@@ -1501,6 +1501,7 @@ async function fetchData() {
             valW: (latest[21] !== undefined && latest[21] !== null && latest[21] !== '') ? latest[21].toString().trim() : (summary.valW || ''),
             obvSignal: currentObvSignalMap.get(sym) || '—',
             fr: currentFrMap.get(sym) || '—',
+            priceMove: scannerData.u !== undefined ? scannerData.u : 0,
             allSignals: symbolRows.length,
             isNew: isNew,
             recentChanges: recentChanges.filter(c => c.symbol === sym)

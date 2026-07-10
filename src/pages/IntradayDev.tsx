@@ -13,7 +13,7 @@ type FilterType = "ALL" | "WATCHLIST" | "STAR3" | "STAR2" | "ENTRY_READY" | "EXI
 
 export function IntradayDev() {
     const navigate = useNavigate();
-    const { intradayDev: stocks, intradayDevChanges, goldenAlerts, playbackSnapshots, lastUpdate, refresh, isLoading } = useLiveData();
+    const { intradayDev: stocks, intradayDevChanges, goldenAlerts, playbackSnapshots, lastUpdate, refresh, isLoading, stockData } = useLiveData();
     const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
@@ -342,13 +342,15 @@ export function IntradayDev() {
                             </button>
 
                             {/* CHART BUTTON */}
-                            <button
-                                onClick={(e) => { e.stopPropagation(); handleStockClick(stock.symbol); }}
-                                className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-[9px] font-black tracking-widest bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/20 transition-all uppercase shrink-0"
-                            >
-                                <BarChart2 className="w-3 h-3" />
-                                <span className="hidden xs:inline">CHART</span>
-                            </button>
+                            {stockData?.some(s => s.symbol === stock.symbol) && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleStockClick(stock.symbol); }}
+                                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-[9px] font-black tracking-widest bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/20 transition-all uppercase shrink-0"
+                                >
+                                    <BarChart2 className="w-3 h-3" />
+                                    <span className="hidden xs:inline">CHART</span>
+                                </button>
+                            )}
 
                             {/* PIN BUTTON */}
                             <button
@@ -509,13 +511,15 @@ export function IntradayDev() {
                         </button>
 
                         {/* CHART BUTTON */}
-                        <button
-                            onClick={(e) => { e.stopPropagation(); handleStockClick(alert.symbol); }}
-                            className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-[9px] font-black tracking-widest bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 hover:text-yellow-400 border border-yellow-500/20 transition-all uppercase shrink-0"
-                        >
-                            <BarChart2 className="w-3 h-3" />
-                            <span className="hidden xs:inline">CHART</span>
-                        </button>
+                        {stockData?.some(s => s.symbol === alert.symbol) && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleStockClick(alert.symbol); }}
+                                className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-[9px] font-black tracking-widest bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 hover:text-yellow-400 border border-yellow-500/20 transition-all uppercase shrink-0"
+                            >
+                                <BarChart2 className="w-3 h-3" />
+                                <span className="hidden xs:inline">CHART</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </motion.div>

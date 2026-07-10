@@ -30,7 +30,7 @@ type SortDirection = "asc" | "desc";
 
 export function ReactionZone() {
     const navigate = useNavigate();
-    const { reactionZone: stocks, isLoading } = useLiveData();
+    const { reactionZone: stocks, isLoading, stockData } = useLiveData();
     const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [sortField, setSortField] = useState<SortField>("mlTargetPercent");
@@ -294,12 +294,14 @@ export function ReactionZone() {
                                                     ₹{formatNumber(stock.algoW)}
                                                 </TableCell>
                                                 <TableCell className="py-2 text-center">
-                                                    <button
-                                                        onClick={() => handleStockClick(stock.id)}
-                                                        className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all"
-                                                    >
-                                                        <ArrowUpRight className="w-3.5 h-3.5" />
-                                                    </button>
+                                                    {stockData?.some((s: any) => s.symbol === stock.id) && (
+                                                        <button
+                                                            onClick={() => handleStockClick(stock.id)}
+                                                            className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-primary hover:text-primary-foreground transition-all"
+                                                        >
+                                                            <ArrowUpRight className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

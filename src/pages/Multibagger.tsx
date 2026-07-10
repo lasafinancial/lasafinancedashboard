@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { useAuth } from "@/context/AuthContext";
+import { useLiveData } from "@/hooks/useLiveData";
 import {
   AreaChart,
   Area,
@@ -92,6 +93,7 @@ const cardVariants = {
 export function Multibagger() {
   const navigate = useNavigate();
   const { isFree } = useAuth();
+  const { stockData } = useLiveData();
   const [selectedStock, setSelectedStock] = useState<MultibaggerStock | null>(null);
   const [stocks, setStocks] = useState<MultibaggerStock[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -420,15 +422,17 @@ export function Multibagger() {
                             </DialogContent>
                           </Dialog>
 
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStockClick(stock);
-                            }}
-                            className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all"
-                          >
-                            <ArrowUpRight className="w-4 h-4" />
-                          </button>
+                          {stockData?.some(s => s.symbol === stock.id) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStockClick(stock);
+                              }}
+                              className="h-9 w-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+                            >
+                              <ArrowUpRight className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </GlassCard>
