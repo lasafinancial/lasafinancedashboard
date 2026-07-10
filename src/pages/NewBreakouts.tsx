@@ -142,6 +142,12 @@ export function NewBreakouts() {
                 }
             }
 
+            // Fallback for today's new breakouts that might not be in the scanner history yet
+            if (s.isNew) {
+                latestNewBadgeDate = today;
+                latestNewBadgeTime = s.time;
+            }
+
             let daysSinceNew = -1;
             if (latestNewBadgeDate) {
                 daysSinceNew = (today.getTime() - latestNewBadgeDate.getTime()) / (1000 * 60 * 60 * 24);
@@ -320,14 +326,11 @@ export function NewBreakouts() {
                         <Table>
                             <TableHeader className="bg-white/[0.03]">
                                 <TableRow className="border-white/5 hover:bg-transparent">
-                                    <TableHead className="w-[100px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Strength</TableHead>
                                     <TableHead className="w-[150px] text-[11px] font-black text-white/60 uppercase tracking-widest">Symbol</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("boDate")}>BO Date <SortIcon field="boDate" /></TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Price</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Resistance</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Model</TableHead>
-                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest pl-10">Projection / Note</TableHead>
-                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">BO Today</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Tier</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("fr")}>Obv Breakout <SortIcon field="fr" /></TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">OBV</TableHead>
@@ -358,9 +361,6 @@ export function NewBreakouts() {
                                     <PremiumProtector requiredTier="pro" blurLevel="md">
                                         {(isFree ? filteredStocks.slice(0, 8) : filteredStocks).map((stock, idx) => (
                                             <TableRow key={`${stock.symbol}-${idx}`} className="border-white/5 hover:bg-white/[0.04] transition-colors group">
-                                                <TableCell className="py-1 text-center">
-                                                    {getStrengthBadge(stock.state)}
-                                                </TableCell>
                                                 <TableCell className="py-1">
                                                     <div className="flex flex-col leading-tight">
                                                         <div className="flex items-center gap-1.5">
@@ -381,17 +381,6 @@ export function NewBreakouts() {
                                                 </TableCell>
                                                 <TableCell className="py-1 text-right font-bold font-mono text-xs text-orange-400/80">
                                                     ₹{formatNumber(stock.MODEL || stock.targetPrice || stock.target)}
-                                                </TableCell>
-                                                <TableCell className="py-1 max-w-[300px] pl-10">
-                                                    <div className="flex flex-col gap-0 leading-tight">
-                                                        <span className="text-[10px] font-bold text-white/80 italic line-clamp-1">{stock.reasons || stock.note || 'No commentary available.'}</span>
-                                                        {stock.targetStr && <span className="text-[9px] font-black text-orange-500/70 tracking-widest uppercase">{stock.targetStr}</span>}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="py-1 text-center">
-                                                    <span className={`text-[10px] font-black px-1.5 py-0 rounded ${stock.valV ? 'bg-primary/10 text-primary border border-primary/20' : 'text-white/20'}`}>
-                                                        {stock.valV || '—'}
-                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="py-1 text-center">
                                                     <div className="flex flex-col items-center gap-0">
