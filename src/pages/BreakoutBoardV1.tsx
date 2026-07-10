@@ -302,7 +302,12 @@ export function BreakoutBoardV1() {
                                                 </TableCell>
                                                 <TableCell className="py-1">
                                                     <div className="flex flex-col leading-tight">
-                                                        <span className="text-sm font-black text-white tracking-tight group-hover:text-primary transition-colors">{stock.symbol}</span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-sm font-black text-white tracking-tight group-hover:text-primary transition-colors">{stock.symbol}</span>
+                                                            {stock.isNew && (
+                                                                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">NEW</span>
+                                                            )}
+                                                        </div>
                                                         <span className="text-[8px] text-muted-foreground font-bold font-mono">{stock.time}</span>
                                                     </div>
                                                 </TableCell>

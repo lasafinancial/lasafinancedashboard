@@ -1443,6 +1443,34 @@ async function fetchData() {
             return '';
           };
 
+          // Check if this stock is a new breakout in the last 30 days
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          thirtyDaysAgo.setHours(0,0,0,0);
+          
+          const today = new Date();
+          today.setHours(0,0,0,0);
+
+          const historicalAppearances = intradayBreakoutScanner.filter(s => {
+            if (s.symbol.toUpperCase() !== sym) return false;
+            let d = new Date(s.date);
+            if (isNaN(d.getTime())) {
+                const parts = (s.date||'').trim().split('-');
+                if (parts.length === 3) {
+                    const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+                    const m = months[parts[1].toLowerCase().substring(0,3)];
+                    if (m !== undefined) {
+                        let y = parseInt(parts[2], 10);
+                        if (y < 100) y += 2000;
+                        d = new Date(y, m, parseInt(parts[0], 10));
+                    }
+                }
+            }
+            if (isNaN(d.getTime())) return false;
+            return d < today && d >= thirtyDaysAgo;
+          });
+          const isNew = historicalAppearances.length === 0;
+
           return {
             symbol: sym,
             date: (latest[1] || 'N/A').toString(),
@@ -1474,6 +1502,7 @@ async function fetchData() {
             obvSignal: currentObvSignalMap.get(sym) || '—',
             fr: currentFrMap.get(sym) || '—',
             allSignals: symbolRows.length,
+            isNew: isNew,
             recentChanges: recentChanges.filter(c => c.symbol === sym)
           };
         });
