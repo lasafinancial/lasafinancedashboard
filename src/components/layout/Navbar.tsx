@@ -134,6 +134,16 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         </div>
                       </Link>
                       <Link
+                        to="/screeners/new-breakouts"
+                        onClick={() => setIsScreenersOpen(false)}
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold">New Breakouts</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Recent Breakouts</span>
+                        </div>
+                      </Link>
+                      <Link
                         to="/screeners/near-resistance"
                         onClick={() => setIsScreenersOpen(false)}
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
@@ -422,6 +432,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                             </Link>
                             <div className="pl-12 space-y-1 border-l border-white/5 ml-6">
                               <Link to="/screeners/breakout-v1" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout Board v1</Link>
+                              <Link to="/screeners/new-breakouts" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">New Breakouts</Link>
                               <Link to="/screeners/near-resistance" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout</Link>
                               <Link to="/screeners/support-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reversal</Link>
                               <Link to="/screeners/reaction-zone" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reaction Zone</Link>
