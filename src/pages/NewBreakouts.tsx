@@ -21,41 +21,18 @@ type FilterType = "ALL" | "WATCHLIST" | "STAR3" | "STAR2" | "ENTRY_READY" | "EXI
 
 export function NewBreakouts() {
     const navigate = useNavigate();
-    const { intradayDev: stocks, intradayBreakoutScanner, goldenAlerts, playbackSnapshots, lastUpdate, refresh, isLoading, stockData } = useLiveData();
+    const { intradayBreakoutScanner, lastUpdate, refresh, isLoading, stockData } = useLiveData();
     const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
-    const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
     const [sortField, setSortField] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
     const [pinnedSymbols, setPinnedSymbols] = useState<string[]>(() => {
-        const saved = localStorage.getItem("lasa_intraday_pinned");
+        const saved = localStorage.getItem("lasa_newbreakouts_pinned");
         return saved ? JSON.parse(saved) : [];
     });
 
-    // Playback State
-    const [isPlayback, setIsPlayback] = useState(false);
-    const [playbackIndex, setPlaybackIndex] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [playbackSpeed, setPlaybackSpeed] = useState<1 | 2 | 5>(5);
-
     useEffect(() => {
-        if (!isPlaying || !isPlayback || !playbackSnapshots || playbackSnapshots.length === 0) return;
-
-        const interval = setInterval(() => {
-            setPlaybackIndex(prev => {
-                if (prev >= playbackSnapshots.length - 1) {
-                    setIsPlaying(false);
-                    return prev;
-                }
-                return prev + 1;
-            });
-        }, 5000 / playbackSpeed);
-
-        return () => clearInterval(interval);
-    }, [isPlaying, isPlayback, playbackSnapshots, playbackSpeed]);
-
-    useEffect(() => {
-        localStorage.setItem("lasa_intraday_pinned", JSON.stringify(pinnedSymbols));
+        localStorage.setItem("lasa_newbreakouts_pinned", JSON.stringify(pinnedSymbols));
     }, [pinnedSymbols]);
 
     const handleTogglePin = (symbol: string) => {
@@ -96,87 +73,88 @@ export function NewBreakouts() {
         );
     };
 
-    const filteredStocks = useMemo(() => {
-        let sourceData = stocks || [];
-        if (isPlayback && playbackSnapshots && playbackSnapshots.length > 0) {
-            sourceData = playbackSnapshots[playbackIndex]?.stocks || [];
+    const parseDate = (dateStr: string): Date | null => {
+        let d = new Date(dateStr);
+        if (!isNaN(d.getTime())) return d;
+        const parts = (dateStr || '').trim().split('-');
+        if (parts.length === 3) {
+            const months: Record<string, number> = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+            const m = months[parts[1].toLowerCase().substring(0,3)];
+            if (m !== undefined) {
+                let y = parseInt(parts[2], 10);
+                if (y < 100) y += 2000;
+                d = new Date(y, m, parseInt(parts[0], 10));
+                if (!isNaN(d.getTime())) return d;
+            }
         }
+        return null;
+    };
+
+    const filteredStocks = useMemo(() => {
+        const scannerData = intradayBreakoutScanner || [];
+        if (scannerData.length === 0) return [];
 
         const today = new Date();
         today.setHours(0,0,0,0);
 
-        let data = sourceData.map(s => {
-            // Find all historical dates for this symbol
-            const appearances = (intradayBreakoutScanner || [])
-                .filter(scan => scan.symbol.toUpperCase() === s.symbol.toUpperCase())
-                .map(scan => {
-                    let d = new Date(scan.date);
-                    if (isNaN(d.getTime())) {
-                        const parts = (scan.date||'').trim().split('-');
-                        if (parts.length === 3) {
-                            const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
-                            const m = months[parts[1].toLowerCase().substring(0,3)];
-                            if (m !== undefined) {
-                                let y = parseInt(parts[2], 10);
-                                if (y < 100) y += 2000;
-                                d = new Date(y, m, parseInt(parts[0], 10));
-                            }
-                        }
-                    }
-                    return { dateObj: d, dateStr: scan.date, time: scan.time };
-                })
-                .filter(scan => !isNaN(scan.dateObj.getTime()))
-                .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+        // Group all scanner entries by symbol
+        const symbolMap: Record<string, { dateObj: Date; time: string; entry: any }[]> = {};
+        scannerData.forEach((scan: any) => {
+            const sym = (scan.symbol || '').toString().trim().toUpperCase();
+            if (!sym || sym === 'N/A') return;
+            const d = parseDate(scan.date);
+            if (!d) return;
+            if (!symbolMap[sym]) symbolMap[sym] = [];
+            symbolMap[sym].push({ dateObj: d, time: scan.time || '', entry: scan });
+        });
 
-            let latestNewBadgeDate = null;
-            let latestNewBadgeTime = null;
-            if (appearances.length > 0) {
-                latestNewBadgeDate = appearances[0].dateObj;
-                latestNewBadgeTime = appearances[0].time;
-                for (let i = 1; i < appearances.length; i++) {
-                    const diffDays = (appearances[i].dateObj.getTime() - appearances[i-1].dateObj.getTime()) / (1000 * 60 * 60 * 24);
-                    if (diffDays > 30) {
-                        latestNewBadgeDate = appearances[i].dateObj;
-                        latestNewBadgeTime = appearances[i].time;
-                    }
+        // For each symbol, find the latest "NEW" breakout date (gap > 30 days from prior appearance)
+        let data: any[] = [];
+        Object.entries(symbolMap).forEach(([sym, appearances]) => {
+            // Sort by date ascending
+            appearances.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+            // Find the latest "new breakout" start date
+            let latestNewBadgeDate = appearances[0].dateObj;
+            let latestNewBadgeTime = appearances[0].time;
+            for (let i = 1; i < appearances.length; i++) {
+                const diffDays = (appearances[i].dateObj.getTime() - appearances[i-1].dateObj.getTime()) / (1000 * 60 * 60 * 24);
+                if (diffDays > 30) {
+                    latestNewBadgeDate = appearances[i].dateObj;
+                    latestNewBadgeTime = appearances[i].time;
                 }
             }
 
-            // Fallback for today's new breakouts that might not be in the scanner history yet
-            if (s.isNew) {
-                latestNewBadgeDate = today;
-                latestNewBadgeTime = s.time;
-            }
+            const lnbd = new Date(latestNewBadgeDate);
+            lnbd.setHours(0,0,0,0);
+            const daysSinceNew = (today.getTime() - lnbd.getTime()) / (1000 * 60 * 60 * 24);
 
-            let daysSinceNew = -1;
-            if (latestNewBadgeDate) {
-                daysSinceNew = (today.getTime() - latestNewBadgeDate.getTime()) / (1000 * 60 * 60 * 24);
-            }
+            // Only include if within 15 days
+            if (daysSinceNew < 0 || daysSinceNew > 15) return;
 
-            return {
-                ...s,
-                isPinned: pinnedSymbols.includes(s.symbol),
-                latestNewBadgeDate,
+            // Use the latest scanner entry for this symbol (most recent price data)
+            const latestEntry = appearances[appearances.length - 1].entry;
+
+            data.push({
+                symbol: sym,
+                time: latestEntry.time || 'N/A',
+                close: latestEntry.close || 0,
+                resistance: latestEntry.resistance || 0,
+                MODEL: latestEntry.model || 0,
+                target: latestEntry.target || 0,
+                obvSignal: latestEntry.obvSignal || '—',
+                fr: latestEntry.fr || '—',
+                priceMove: latestEntry.u || 0,
+                isPinned: pinnedSymbols.includes(sym),
+                latestNewBadgeDate: lnbd,
                 latestNewBadgeTime,
                 daysSinceNew,
-                boDateStr: latestNewBadgeDate ? `${latestNewBadgeDate.toLocaleDateString('en-GB', {day:'2-digit', month:'short'})} ${latestNewBadgeTime}` : 'N/A'
-            };
-        }).filter(s => s.daysSinceNew >= 0 && s.daysSinceNew <= 15);
+                boDateStr: `${lnbd.toLocaleDateString('en-GB', {day:'2-digit', month:'short'})} ${latestNewBadgeTime}`
+            });
+        });
 
         if (searchTerm) {
             data = data.filter(s => s.symbol.toLowerCase().includes(searchTerm.toLowerCase()));
-        }
-
-        if (activeFilter === "WATCHLIST") {
-            data = data.filter(s => s.isPinned);
-        } else if (activeFilter === "STAR3") {
-            data = data.filter(s => s.tier === "GOLDEN" || (s.stars && s.stars.includes('★★★')));
-        } else if (activeFilter === "STAR2") {
-            data = data.filter(s => s.tier === "UPTREND" || s.tier === "BREAKOUT" || (s.stars && s.stars.includes('★★')));
-        } else if (activeFilter === "ENTRY_READY") {
-            data = data.filter(s => s.state === "PULLBACK");
-        } else if (activeFilter === "EXIT") {
-            data = data.filter(s => s.state === "EXIT" || s.state === "TRAP");
         }
 
         return data.sort((a, b) => {
@@ -194,25 +172,13 @@ export function NewBreakouts() {
 
             if (a.isPinned && !b.isPinned) return -1;
             if (!a.isPinned && b.isPinned) return 1;
-            
+
             // Sort by daysSinceNew ascending (newest breakouts first)
             if (a.daysSinceNew !== b.daysSinceNew) return a.daysSinceNew - b.daysSinceNew;
 
-            if (a.tier === "GOLDEN" && b.tier !== "GOLDEN") return -1;
-            if (a.tier !== "GOLDEN" && b.tier === "GOLDEN") return 1;
-
-            const valA = parseFloat(a.valV);
-            const valB = parseFloat(b.valV);
-            const isAValid = !isNaN(valA);
-            const isBValid = !isNaN(valB);
-
-            if (isAValid && !isBValid) return -1;
-            if (!isAValid && isBValid) return 1;
-            if (isAValid && isBValid && valA !== valB) return valB - valA;
-
-            return b.time.localeCompare(a.time);
+            return (b.time || '').localeCompare(a.time || '');
         });
-    }, [stocks, intradayBreakoutScanner, searchTerm, activeFilter, pinnedSymbols, isPlayback, playbackSnapshots, playbackIndex, sortField, sortDirection]);
+    }, [intradayBreakoutScanner, searchTerm, pinnedSymbols, sortField, sortDirection]);
 
     const renderStars = (stars: string) => {
         if (!stars) return null;
@@ -260,47 +226,11 @@ export function NewBreakouts() {
                         </div>
                     </div>
 
-                    {/* Playback Controls */}
+                    {/* Last Update */}
                     <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">
                         <div className="text-xl font-bold text-yellow-500 font-mono tracking-tighter min-w-[80px] text-center">
-                            {isPlayback && playbackSnapshots && playbackSnapshots[playbackIndex]
-                                ? playbackSnapshots[playbackIndex].time
-                                : (lastUpdate ? lastUpdate.split(' ')[0] : '--:--')}
+                            {lastUpdate ? lastUpdate.split(' ')[0] : '--:--'}
                         </div>
-                        <div className="w-[1px] h-6 bg-white/10 mx-2" />
-                        <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-white/50 hover:text-white" onClick={() => {
-                                if (playbackSnapshots?.length) {
-                                    setIsPlayback(true);
-                                    setPlaybackIndex(Math.max(0, playbackIndex - 1));
-                                }
-                            }}>
-                                <SkipBack className="w-3.5 h-3.5 fill-current" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className={`h-8 w-16 text-[10px] font-black uppercase tracking-widest border transition-all ${isPlaying ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-white border-white/10'}`} onClick={() => {
-                                if (!isPlayback && playbackSnapshots?.length) {
-                                    setIsPlayback(true);
-                                    setPlaybackIndex(0);
-                                    setIsPlaying(true);
-                                } else {
-                                    setIsPlaying(!isPlaying);
-                                }
-                            }}>
-                                {isPlaying ? <Pause className="w-3 h-3 fill-current mr-1" /> : <Play className="w-3 h-3 fill-current mr-1" />}
-                                {isPlaying ? 'PAUSE' : 'PLAY'}
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-white/50 hover:text-white" onClick={() => {
-                                if (playbackSnapshots?.length) {
-                                    setPlaybackIndex(Math.min(playbackSnapshots.length - 1, playbackIndex + 1));
-                                    if (playbackIndex >= playbackSnapshots.length - 2) setIsPlaying(false);
-                                }
-                            }}>
-                                <SkipForward className="w-3.5 h-3.5 fill-current" />
-                            </Button>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => setIsPlayback(!isPlayback)} className={`h-7 text-[10px] font-black uppercase border ${isPlayback ? 'bg-yellow-500 text-black border-yellow-600' : 'bg-transparent border-primary/30 text-primary'}`}>
-                            {isPlayback ? 'HISTORY' : 'LIVE'}
-                        </Button>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -331,9 +261,7 @@ export function NewBreakouts() {
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Price</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Resistance</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Model</TableHead>
-                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Tier</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("fr")}>Obv Breakout <SortIcon field="fr" /></TableHead>
-                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">OBV</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">% Price Inc</TableHead>
                                     <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
                                 </TableRow>
@@ -382,22 +310,9 @@ export function NewBreakouts() {
                                                 <TableCell className="py-1 text-right font-bold font-mono text-xs text-orange-400/80">
                                                     ₹{formatNumber(stock.MODEL || stock.targetPrice || stock.target)}
                                                 </TableCell>
-                                                <TableCell className="py-1 text-center">
-                                                    <div className="flex flex-col items-center gap-0">
-                                                        {renderStars(stock.stars)}
-                                                        <span className={`text-[8px] font-black tracking-tighter uppercase ${stock.tier === 'GOLDEN' ? 'text-yellow-500' : 'text-white/40'}`}>
-                                                            {stock.tier}
-                                                        </span>
-                                                    </div>
-                                                </TableCell>
                                                 <TableCell className="py-1 text-center font-bold font-mono text-xs">
                                                     <span className="text-white/80">
                                                         {stock.fr || '—'}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="py-1 text-center">
-                                                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${stock.obvSignal === 'ACCUMULATION' || stock.obvSignal === 'Bullish' || stock.obvSignal === 'BULLISH' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : stock.obvSignal === 'DISTRIBUTION' || stock.obvSignal === 'Bearish' || stock.obvSignal === 'BEARISH' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'text-white/40'}`}>
-                                                        {stock.obvSignal || '—'}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell className="py-1 text-right font-bold font-mono text-xs">
