@@ -117,11 +117,13 @@ export function NewBreakouts() {
             // Find the latest "new breakout" start date
             let latestNewBadgeDate = appearances[0].dateObj;
             let latestNewBadgeTime = appearances[0].time;
+            let newBadgeEntry = appearances[0].entry;
             for (let i = 1; i < appearances.length; i++) {
                 const diffDays = (appearances[i].dateObj.getTime() - appearances[i-1].dateObj.getTime()) / (1000 * 60 * 60 * 24);
                 if (diffDays > 30) {
                     latestNewBadgeDate = appearances[i].dateObj;
                     latestNewBadgeTime = appearances[i].time;
+                    newBadgeEntry = appearances[i].entry;
                 }
             }
 
@@ -132,14 +134,14 @@ export function NewBreakouts() {
             // Only include if within 15 days
             if (daysSinceNew < 0 || daysSinceNew > 15) return;
 
-            // Use the latest scanner entry for this symbol (most recent price data)
+            // Use the latest scanner entry for current dynamic values (close, resistance, target)
             const latestEntry = appearances[appearances.length - 1].entry;
 
             data.push({
                 symbol: sym,
-                time: latestEntry.time || 'N/A',
+                time: newBadgeEntry.time || 'N/A',
                 close: latestEntry.close || 0,
-                boPrice: latestEntry.boPrice || 0,
+                boPrice: newBadgeEntry.boPrice || 0,
                 resistance: latestEntry.resistance || 0,
                 MODEL: latestEntry.model || 0,
                 target: latestEntry.target || 0,
