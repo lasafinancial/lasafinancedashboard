@@ -71,16 +71,7 @@ const screenerOptions = [
         borderColor: "group-hover:border-violet-400/50",
         gradient: "from-violet-400/20 to-transparent"
     },
-    {
-        path: "/screeners/obv-breakout",
-        label: "Obv Breakout",
-        description: "Focuses on stocks showing strong OBV accumulation coupled with a positive breakout signal.",
-        icon: BarChart2,
-        color: "text-emerald-400",
-        bgColor: "bg-emerald-400/10",
-        borderColor: "group-hover:border-emerald-400/50",
-        gradient: "from-emerald-400/20 to-transparent"
-    },
+
     {
         path: "/screeners/obv-accumulation",
         label: "OBV Accumulation Scan",

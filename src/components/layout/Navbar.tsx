@@ -203,16 +203,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Intraday Volume Breakout</span>
                         </div>
                       </Link>
-                      <Link
-                        to="/screeners/obv-breakout"
-                        onClick={() => setIsScreenersOpen(false)}
-                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Obv Breakout</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Accumulation Signals</span>
-                        </div>
-                      </Link>
+
                       <Link
                         to="/screeners/obv-accumulation"
                         onClick={() => setIsScreenersOpen(false)}
@@ -439,7 +430,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                               <Link to="/screeners/intraday-breakout" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Volume Breakout</Link>
                               <Link to="/screeners/intraday-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Reversal</Link>
                               <Link to="/screeners/intraday-breakout-scanner" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">ML Setup</Link>
-                              <Link to="/screeners/obv-breakout" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Obv Breakout</Link>
+
                               <Link to="/screeners/obv-accumulation" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">OBV Accumulation Scan</Link>
                               <Link to="/screeners/nifty-analysis" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Optics</Link>
                               {user?.email === 'lasafinancial@gmail.com' ? (
