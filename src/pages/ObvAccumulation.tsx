@@ -358,7 +358,7 @@ export function ObvAccumulation() {
                 {/* Footer Disclaimer */}
                 <div className="mt-8 pt-8 border-t border-white/5 text-[11px] text-muted-foreground/60 leading-relaxed max-w-5xl mx-auto space-y-4">
                     <p>
-                        Research services provided by [Registered Entity Name], SEBI Registered Research Analyst - Regn. No. INH0000XXXXX - BSE Enlistment No. XXXX Registered office: [address]
+                        Research services provided by Lasa Financial Services, SEBI Registered Research Analyst - Regn. No. INH0000XXXXX - BSE Enlistment No. XXXX Registered office: [address]
                     </p>
                     <div className="flex gap-2">
                         <div className="w-1 bg-indigo-500 rounded-full"></div>
@@ -367,6 +367,7 @@ export function ObvAccumulation() {
                         </p>
                     </div>
                     <p>Holdings disclosures for individual securities are provided on each stock's research page.</p>
+                    <p>We and our clients may or may not have holdings in any of these stocks.</p>
                     <p>Analyst certification: the views in these scans accurately reflect the output of the documented methodology, and no part of the analyst's compensation is linked to the specific views expressed.</p>
                     <p>Investments in securities are subject to market risk. Registration and certification do not assure returns or performance. Past patterns do not guarantee future results.</p>
                     
