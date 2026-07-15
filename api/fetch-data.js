@@ -608,6 +608,8 @@ async function fetchData() {
   let currentFrMap = new Map();
 
   let currentAllStocksPriceMap = new Map();
+  let currentAllStocksModelMap = new Map();
+  let currentAllStocksMlGapMap = new Map();
 
   // Fetch OBV_SIGNAL and CLOSE_PRICE exclusively from 'allstocks' tab as requested
   try {
@@ -619,10 +621,10 @@ async function fetchData() {
       if (idIdx === -1) idIdx = headers.indexOf('ID');
       if (idIdx === -1) idIdx = colToIdx('C'); // Fallback to C
 
-      let obvIdx = headers.indexOf('OBV_SIGNAL');
-      if (obvIdx === -1) obvIdx = colToIdx('FO'); // Fallback to FO
-      
+      let obvIdx = colToIdx('FO');
       let frIdx = colToIdx('FR');
+      let modelIdx = colToIdx('AO');
+      let mlGapIdx = colToIdx('FK');
       
       let closeIdx = headers.indexOf('CLOSE_PRICE');
       if (closeIdx === -1) closeIdx = headers.indexOf('LTP');
@@ -644,9 +646,17 @@ async function fetchData() {
           if (!isNaN(cp)) {
             currentAllStocksPriceMap.set(sym, cp);
           }
+          const modelVal = parseFloat((rawRow[modelIdx] || '0').toString().replace(/,/g, ''));
+          if (!isNaN(modelVal) && modelVal > 0) {
+            currentAllStocksModelMap.set(sym, modelVal);
+          }
+          const mlGapVal = parseFloat((rawRow[mlGapIdx] || '0').toString().replace(/,/g, ''));
+          if (!isNaN(mlGapVal)) {
+            currentAllStocksMlGapMap.set(sym, mlGapVal);
+          }
         }
       }
-      console.log(`[OBV_SIGNAL] Extracted signals for ${currentObvSignalMap.size} stocks and prices for ${currentAllStocksPriceMap.size} from allstocks tab.`);
+      console.log(`[OBV_SIGNAL] Extracted signals for ${currentObvSignalMap.size} stocks from allstocks tab.`);
     }
   } catch (err) {
     console.warn('Failed to parse allstocks for OBV signal:', err.message);
@@ -1281,10 +1291,10 @@ async function fetchData() {
               pattern: getVal('PATTERN', 14) || 'N/A',
               resGap: getNum(getVal('Res_Gap%', 20)),
               target: getNum(getVal('Target', 21)),
-              model: getVal('MODEL', 13) || 'N/A',
+              model: currentAllStocksModelMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksModelMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : (getVal('MODEL', 13) || 'N/A'),
               resistance: getNum(getVal('RESISTANCE', 16)),
               u: getNum(getVal('Price_%_Move', 10)),
-              mlGap: getNum(getVal('ML_GAP%', 27)),
+              mlGap: currentAllStocksMlGapMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksMlGapMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : getNum(getVal('ML_GAP%', 27)),
               close: currentAllStocksPriceMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksPriceMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : getNum(getVal('Close', 6)),
               boPrice: getNum(getVal('Close', 6)),
               obvSignal: currentObvSignalMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) || '—',

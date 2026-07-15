@@ -80,17 +80,12 @@ export function ObvAccumulation() {
             const history = stock.history || [];
             const latest = history[history.length - 1];
             
-            let mlGap = 0;
-            if (latest?.mlFutPrice20d && stock.price) {
-                mlGap = ((latest.mlFutPrice20d - stock.price) / stock.price) * 100;
-            }
-
             return {
                 symbol: stock.symbol,
                 close: stock.price,
                 resistance: latest?.resistance || latestScannerEntry?.resistance,
-                model: latest?.mlFutPrice20d || latestScannerEntry?.model,
-                mlGap: mlGap || latestScannerEntry?.mlGap || 0,
+                model: latestScannerEntry?.model || latest?.mlFutPrice20d,
+                mlGap: latestScannerEntry?.mlGap || 0,
                 balance: latest?.projFvg || latestScannerEntry?.BALANCE || latestScannerEntry?.balance || boData?.BALANCE || "—",
                 fr: latestScannerEntry?.fr || "—",
                 obvSignal: latestScannerEntry?.obvSignal || "—"
