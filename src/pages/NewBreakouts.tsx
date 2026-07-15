@@ -74,16 +74,41 @@ export function NewBreakouts() {
     };
 
     const parseDate = (dateStr: string): Date | null => {
+        if (!dateStr) return null;
+        const num = Number(dateStr);
+        if (!isNaN(num) && num > 40000) {
+            const utc_days = Math.floor(num - 25569);
+            return new Date(utc_days * 86400 * 1000);
+        }
+
         let d = new Date(dateStr);
         if (!isNaN(d.getTime())) return d;
-        const parts = (dateStr || '').trim().split('-');
+
+        const str = String(dateStr).trim();
+        const parts = str.split(/[-\/]/);
         if (parts.length === 3) {
+            // First check if it's alphanumeric month like DD-MMM-YY
             const months: Record<string, number> = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
-            const m = months[parts[1].toLowerCase().substring(0,3)];
-            if (m !== undefined) {
+            const mStr = parts[1].toLowerCase().substring(0,3);
+            if (months[mStr] !== undefined) {
                 let y = parseInt(parts[2], 10);
                 if (y < 100) y += 2000;
-                d = new Date(y, m, parseInt(parts[0], 10));
+                d = new Date(y, months[mStr], parseInt(parts[0], 10));
+                if (!isNaN(d.getTime())) return d;
+            }
+
+            // Fallback to numeric parsing
+            const p = parts.map(part => parseInt(part, 10));
+            if (!p.some(isNaN)) {
+                if (p[0] > 1000) {
+                    d = new Date(p[0], p[1] - 1, p[2]);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                if (p[2] > 1000) {
+                    d = new Date(p[2], p[1] - 1, p[0]);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                d = new Date(p[2], p[1] - 1, p[0]); // assume DD-MM-YY by default if no 4 digit year
                 if (!isNaN(d.getTime())) return d;
             }
         }
