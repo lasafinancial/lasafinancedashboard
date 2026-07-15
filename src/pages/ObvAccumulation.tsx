@@ -62,20 +62,38 @@ export function ObvAccumulation() {
         if (!rawStocks) return [];
 
         const latestBySymbol = new Map();
-        rawStocks.forEach(stock => {
-            const currentLatest = latestBySymbol.get(stock.symbol);
-            const stockDateTime = new Date(`${stock.date} ${stock.time}`).getTime();
-            
-            if (!currentLatest || stockDateTime > currentLatest.time) {
-                latestBySymbol.set(stock.symbol, { stock, time: stockDateTime });
-            }
-        });
+        if (rawStocks) {
+            rawStocks.forEach(stock => {
+                const currentLatest = latestBySymbol.get(stock.symbol);
+                const stockDateTime = new Date(`${stock.date} ${stock.time}`).getTime();
+                
+                if (!currentLatest || stockDateTime > currentLatest.time) {
+                    latestBySymbol.set(stock.symbol, { stock, time: stockDateTime });
+                }
+            });
+        }
         
-        let data = Array.from(latestBySymbol.values()).map(item => {
-            const boData = intradayBreakout?.find((bo) => bo.symbol === item.stock.symbol);
+        let data = (stockData || []).map(stock => {
+            const latestScannerEntry = latestBySymbol.get(stock.symbol)?.stock;
+            const boData = intradayBreakout?.find((bo) => bo.symbol === stock.symbol);
+            
+            const history = stock.history || [];
+            const latest = history[history.length - 1];
+            
+            let mlGap = 0;
+            if (latest?.mlFutPrice20d && stock.price) {
+                mlGap = ((latest.mlFutPrice20d - stock.price) / stock.price) * 100;
+            }
+
             return {
-                ...item.stock,
-                balance: item.stock.BALANCE || item.stock.balance || boData?.BALANCE || "—"
+                symbol: stock.symbol,
+                close: stock.price,
+                resistance: latest?.resistance || latestScannerEntry?.resistance,
+                model: latest?.mlFutPrice20d || latestScannerEntry?.model,
+                mlGap: mlGap || latestScannerEntry?.mlGap || 0,
+                balance: latest?.projFvg || latestScannerEntry?.BALANCE || latestScannerEntry?.balance || boData?.BALANCE || "—",
+                fr: latestScannerEntry?.fr || "—",
+                obvSignal: latestScannerEntry?.obvSignal || "—"
             };
         });
 

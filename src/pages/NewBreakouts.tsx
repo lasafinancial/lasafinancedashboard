@@ -132,7 +132,7 @@ export function NewBreakouts() {
             const daysSinceNew = (today.getTime() - lnbd.getTime()) / (1000 * 60 * 60 * 24);
 
             // Only include if within 15 days
-            if (daysSinceNew < 0 || daysSinceNew > 15) return;
+            if (daysSinceNew < -2 || daysSinceNew > 15) return;
 
             // Use the latest scanner entry ONLY for the live current price
             const latestEntry = appearances[appearances.length - 1].entry;
