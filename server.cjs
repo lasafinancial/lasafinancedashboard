@@ -746,22 +746,39 @@ async function fetchData() {
           currentChangePercentMap.set(sym, changePct);
         }
       });
-
       let currentAllStocksModelMap = new Map();
       let currentAllStocksMlGapMap = new Map();
       try {
-        const allstocksRes = await sheets.spreadsheets.values.get({
-          spreadsheetId: EOD_SHEET_ID,
-          range: "'allstocks'!A:FZ",
-        });
-        const allstocksData = allstocksRes.data.values || [];
+        let allstocksRes;
+        try {
+          allstocksRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: EOD_SHEET_ID,
+            range: "'allstocks'!A1:ZZ",
+          });
+        } catch (e1) {
+          allstocksRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: EOD_SHEET_ID,
+            range: "'all stocks'!A1:ZZ",
+          });
+        }
+        const allstocksData = allstocksRes ? (allstocksRes.data.values || []) : [];
         if (allstocksData.length > 1) {
           const headers = allstocksData[0].map(h => (h || '').toString().trim().toUpperCase());
           let idIdx = headers.indexOf('SYMBOL');
           if (idIdx === -1) idIdx = headers.indexOf('ID');
           if (idIdx === -1) idIdx = colToIdx('C');
-          let modelIdx = colToIdx('AO');
-          let mlGapIdx = colToIdx('FK');
+
+          let modelIdx = headers.indexOf('MODEL');
+          if (modelIdx === -1) modelIdx = headers.indexOf('ML_FUT_PRICE_20D');
+          if (modelIdx === -1) modelIdx = colToIdx('AO');
+
+          let mlGapIdx = headers.indexOf('ML_GAP%');
+          if (mlGapIdx === -1) mlGapIdx = headers.indexOf('ML_GAP');
+          if (mlGapIdx === -1) mlGapIdx = headers.indexOf('ML_TARGET_PERCENT');
+          if (mlGapIdx === -1) mlGapIdx = headers.indexOf('MODEL %');
+          if (mlGapIdx === -1) mlGapIdx = headers.indexOf('MODEL%');
+          if (mlGapIdx === -1) mlGapIdx = colToIdx('FK');
+
           let closeIdx = headers.indexOf('CLOSE_PRICE');
           if (closeIdx === -1) closeIdx = headers.indexOf('LTP');
           if (closeIdx === -1) closeIdx = colToIdx('E');
@@ -777,14 +794,21 @@ async function fetchData() {
               rawRow[colToIdx('B')]
             ].filter(Boolean).map(s => s.toString().trim().toUpperCase());
 
-            const uniqueSyms = new Set(candidates);
-            candidates.forEach(c => uniqueSyms.add(c.replace(/[^A-Z0-9]/g, '')));
+            const uniqueSyms = new Set();
+            candidates.forEach(c => {
+              uniqueSyms.add(c);
+              uniqueSyms.add(c.replace('.NS', ''));
+              uniqueSyms.add(c.replace(/[^A-Z0-9]/g, ''));
+              uniqueSyms.add(c.replace(/\s+/g, ''));
+            });
 
             if (uniqueSyms.size > 0) {
               const cp = parseFloat((rawRow[closeIdx] || '0').toString().replace(/,/g, ''));
-              const modelVal = parseFloat((rawRow[modelIdx] || '0').toString().replace(/,/g, ''));
               
-              const rawMlStr = (rawRow[mlGapIdx] || '').toString().trim();
+              const rawModelStr = (rawRow[modelIdx] !== undefined ? rawRow[modelIdx] : (rawRow[colToIdx('AO')] || '0')).toString().trim();
+              const modelVal = parseFloat(rawModelStr.replace(/,/g, ''));
+              
+              const rawMlStr = (rawRow[mlGapIdx] !== undefined ? rawRow[mlGapIdx] : (rawRow[colToIdx('FK')] || '')).toString().trim();
               let mlGapVal = NaN;
               if (rawMlStr) {
                 mlGapVal = parseFloat(rawMlStr.replace('%', '').replace(/,/g, ''));
@@ -866,31 +890,47 @@ async function fetchData() {
 
       const mapStock = (row) => {
         const closePrice = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
-        const sym = (row['ID'] || row['C'] || row['SYMBOL'] || '').toString().trim().toUpperCase();
-        const symClean = sym.replace(/[^A-Z0-9]/g, '');
+        const symRaw = (row['ID'] || row['C'] || row['SYMBOL'] || row['STOCK_NAME'] || '').toString().trim().toUpperCase();
+        
+        const candidateKeys = [
+          symRaw,
+          symRaw.replace('.NS', ''),
+          symRaw.replace(/[^A-Z0-9]/g, ''),
+          symRaw.replace(/\s+/g, ''),
+          (row['ID'] || '').toString().trim().toUpperCase(),
+          (row['SYMBOL'] || '').toString().trim().toUpperCase(),
+          (row['STOCK_NAME'] || '').toString().trim().toUpperCase(),
+          (row[colToIdx('C')] || '').toString().trim().toUpperCase(),
+          (row[colToIdx('A')] || '').toString().trim().toUpperCase(),
+          (row[colToIdx('B')] || '').toString().trim().toUpperCase()
+        ].filter(Boolean);
 
-        let mlTargetPercent = 0;
-        if (currentAllStocksMlGapMap.has(sym)) {
-          mlTargetPercent = currentAllStocksMlGapMap.get(sym);
-        } else if (currentAllStocksMlGapMap.has(symClean)) {
-          mlTargetPercent = currentAllStocksMlGapMap.get(symClean);
-        } else {
+        let mlTargetPercent = undefined;
+        for (const k of candidateKeys) {
+          if (currentAllStocksMlGapMap.has(k)) {
+            mlTargetPercent = currentAllStocksMlGapMap.get(k);
+            break;
+          }
+        }
+        if (mlTargetPercent === undefined) {
           const rawFallback = getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]);
           mlTargetPercent = Math.abs(rawFallback) > 2 ? rawFallback / 100 : rawFallback;
         }
 
-        let algoM = 0;
-        if (currentAllStocksModelMap.has(sym)) {
-          algoM = currentAllStocksModelMap.get(sym);
-        } else if (currentAllStocksModelMap.has(symClean)) {
-          algoM = currentAllStocksModelMap.get(symClean);
-        } else {
+        let algoM = undefined;
+        for (const k of candidateKeys) {
+          if (currentAllStocksModelMap.has(k)) {
+            algoM = currentAllStocksModelMap.get(k);
+            break;
+          }
+        }
+        if (algoM === undefined) {
           algoM = getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]);
         }
 
         return {
           dEma200Status: (row['D-EMA-200-Status'] || row[nearResistanceIdx.ema200Status] || '').toString(),
-          id: sym || (row['ID'] || '').toString(),
+          id: symRaw || (row['ID'] || '').toString(),
           closePrice: closePrice,
           resistance: getNum(row['RESISTANCE'] || row[nearResistanceIdx.resistance]),
           support: getNum(row['SUPPORT'] || row[nearResistanceIdx.support]),
