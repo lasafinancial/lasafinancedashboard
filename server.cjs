@@ -792,7 +792,7 @@ async function fetchData() {
         resistance: colToIdx('DI'),
         support: colToIdx('DH'),
         breakout: colToIdx('DU'),
-        mlTargetPercent: colToIdx('EQ'),
+        mlTargetPercent: colToIdx('FK'),
         algoB: colToIdx('EM'),
         algFgPercent: colToIdx('FI'),
         wProjection2: colToIdx('FJ'),

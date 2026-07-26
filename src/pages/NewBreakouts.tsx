@@ -156,8 +156,8 @@ export function NewBreakouts() {
             lnbd.setHours(0,0,0,0);
             const daysSinceNew = (today.getTime() - lnbd.getTime()) / (1000 * 60 * 60 * 24);
 
-            // Only include if within 15 days
-            if (daysSinceNew < -2 || daysSinceNew > 15) return;
+            // Only include if within 30 days
+            if (daysSinceNew < -2 || daysSinceNew > 30) return;
 
             // Use the latest scanner entry ONLY for the live current price
             const latestEntry = appearances[appearances.length - 1].entry;
@@ -172,6 +172,7 @@ export function NewBreakouts() {
                 target: newBadgeEntry.target || 0,
                 obvSignal: newBadgeEntry.obvSignal || '—',
                 fr: newBadgeEntry.fr || '—',
+                mlGap: newBadgeEntry.mlGap || 0,
                 priceMove: newBadgeEntry.u || 0,
                 isPinned: pinnedSymbols.includes(sym),
                 latestNewBadgeDate: lnbd,
@@ -192,6 +193,11 @@ export function NewBreakouts() {
                 if (valA < valB) return sortDirection === "asc" ? -1 : 1;
                 if (valA > valB) return sortDirection === "asc" ? 1 : -1;
             }
+            if (sortField === "mlGap") {
+                const valA = a.mlGap || 0;
+                const valB = b.mlGap || 0;
+                if (valA !== valB) return sortDirection === "asc" ? valA - valB : valB - valA;
+            }
             if (sortField === "boDate") {
                 const valA = a.latestNewBadgeDate ? a.latestNewBadgeDate.getTime() : 0;
                 const valB = b.latestNewBadgeDate ? b.latestNewBadgeDate.getTime() : 0;
@@ -205,7 +211,7 @@ export function NewBreakouts() {
             if (a.daysSinceNew !== b.daysSinceNew) return a.daysSinceNew - b.daysSinceNew;
 
             return (b.time || '').localeCompare(a.time || '');
-        });
+        }).slice(0, 800);
     }, [intradayBreakoutScanner, searchTerm, pinnedSymbols, sortField, sortDirection]);
 
     const renderStars = (stars: string) => {
@@ -250,7 +256,7 @@ export function NewBreakouts() {
                         </div>
                         <div>
                             <h1 className="text-xl font-bold tracking-tight">New Breakouts <span className="gradient-text italic">Screener</span></h1>
-                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Recent breakouts (Last 15 days)</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Recent breakouts (Last 30 days)</p>
                         </div>
                     </div>
 
@@ -290,6 +296,7 @@ export function NewBreakouts() {
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">BO Price</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Resistance</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Model</TableHead>
+                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("mlGap")}>ML Gap% <SortIcon field="mlGap" /></TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("fr")}>Obv Breakout <SortIcon field="fr" /></TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">% Price Inc</TableHead>
                                     <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
@@ -341,6 +348,11 @@ export function NewBreakouts() {
                                                 </TableCell>
                                                 <TableCell className="py-1 text-right font-bold font-mono text-xs text-orange-400/80">
                                                     ₹{formatNumber(stock.MODEL || stock.targetPrice || stock.target)}
+                                                </TableCell>
+                                                <TableCell className="py-1 text-center font-bold font-mono text-xs">
+                                                    <span className="text-white/80">
+                                                        {stock.mlGap !== undefined && stock.mlGap !== null && !isNaN(stock.mlGap) ? `${stock.mlGap.toFixed(2)}%` : '—'}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="py-1 text-center font-bold font-mono text-xs">
                                                     <span className="text-white/80">
