@@ -833,6 +833,13 @@ async function fetchData() {
               });
             }
           }
+
+          stockData.forEach(s => {
+            const symUpper = (s.symbol || '').toUpperCase();
+            const symClean = symUpper.replace(/[^A-Z0-9]/g, '');
+            s.obvSignal = currentObvSignalMap.get(symUpper) || currentObvSignalMap.get(symClean) || '—';
+            s.fr = currentFrMap.get(symUpper) || currentFrMap.get(symClean) || '—';
+          });
         }
       } catch (err) {
         console.warn('Failed to fetch allstocks tab in server.cjs:', err.message);

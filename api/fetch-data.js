@@ -696,6 +696,13 @@ async function fetchData() {
         }
       }
 
+      stockData.forEach(s => {
+        const symUpper = (s.symbol || '').toUpperCase();
+        const symClean = symUpper.replace(/[^A-Z0-9]/g, '');
+        s.obvSignal = currentObvSignalMap.get(symUpper) || currentObvSignalMap.get(symClean) || '—';
+        s.fr = currentFrMap.get(symUpper) || currentFrMap.get(symClean) || '—';
+      });
+
       console.log(`[OBV_SIGNAL] Extracted signals for ${currentObvSignalMap.size} stocks from allstocks tab.`);
     }
   } catch (err) {
