@@ -756,10 +756,14 @@ async function fetchData() {
             range: "'allstocks'!A1:ZZ",
           });
         } catch (e1) {
-          allstocksRes = await sheets.spreadsheets.values.get({
-            spreadsheetId: EOD_SHEET_ID,
-            range: "'all stocks'!A1:ZZ",
-          });
+          try {
+            allstocksRes = await sheets.spreadsheets.values.get({
+              spreadsheetId: EOD_SHEET_ID,
+              range: "'lasa-master'!A1:ZZ",
+            });
+          } catch (e2) {
+            allstocksRes = { data: { values: [] } };
+          }
         }
         const allstocksData = allstocksRes ? (allstocksRes.data.values || []) : [];
         if (allstocksData.length > 1) {
@@ -767,6 +771,15 @@ async function fetchData() {
           let idIdx = headers.indexOf('SYMBOL');
           if (idIdx === -1) idIdx = headers.indexOf('ID');
           if (idIdx === -1) idIdx = colToIdx('C');
+
+          let obvIdx = headers.indexOf('OBV_SIGNAL');
+          if (obvIdx === -1) obvIdx = headers.indexOf('OBV SIGNAL');
+          if (obvIdx === -1) obvIdx = headers.indexOf('OBV');
+          if (obvIdx === -1) obvIdx = colToIdx('FO');
+
+          let frIdx = headers.indexOf('FR');
+          if (frIdx === -1) frIdx = headers.indexOf('OBV_DAILY');
+          if (frIdx === -1) frIdx = colToIdx('FR');
 
           let modelIdx = colToIdx('AO');
           let mlGapIdx = colToIdx('FK');

@@ -618,9 +618,11 @@ async function fetchData() {
   let currentAllStocksModelMap = new Map();
   let currentAllStocksMlGapMap = new Map();
 
-  // Fetch OBV_SIGNAL and CLOSE_PRICE exclusively from 'allstocks' tab as requested
+  // Fetch OBV_SIGNAL and CLOSE_PRICE exclusively from 'allstocks' tab (or fallback to 'lasa-master')
   try {
-    const allstocksData = allstocksRes ? (allstocksRes.data.values || []) : [];
+    const allstocksData = (allstocksRes && allstocksRes.data && allstocksRes.data.values && allstocksRes.data.values.length > 0)
+      ? allstocksRes.data.values
+      : (lasaMasterRes && lasaMasterRes.data && lasaMasterRes.data.values ? lasaMasterRes.data.values : []);
     if (allstocksData.length > 1) {
       const headers = allstocksData[0].map(h => (h || '').toString().trim().toUpperCase());
       
@@ -628,8 +630,14 @@ async function fetchData() {
       if (idIdx === -1) idIdx = headers.indexOf('ID');
       if (idIdx === -1) idIdx = colToIdx('C');
 
-      let obvIdx = colToIdx('FO');
-      let frIdx = colToIdx('FR');
+      let obvIdx = headers.indexOf('OBV_SIGNAL');
+      if (obvIdx === -1) obvIdx = headers.indexOf('OBV SIGNAL');
+      if (obvIdx === -1) obvIdx = headers.indexOf('OBV');
+      if (obvIdx === -1) obvIdx = colToIdx('FO');
+
+      let frIdx = headers.indexOf('FR');
+      if (frIdx === -1) frIdx = headers.indexOf('OBV_DAILY');
+      if (frIdx === -1) frIdx = colToIdx('FR');
 
       let modelIdx = colToIdx('AO');
       let mlGapIdx = colToIdx('FK');
