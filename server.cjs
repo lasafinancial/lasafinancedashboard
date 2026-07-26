@@ -114,6 +114,7 @@ app.use(express.json());
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
 const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';
+const ALLSTOCKS_SHEET_ID = '1uibGhhv6Zdil2aWk17fcq1U-csYUffBdQv3Relrgfog';
 let globalIntradayChanges = [];
 
 function getCredentials() {
@@ -394,6 +395,8 @@ async function fetchData() {
   let currentObvSignalMap = new Map();
   let currentFrMap = new Map();
   let currentAllStocksPriceMap = new Map();
+  let currentAllStocksModelMap = new Map();
+  let currentAllStocksMlGapMap = new Map();
 
   console.log('Fetching live data from Google Sheets...');
   const credentials = getCredentials();
@@ -749,20 +752,20 @@ async function fetchData() {
           currentChangePercentMap.set(sym, changePct);
         }
       });
-      let currentAllStocksModelMap = new Map();
-      let currentAllStocksMlGapMap = new Map();
+      currentAllStocksModelMap = new Map();
+      currentAllStocksMlGapMap = new Map();
       try {
         let allstocksRes;
         try {
           allstocksRes = await sheets.spreadsheets.values.get({
-            spreadsheetId: EOD_SHEET_ID,
+            spreadsheetId: ALLSTOCKS_SHEET_ID,
             range: "'allstocks'!A1:ZZ",
           });
         } catch (e1) {
           try {
             allstocksRes = await sheets.spreadsheets.values.get({
-              spreadsheetId: EOD_SHEET_ID,
-              range: "'lasa-master'!A1:ZZ",
+              spreadsheetId: ALLSTOCKS_SHEET_ID,
+              range: "'all stocks'!A1:ZZ",
             });
           } catch (e2) {
             allstocksRes = { data: { values: [] } };
@@ -780,7 +783,8 @@ async function fetchData() {
           if (obvIdx === -1) obvIdx = headers.indexOf('OBV');
           if (obvIdx === -1) obvIdx = colToIdx('FO');
 
-          let frIdx = headers.indexOf('FR');
+          let frIdx = headers.indexOf('OBV_DAILY_BREAKOUT');
+          if (frIdx === -1) frIdx = headers.indexOf('FR');
           if (frIdx === -1) frIdx = headers.indexOf('OBV_DAILY');
           if (frIdx === -1) frIdx = colToIdx('FR');
 

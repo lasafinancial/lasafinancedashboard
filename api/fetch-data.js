@@ -240,9 +240,9 @@ async function fetchData() {
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }),
     safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FZ" }),
-    sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'allstocks'!A1:ZZ" }).catch(async () => {
+    sheets.spreadsheets.values.get({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'allstocks'!A1:ZZ" }).catch(async () => {
       try {
-        return await sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'all stocks'!A1:ZZ" });
+        return await sheets.spreadsheets.values.get({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'all stocks'!A1:ZZ" });
       } catch (e) {
         console.warn('Failed to fetch allstocks / all stocks tab:', e.message);
         return { data: { values: [] } };
@@ -635,7 +635,8 @@ async function fetchData() {
       if (obvIdx === -1) obvIdx = headers.indexOf('OBV');
       if (obvIdx === -1) obvIdx = colToIdx('FO');
 
-      let frIdx = headers.indexOf('FR');
+      let frIdx = headers.indexOf('OBV_DAILY_BREAKOUT');
+      if (frIdx === -1) frIdx = headers.indexOf('FR');
       if (frIdx === -1) frIdx = headers.indexOf('OBV_DAILY');
       if (frIdx === -1) frIdx = colToIdx('FR');
 
