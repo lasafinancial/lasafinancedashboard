@@ -794,18 +794,6 @@ async function fetchData() {
         (row[colToIdx('B')] || '').toString().trim().toUpperCase()
       ].filter(Boolean);
 
-      let mlTargetPercent = undefined;
-      for (const k of candidateKeys) {
-        if (currentAllStocksMlGapMap.has(k)) {
-          mlTargetPercent = currentAllStocksMlGapMap.get(k);
-          break;
-        }
-      }
-      if (mlTargetPercent === undefined) {
-        const rawFallback = getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]);
-        mlTargetPercent = Math.abs(rawFallback) > 2 ? rawFallback / 100 : rawFallback;
-      }
-
       let algoM = undefined;
       for (const k of candidateKeys) {
         if (currentAllStocksModelMap.has(k)) {
@@ -815,6 +803,22 @@ async function fetchData() {
       }
       if (algoM === undefined) {
         algoM = getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]);
+      }
+
+      let mlTargetPercent = undefined;
+      if (closePrice > 0 && algoM > 0) {
+        mlTargetPercent = (algoM - closePrice) / closePrice;
+      } else {
+        for (const k of candidateKeys) {
+          if (currentAllStocksMlGapMap.has(k)) {
+            mlTargetPercent = currentAllStocksMlGapMap.get(k);
+            break;
+          }
+        }
+        if (mlTargetPercent === undefined) {
+          const rawFallback = getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]);
+          mlTargetPercent = Math.abs(rawFallback) > 2 ? rawFallback / 100 : rawFallback;
+        }
       }
 
       return {
