@@ -1755,6 +1755,20 @@ async function fetchData() {
     });
   }
 
+  // --- Attach OBV signals to every stockData item right before return ---
+  // This runs unconditionally, after all data is loaded, guaranteeing the fields exist.
+  finalStockData.forEach(s => {
+    const symUpper = (s.symbol || '').toUpperCase();
+    const symClean = symUpper.replace(/[^A-Z0-9]/g, '');
+    if (!s.obvSignal || s.obvSignal === '—') {
+      s.obvSignal = currentObvSignalMap.get(symUpper) || currentObvSignalMap.get(symClean) || '—';
+    }
+    if (!s.fr || s.fr === '—') {
+      s.fr = currentFrMap.get(symUpper) || currentFrMap.get(symClean) || '—';
+    }
+  });
+  console.log(`[OBV_FINAL] Attached OBV signals to ${finalStockData.filter(s => s.obvSignal && s.obvSignal !== '—').length}/${finalStockData.length} stockData items.`);
+
   return {
     marketMood,
     marketStrength: strengthData,

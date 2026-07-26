@@ -391,6 +391,9 @@ async function fetchData() {
   let niftyAnalysis = { history: [] };
   let currentPriceMap = new Map();
   let currentChangePercentMap = new Map();
+  let currentObvSignalMap = new Map();
+  let currentFrMap = new Map();
+  let currentAllStocksPriceMap = new Map();
 
   console.log('Fetching live data from Google Sheets...');
   const credentials = getCredentials();
@@ -808,6 +811,8 @@ async function fetchData() {
             });
 
             if (uniqueSyms.size > 0) {
+              const obvSignal = (rawRow[obvIdx] || '').toString().trim();
+              const frValue = (rawRow[frIdx] || '').toString().trim();
               const cp = parseFloat((rawRow[closeIdx] || '0').toString().replace(/,/g, ''));
               
               const rawModelStr = (rawRow[modelIdx] !== undefined ? rawRow[modelIdx] : (rawRow[colToIdx('AO')] || '0')).toString().trim();
@@ -826,6 +831,8 @@ async function fetchData() {
 
               uniqueSyms.forEach(sym => {
                 if (sym) {
+                  if (obvSignal) currentObvSignalMap.set(sym, obvSignal);
+                  if (frValue) currentFrMap.set(sym, frValue);
                   if (!isNaN(cp)) currentAllStocksPriceMap.set(sym, cp);
                   if (!isNaN(modelVal) && modelVal > 0) currentAllStocksModelMap.set(sym, modelVal);
                   if (!isNaN(mlGapVal)) currentAllStocksMlGapMap.set(sym, mlGapVal);
@@ -1524,10 +1531,14 @@ async function fetchData() {
               pattern: getVal('PATTERN', 14) || 'N/A',
               resGap: getNum(getVal('Res_Gap%', 20)),
               target: getNum(getVal('Target', 21)),
-              model: getVal('MODEL', 13) || 'N/A',
+              model: currentAllStocksModelMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksModelMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : (getVal('MODEL', 13) || 'N/A'),
               resistance: getNum(getVal('RESISTANCE', 16)),
               u: getNum(getVal('Price_%_Move', 10)),
-              mlGap: getNum(getVal('ML_GAP%', 27))
+              mlGap: currentAllStocksMlGapMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksMlGapMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : getNum(getVal('ML_GAP%', 27)),
+              close: currentAllStocksPriceMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksPriceMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : getNum(getVal('Close', 6)),
+              boPrice: getNum(getVal('Close', 6)),
+              obvSignal: currentObvSignalMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) || '—',
+              fr: currentFrMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) || '—'
             };
           })
           .sort((a, b) => {
@@ -1844,6 +1855,19 @@ async function fetchData() {
   } catch (err) {
     console.warn('Major fetch error in fetchData:', err.message);
   }
+
+  // --- Attach OBV signals to every stockData item right before return ---
+  stockData.forEach(s => {
+    const symUpper = (s.symbol || '').toUpperCase();
+    const symClean = symUpper.replace(/[^A-Z0-9]/g, '');
+    if (!s.obvSignal || s.obvSignal === '—') {
+      s.obvSignal = currentObvSignalMap.get(symUpper) || currentObvSignalMap.get(symClean) || '—';
+    }
+    if (!s.fr || s.fr === '—') {
+      s.fr = currentFrMap.get(symUpper) || currentFrMap.get(symClean) || '—';
+    }
+  });
+  console.log(`[OBV_FINAL] Attached OBV signals to ${stockData.filter(s => s.obvSignal && s.obvSignal !== '—').length}/${stockData.length} stockData items.`);
 
   return {
     marketMood,
