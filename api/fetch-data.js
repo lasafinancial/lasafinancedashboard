@@ -631,16 +631,8 @@ async function fetchData() {
       let obvIdx = colToIdx('FO');
       let frIdx = colToIdx('FR');
 
-      let modelIdx = headers.indexOf('MODEL');
-      if (modelIdx === -1) modelIdx = headers.indexOf('ML_FUT_PRICE_20D');
-      if (modelIdx === -1) modelIdx = colToIdx('AO');
-
-      let mlGapIdx = headers.indexOf('ML_GAP%');
-      if (mlGapIdx === -1) mlGapIdx = headers.indexOf('ML_GAP');
-      if (mlGapIdx === -1) mlGapIdx = headers.indexOf('ML_TARGET_PERCENT');
-      if (mlGapIdx === -1) mlGapIdx = headers.indexOf('MODEL %');
-      if (mlGapIdx === -1) mlGapIdx = headers.indexOf('MODEL%');
-      if (mlGapIdx === -1) mlGapIdx = colToIdx('FK');
+      let modelIdx = colToIdx('AO');
+      let mlGapIdx = colToIdx('FK');
       
       let closeIdx = headers.indexOf('CLOSE_PRICE');
       if (closeIdx === -1) closeIdx = headers.indexOf('LTP');
@@ -806,16 +798,16 @@ async function fetchData() {
       }
 
       let mlTargetPercent = undefined;
-      if (closePrice > 0 && algoM > 0) {
-        mlTargetPercent = (algoM - closePrice) / closePrice;
-      } else {
-        for (const k of candidateKeys) {
-          if (currentAllStocksMlGapMap.has(k)) {
-            mlTargetPercent = currentAllStocksMlGapMap.get(k);
-            break;
-          }
+      for (const k of candidateKeys) {
+        if (currentAllStocksMlGapMap.has(k)) {
+          mlTargetPercent = currentAllStocksMlGapMap.get(k);
+          break;
         }
-        if (mlTargetPercent === undefined) {
+      }
+      if (mlTargetPercent === undefined) {
+        if (closePrice > 0 && algoM > 0) {
+          mlTargetPercent = (algoM - closePrice) / closePrice;
+        } else {
           const rawFallback = getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]);
           mlTargetPercent = Math.abs(rawFallback) > 2 ? rawFallback / 100 : rawFallback;
         }
