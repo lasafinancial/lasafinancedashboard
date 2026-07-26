@@ -239,6 +239,7 @@ async function fetchData() {
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'golden'" }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }),
     safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }),
+    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FZ" }),
     sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'allstocks'!A1:ZZ" }).catch(async () => {
       try {
         return await sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'all stocks'!A1:ZZ" });
