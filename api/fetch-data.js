@@ -240,7 +240,7 @@ async function fetchData() {
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }),
     safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FZ" }),
-    sheets.spreadsheets.values.get({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'allstocks'!A1:FZ" }).catch(e => { console.warn('Failed to fetch allstocks tab:', e.message); return { data: { values: [] } }; }),
+    sheets.spreadsheets.values.get({ spreadsheetId: EOD_SHEET_ID, range: "'allstocks'!A1:FZ" }).catch(e => { console.warn('Failed to fetch allstocks tab:', e.message); return { data: { values: [] } }; }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' })
   ]);
@@ -739,6 +739,7 @@ async function fetchData() {
 
     const mapStock = (row) => {
       const closePrice = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
+      const sym = (row['ID'] || row[nearResistanceIdx.id] || '').toString().trim().toUpperCase();
 
       return {
         dEma200Status: (row['D-EMA-200-Status'] || row[nearResistanceIdx.ema200Status] || '').toString(),
@@ -747,13 +748,13 @@ async function fetchData() {
         resistance: getNum(row['RESISTANCE'] || row[nearResistanceIdx.resistance]),
         support: getNum(row['SUPPORT'] || row[nearResistanceIdx.support]),
         dBreakoutPrice: getNum(row['D_BREAKOUT_PRICE'] || row[nearResistanceIdx.breakout]),
-        mlTargetPercent: getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]),
+        mlTargetPercent: currentAllStocksMlGapMap.has(sym) ? currentAllStocksMlGapMap.get(sym) : getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]),
         algoB: getNum(row['ALGO_B'] || row[nearResistanceIdx.algoB]),
         algFgPercent: getNum(row[nearResistanceIdx.algFgPercent]),
         wProjection2: getNum(row['W_PROJECTION_2'] || row[nearResistanceIdx.wProjection2]),
         wProjection3: 0,
         algoFG: getNum(row['PROJ_FVG'] || row[nearResistanceIdx.algoFG]),
-        algoM: getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]),
+        algoM: currentAllStocksModelMap.has(sym) ? currentAllStocksModelMap.get(sym) : getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]),
         algoW: getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW]),
         changePercent: getNum(row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')])
       };
