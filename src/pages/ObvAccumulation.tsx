@@ -77,6 +77,7 @@ export function ObvAccumulation() {
             
             const history = stock.history || [];
             const latest = history[history.length - 1];
+            const lastValidFvg = history.slice().reverse().find(h => h.projFvg && h.projFvg > 0)?.projFvg;
             
             return {
                 symbol: stock.symbol,
@@ -84,7 +85,7 @@ export function ObvAccumulation() {
                 resistance: latest?.resistance || latestScannerEntry?.resistance,
                 model: latestScannerEntry?.model || latest?.mlFutPrice20d,
                 mlGap: latestScannerEntry?.mlGap || 0,
-                balance: latest?.projFvg || latestScannerEntry?.BALANCE || latestScannerEntry?.balance || boData?.BALANCE || "—",
+                balance: lastValidFvg || latestScannerEntry?.BALANCE || latestScannerEntry?.balance || boData?.BALANCE || "—",
                 fr: (stock as any).fr || latestScannerEntry?.fr || "—",
                 obvSignal: (stock as any).obvSignal || latestScannerEntry?.obvSignal || "—"
             };
