@@ -762,14 +762,46 @@ async function fetchData() {
           if (idIdx === -1) idIdx = colToIdx('C');
           let modelIdx = colToIdx('AO');
           let mlGapIdx = colToIdx('FK');
+          let closeIdx = headers.indexOf('CLOSE_PRICE');
+          if (closeIdx === -1) closeIdx = headers.indexOf('LTP');
+          if (closeIdx === -1) closeIdx = colToIdx('E');
+
           for (let i = 1; i < allstocksData.length; i++) {
             const rawRow = allstocksData[i];
-            const sym = (rawRow[idIdx] || rawRow[colToIdx('C')] || rawRow[colToIdx('A')] || '').toString().trim().toUpperCase();
-            if (sym) {
+            if (!rawRow || rawRow.length === 0) continue;
+
+            const candidates = [
+              idIdx !== -1 ? rawRow[idIdx] : null,
+              rawRow[colToIdx('C')],
+              rawRow[colToIdx('A')],
+              rawRow[colToIdx('B')]
+            ].filter(Boolean).map(s => s.toString().trim().toUpperCase());
+
+            const uniqueSyms = new Set(candidates);
+            candidates.forEach(c => uniqueSyms.add(c.replace(/[^A-Z0-9]/g, '')));
+
+            if (uniqueSyms.size > 0) {
+              const cp = parseFloat((rawRow[closeIdx] || '0').toString().replace(/,/g, ''));
               const modelVal = parseFloat((rawRow[modelIdx] || '0').toString().replace(/,/g, ''));
-              if (!isNaN(modelVal) && modelVal > 0) currentAllStocksModelMap.set(sym, modelVal);
-              const mlGapVal = parseFloat((rawRow[mlGapIdx] || '0').toString().replace(/,/g, ''));
-              if (!isNaN(mlGapVal)) currentAllStocksMlGapMap.set(sym, mlGapVal);
+              
+              const rawMlStr = (rawRow[mlGapIdx] || '').toString().trim();
+              let mlGapVal = NaN;
+              if (rawMlStr) {
+                mlGapVal = parseFloat(rawMlStr.replace('%', '').replace(/,/g, ''));
+                if (!isNaN(mlGapVal)) {
+                  if (rawMlStr.includes('%') || Math.abs(mlGapVal) > 2) {
+                    mlGapVal = mlGapVal / 100;
+                  }
+                }
+              }
+
+              uniqueSyms.forEach(sym => {
+                if (sym) {
+                  if (!isNaN(cp)) currentAllStocksPriceMap.set(sym, cp);
+                  if (!isNaN(modelVal) && modelVal > 0) currentAllStocksModelMap.set(sym, modelVal);
+                  if (!isNaN(mlGapVal)) currentAllStocksMlGapMap.set(sym, mlGapVal);
+                }
+              });
             }
           }
         }
@@ -834,22 +866,42 @@ async function fetchData() {
 
       const mapStock = (row) => {
         const closePrice = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
-        const sym = (row['ID'] || row[nearResistanceIdx.id] || '').toString().trim().toUpperCase();
+        const sym = (row['ID'] || row['C'] || row['SYMBOL'] || '').toString().trim().toUpperCase();
+        const symClean = sym.replace(/[^A-Z0-9]/g, '');
+
+        let mlTargetPercent = 0;
+        if (currentAllStocksMlGapMap.has(sym)) {
+          mlTargetPercent = currentAllStocksMlGapMap.get(sym);
+        } else if (currentAllStocksMlGapMap.has(symClean)) {
+          mlTargetPercent = currentAllStocksMlGapMap.get(symClean);
+        } else {
+          const rawFallback = getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]);
+          mlTargetPercent = Math.abs(rawFallback) > 2 ? rawFallback / 100 : rawFallback;
+        }
+
+        let algoM = 0;
+        if (currentAllStocksModelMap.has(sym)) {
+          algoM = currentAllStocksModelMap.get(sym);
+        } else if (currentAllStocksModelMap.has(symClean)) {
+          algoM = currentAllStocksModelMap.get(symClean);
+        } else {
+          algoM = getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]);
+        }
 
         return {
           dEma200Status: (row['D-EMA-200-Status'] || row[nearResistanceIdx.ema200Status] || '').toString(),
-          id: (row['ID'] || row[nearResistanceIdx.id] || '').toString(),
+          id: sym || (row['ID'] || '').toString(),
           closePrice: closePrice,
           resistance: getNum(row['RESISTANCE'] || row[nearResistanceIdx.resistance]),
           support: getNum(row['SUPPORT'] || row[nearResistanceIdx.support]),
           dBreakoutPrice: getNum(row['D_BREAKOUT_PRICE'] || row[nearResistanceIdx.breakout]),
-          mlTargetPercent: currentAllStocksMlGapMap.has(sym) ? currentAllStocksMlGapMap.get(sym) : getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]),
+          mlTargetPercent: mlTargetPercent,
           algoB: getNum(row['ALGO_B'] || row[nearResistanceIdx.algoB]),
           algFgPercent: getNum(row[nearResistanceIdx.algFgPercent]),
           wProjection2: getNum(row['W_PROJECTION_2'] || row[nearResistanceIdx.wProjection2]),
           wProjection3: 0,
           algoFG: getNum(row['PROJ_FVG'] || row[nearResistanceIdx.algoFG]),
-          algoM: currentAllStocksModelMap.has(sym) ? currentAllStocksModelMap.get(sym) : getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]),
+          algoM: algoM,
           algoW: getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW]),
           changePercent: getNum(row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')])
         };
