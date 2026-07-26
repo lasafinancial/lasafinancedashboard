@@ -59,8 +59,6 @@ export function ObvAccumulation() {
 
     // Filter and Sort Data
     const processedStocks = useMemo(() => {
-        if (!rawStocks) return [];
-
         const latestBySymbol = new Map();
         if (rawStocks) {
             rawStocks.forEach(stock => {
@@ -121,7 +119,7 @@ export function ObvAccumulation() {
         });
 
         return data;
-    }, [rawStocks, intradayBreakout, searchTerm, sortField, sortDirection]);
+    }, [stockData, rawStocks, intradayBreakout, searchTerm, sortField, sortDirection]);
 
     const handleStockClick = (symbol: string) => {
         navigate(`/stocks?symbol=${symbol}`);

@@ -188,12 +188,6 @@ function notifyListeners(data: GoogleSheetsData) {
 export async function refreshAllData(force: boolean = false): Promise<GoogleSheetsData | null> {
   const now = Date.now();
 
-  // If not forced and market is closed, return cached data to avoid unnecessary API calls
-  if (!force && !isMarketOpen() && cachedData) {
-    console.log('Market is closed. Skipping auto-refresh and using cached data.');
-    return cachedData;
-  }
-
   if (!force && cachedData && (now - lastFetchTime) < CACHE_DURATION) {
     return cachedData;
   }
