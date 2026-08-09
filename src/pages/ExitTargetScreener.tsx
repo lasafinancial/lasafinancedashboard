@@ -18,14 +18,32 @@ import { ExitTargetScreenerItem } from "@/lib/googleSheetsService";
 
 type SortField = keyof ExitTargetScreenerItem;
 
+function parseDateValue(dateStr: string): number {
+  if (!dateStr || !dateStr.trim()) return 0;
+  const str = dateStr.trim();
+  const parsed = Date.parse(str);
+  if (!isNaN(parsed) && parsed > 0) return parsed;
+
+  const parts = str.split(/[-/]/);
+  if (parts.length === 3) {
+    const d = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const y = parseInt(parts[2], 10);
+    if (!isNaN(d) && !isNaN(m) && !isNaN(y)) {
+      return new Date(y < 100 ? 2000 + y : y, m, d).getTime();
+    }
+  }
+  return 0;
+}
+
 export function ExitTargetScreener() {
   const navigate = useNavigate();
   const { exitTargetScreener, lastUpdate, refresh, isLoading, stockData } = useLiveData();
   const { isFree } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [sortField, setSortField] = useState<SortField | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortField, setSortField] = useState<SortField | null>("date");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Extract unique status list for filtering
   const availableStatuses = useMemo(() => {
@@ -43,7 +61,7 @@ export function ExitTargetScreener() {
       setSortDirection(prev => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
-      setSortDirection("asc");
+      setSortDirection(field === "date" ? "desc" : "asc");
     }
   };
 
@@ -59,7 +77,7 @@ export function ExitTargetScreener() {
   const filteredAndSortedData = useMemo(() => {
     let data: ExitTargetScreenerItem[] = [...(exitTargetScreener || [])];
 
-    // Search filter (matches ID or Status)
+    // Search filter (matches DATE, ID, Status, or Reason)
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       data = data.filter(
@@ -78,27 +96,37 @@ export function ExitTargetScreener() {
       );
     }
 
-    // Sorting across ALL 8 columns
-    if (sortField) {
-      data.sort((a, b) => {
-        const valA = a[sortField] || "";
-        const valB = b[sortField] || "";
+    // Sorting across columns (default to date descending)
+    const effectiveSortField = sortField || "date";
+    const effectiveSortDir = sortField ? sortDirection : "desc";
 
-        // Helper to check if string is numeric
-        const numA = parseFloat(valA.replace(/,/g, "").replace(/%/g, ""));
-        const numB = parseFloat(valB.replace(/,/g, "").replace(/%/g, ""));
+    data.sort((a, b) => {
+      const valA = a[effectiveSortField] || "";
+      const valB = b[effectiveSortField] || "";
 
-        const isNumA = !isNaN(numA) && !valA.includes(":") && !valA.includes("-");
-        const isNumB = !isNaN(numB) && !valB.includes(":") && !valB.includes("-");
-
-        if (isNumA && isNumB) {
-          return sortDirection === "asc" ? numA - numB : numB - numA;
+      // Handle Date fields
+      if (effectiveSortField === "date" || effectiveSortField === "exitDate") {
+        const timeA = parseDateValue(valA);
+        const timeB = parseDateValue(valB);
+        if (timeA !== 0 || timeB !== 0) {
+          return effectiveSortDir === "asc" ? timeA - timeB : timeB - timeA;
         }
+      }
 
-        const cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
-        return sortDirection === "asc" ? cmp : -cmp;
-      });
-    }
+      // Helper to check if string is numeric
+      const numA = parseFloat(valA.replace(/,/g, "").replace(/%/g, ""));
+      const numB = parseFloat(valB.replace(/,/g, "").replace(/%/g, ""));
+
+      const isNumA = !isNaN(numA) && !valA.includes(":") && !valA.includes("-");
+      const isNumB = !isNaN(numB) && !valB.includes(":") && !valB.includes("-");
+
+      if (isNumA && isNumB) {
+        return effectiveSortDir === "asc" ? numA - numB : numB - numA;
+      }
+
+      const cmp = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+      return effectiveSortDir === "asc" ? cmp : -cmp;
+    });
 
     return data;
   }, [exitTargetScreener, searchTerm, statusFilter, sortField, sortDirection]);
