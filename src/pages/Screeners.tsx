@@ -83,8 +83,8 @@ const screenerOptions = [
         gradient: "from-emerald-400/20 to-transparent"
     },
     {
-        path: "/screeners/exit-target",
-        label: "EXIT / TARGET SCREENER",
+        path: "/screeners/recommendations",
+        label: "RECOMMENDATIONS",
         description: "Dynamic tracking of target levels, buy prices, stoploss, and exit signals.",
         icon: Crosshair,
         color: "text-amber-400",

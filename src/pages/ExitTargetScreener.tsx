@@ -178,7 +178,7 @@ export function ExitTargetScreener() {
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight">
-                EXIT / TARGET <span className="gradient-text italic">SCREENER</span>
+                RECOMMENDATIONS <span className="gradient-text italic">SCREENER</span>
               </h1>
               <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">
                 Recommendation Analysis • Exit & Target Tracker

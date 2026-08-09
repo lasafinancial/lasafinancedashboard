@@ -239,7 +239,8 @@ const AppContent = () => {
             <Route path="/screeners/breakout-v1" element={<ProtectedRoute><BreakoutBoardV1 /></ProtectedRoute>} />
             <Route path="/screeners/new-breakouts" element={<ProtectedRoute><NewBreakouts /></ProtectedRoute>} />
             <Route path="/screeners/obv-accumulation" element={<ProtectedRoute><ObvAccumulation /></ProtectedRoute>} />
-            <Route path="/screeners/exit-target" element={<ProtectedRoute><ExitTargetScreener /></ProtectedRoute>} />
+            <Route path="/screeners/recommendations" element={<ProtectedRoute><ExitTargetScreener /></ProtectedRoute>} />
+            <Route path="/screeners/exit-target" element={<Navigate to="/screeners/recommendations" replace />} />
             <Route path="/nifty50" element={<ProtectedRoute><Nifty50 /></ProtectedRoute>} />
             <Route path="/daily-news" element={<ProtectedRoute><DailyNews /></ProtectedRoute>} />
             <Route path="/backtests" element={<ProtectedRoute><Backtests /></ProtectedRoute>} />
