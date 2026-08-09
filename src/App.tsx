@@ -14,6 +14,7 @@ import Dashboard from "@/pages/Dashboard";
 import StockAnalysis from "@/pages/StockAnalysis";
 import Sectors from "@/pages/Sectors";
 import Multibagger from "@/pages/Multibagger";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 //screeners 
 import Screeners from "@/pages/Screeners";
 import NearResistance from "@/pages/NearResistance";
@@ -228,9 +229,9 @@ const AppContent = () => {
             <Route path="/sectors" element={<ProtectedRoute><Sectors /></ProtectedRoute>} />
             <Route path="/multibagger" element={<ProtectedRoute><Multibagger /></ProtectedRoute>} />
             <Route path="/screeners" element={<ProtectedRoute><Screeners /></ProtectedRoute>} />
-            <Route path="/screeners/near-resistance" element={<ProtectedRoute><NearResistance /></ProtectedRoute>} />
-            <Route path="/screeners/support-reversal" element={<ProtectedRoute><SupportReversal /></ProtectedRoute>} />
-            <Route path="/screeners/reaction-zone" element={<ProtectedRoute><ReactionZone /></ProtectedRoute>} />
+            <Route path="/screeners/near-resistance" element={FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER ? <ProtectedRoute><NearResistance /></ProtectedRoute> : <Navigate to="/screeners" replace />} />
+            <Route path="/screeners/support-reversal" element={FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER ? <ProtectedRoute><SupportReversal /></ProtectedRoute> : <Navigate to="/screeners" replace />} />
+            <Route path="/screeners/reaction-zone" element={FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER ? <ProtectedRoute><ReactionZone /></ProtectedRoute> : <Navigate to="/screeners" replace />} />
             <Route path="/screeners/intraday-breakout" element={<ProtectedRoute><IntradayBreakout /></ProtectedRoute>} />
             <Route path="/screeners/intraday-breakout-scanner" element={<ProtectedRoute><IntradayBreakoutScanner /></ProtectedRoute>} />
             <Route path="/screeners/intraday-reversal" element={<ProtectedRoute><IntradayReversal /></ProtectedRoute>} />

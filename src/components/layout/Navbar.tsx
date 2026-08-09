@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { CountrySelector } from "@/components/ui/CountrySelector";
 import type { CountryId } from "@/components/ui/CountrySelectionModal";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import {
@@ -143,36 +144,42 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Recent Breakouts</span>
                         </div>
                       </Link>
-                      <Link
-                        to="/screeners/near-resistance"
-                        onClick={() => setIsScreenersOpen(false)}
-                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Breakout</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Bullish Setups</span>
-                        </div>
-                      </Link>
-                      <Link
-                        to="/screeners/support-reversal"
-                        onClick={() => setIsScreenersOpen(false)}
-                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Reversal</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Potential Reversals</span>
-                        </div>
-                      </Link>
-                      <Link
-                        to="/screeners/reaction-zone"
-                        onClick={() => setIsScreenersOpen(false)}
-                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Reaction Zone</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Algo Level Proximity</span>
-                        </div>
-                      </Link>
+                      {FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER && (
+                        <Link
+                          to="/screeners/near-resistance"
+                          onClick={() => setIsScreenersOpen(false)}
+                          className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold">Breakout</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Bullish Setups</span>
+                          </div>
+                        </Link>
+                      )}
+                      {FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER && (
+                        <Link
+                          to="/screeners/support-reversal"
+                          onClick={() => setIsScreenersOpen(false)}
+                          className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold">Reversal</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Potential Reversals</span>
+                          </div>
+                        </Link>
+                      )}
+                      {FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER && (
+                        <Link
+                          to="/screeners/reaction-zone"
+                          onClick={() => setIsScreenersOpen(false)}
+                          className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold">Reaction Zone</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Algo Level Proximity</span>
+                          </div>
+                        </Link>
+                      )}
                       <Link
                         to="/screeners/intraday-breakout"
                         onClick={() => setIsScreenersOpen(false)}
@@ -434,9 +441,9 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                             <div className="pl-12 space-y-1 border-l border-white/5 ml-6">
                               <Link to="/screeners/breakout-v1" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout Board v1</Link>
                               <Link to="/screeners/new-breakouts" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">New Breakouts</Link>
-                              <Link to="/screeners/near-resistance" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout</Link>
-                              <Link to="/screeners/support-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reversal</Link>
-                              <Link to="/screeners/reaction-zone" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reaction Zone</Link>
+                              {FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER && <Link to="/screeners/near-resistance" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout</Link>}
+                              {FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER && <Link to="/screeners/support-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reversal</Link>}
+                              {FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER && <Link to="/screeners/reaction-zone" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reaction Zone</Link>}
                               <Link to="/screeners/intraday-breakout" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Volume Breakout</Link>
                               <Link to="/screeners/intraday-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Reversal</Link>
                               <Link to="/screeners/intraday-breakout-scanner" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">ML Setup</Link>

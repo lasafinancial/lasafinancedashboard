@@ -7,6 +7,12 @@ const path = require('path');
 const admin = require('firebase-admin');
 const twilio = require('twilio');
 
+const FEATURE_FLAGS = {
+  ENABLE_BREAKOUT_SCREENER: false,       // Disables BREAKOUT (nearResistance) screener
+  ENABLE_REVERSAL_SCREENER: false,       // Disables REVERSAL (supportReversal) screener
+  ENABLE_REACTION_ZONE_SCREENER: false,   // Disables REACTION ZONE (reactionZone) screener
+};
+
 // Global error handlers to prevent silent crashes
 process.on('uncaughtException', (err) => {
   console.error('FATAL: Uncaught Exception:', err);
@@ -894,128 +900,136 @@ async function fetchData() {
         }
       }
 
-      // --- Near Resistance Screener Implementation ---
-      const nearResistanceIdx = {
-        ema200Status: colToIdx('EP'),
-        id: colToIdx('C'),
-        closePrice: colToIdx('E'),
-        resistance: colToIdx('DI'),
-        support: colToIdx('DH'),
-        breakout: colToIdx('DU'),
-        mlTargetPercent: colToIdx('FK'),
-        algoB: colToIdx('EM'),
-        algFgPercent: colToIdx('FI'),
-        wProjection2: colToIdx('FJ'),
-        algoFG: colToIdx('DJ'),
-        algoM: colToIdx('AO'),
-        algoW: colToIdx('AR'),
-        changePercent: colToIdx('BR')
-      };
+      // --- Near Resistance, Support Reversal, and Reaction Zone Screeners ---
+      nearResistance = [];
+      supportReversal = [];
+      reactionZone = [];
 
-      const mapStock = (row) => {
-        const closePrice = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
-        const symRaw = (row['ID'] || row['C'] || row['SYMBOL'] || row['STOCK_NAME'] || '').toString().trim().toUpperCase();
-        
-        const candidateKeys = [
-          symRaw,
-          symRaw.replace('.NS', ''),
-          symRaw.replace(/[^A-Z0-9]/g, ''),
-          symRaw.replace(/\s+/g, ''),
-          (row['ID'] || '').toString().trim().toUpperCase(),
-          (row['SYMBOL'] || '').toString().trim().toUpperCase(),
-          (row['STOCK_NAME'] || '').toString().trim().toUpperCase(),
-          (row[colToIdx('C')] || '').toString().trim().toUpperCase(),
-          (row[colToIdx('A')] || '').toString().trim().toUpperCase(),
-          (row[colToIdx('B')] || '').toString().trim().toUpperCase()
-        ].filter(Boolean);
-
-        let algoM = undefined;
-        for (const k of candidateKeys) {
-          if (currentAllStocksModelMap.has(k)) {
-            algoM = currentAllStocksModelMap.get(k);
-            break;
-          }
-        }
-        if (algoM === undefined) {
-          algoM = getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]);
-        }
-
-        let mlTargetPercent = undefined;
-        for (const k of candidateKeys) {
-          if (currentAllStocksMlGapMap.has(k)) {
-            mlTargetPercent = currentAllStocksMlGapMap.get(k);
-            break;
-          }
-        }
-        if (mlTargetPercent === undefined) {
-          if (closePrice > 0 && algoM > 0) {
-            mlTargetPercent = (algoM - closePrice) / closePrice;
-          } else {
-            const rawFallback = getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]);
-            mlTargetPercent = Math.abs(rawFallback) > 2 ? rawFallback / 100 : rawFallback;
-          }
-        }
-
-        return {
-          dEma200Status: (row['D-EMA-200-Status'] || row[nearResistanceIdx.ema200Status] || '').toString(),
-          id: symRaw || (row['ID'] || '').toString(),
-          closePrice: closePrice,
-          resistance: getNum(row['RESISTANCE'] || row[nearResistanceIdx.resistance]),
-          support: getNum(row['SUPPORT'] || row[nearResistanceIdx.support]),
-          dBreakoutPrice: getNum(row['D_BREAKOUT_PRICE'] || row[nearResistanceIdx.breakout]),
-          mlTargetPercent: mlTargetPercent,
-          algoB: getNum(row['ALGO_B'] || row[nearResistanceIdx.algoB]),
-          algFgPercent: getNum(row[nearResistanceIdx.algFgPercent]),
-          wProjection2: getNum(row['W_PROJECTION_2'] || row[nearResistanceIdx.wProjection2]),
-          wProjection3: 0,
-          algoFG: getNum(row['PROJ_FVG'] || row[nearResistanceIdx.algoFG]),
-          algoM: algoM,
-          algoW: getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW]),
-          changePercent: getNum(row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')])
+      if (FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER || FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER || FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER) {
+        const nearResistanceIdx = {
+          ema200Status: colToIdx('EP'),
+          id: colToIdx('C'),
+          closePrice: colToIdx('E'),
+          resistance: colToIdx('DI'),
+          support: colToIdx('DH'),
+          breakout: colToIdx('DU'),
+          mlTargetPercent: colToIdx('FK'),
+          algoB: colToIdx('EM'),
+          algFgPercent: colToIdx('FI'),
+          wProjection2: colToIdx('FJ'),
+          algoFG: colToIdx('DJ'),
+          algoM: colToIdx('AO'),
+          algoW: colToIdx('AR'),
+          changePercent: colToIdx('BR')
         };
-      };
 
-      nearResistance = currentData.filter(row => {
-        const status = (row['STATUS'] || '').toString().toUpperCase();
-        const group = (row['GROUP'] || '').toString().toUpperCase();
-        return status === 'BULLISH' && (group === 'LARGECAP' || group === 'MIDCAP' || group === 'SMALLCAP');
-      }).map(mapStock).sort((a, b) => {
-        if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
-        if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
-        return b.mlTargetPercent - a.mlTargetPercent;
-      });
+        const mapStock = (row) => {
+          const closePrice = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
+          const symRaw = (row['ID'] || row['C'] || row['SYMBOL'] || row['STOCK_NAME'] || '').toString().trim().toUpperCase();
+          
+          const candidateKeys = [
+            symRaw,
+            symRaw.replace('.NS', ''),
+            symRaw.replace(/[^A-Z0-9]/g, ''),
+            symRaw.replace(/\s+/g, ''),
+            (row['ID'] || '').toString().trim().toUpperCase(),
+            (row['SYMBOL'] || '').toString().trim().toUpperCase(),
+            (row['STOCK_NAME'] || '').toString().trim().toUpperCase(),
+            (row[colToIdx('C')] || '').toString().trim().toUpperCase(),
+            (row[colToIdx('A')] || '').toString().trim().toUpperCase(),
+            (row[colToIdx('B')] || '').toString().trim().toUpperCase()
+          ].filter(Boolean);
 
-      // --- Support (Reversal) Screener Implementation ---
-      supportReversal = currentData.filter(row => {
-        const group = (row['GROUP'] || '').toString().toUpperCase();
-        const cp = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
-        const sup = getNum(row['SUPPORT'] || row[nearResistanceIdx.support]);
-        const brk = getNum(row['D_BREAKOUT_PRICE'] || row[nearResistanceIdx.breakout]);
-        return (group === 'LARGECAP' || group === 'MIDCAP' || group === 'SMALLCAP') && cp > sup && brk < sup;
-      }).map(mapStock).sort((a, b) => {
-        if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
-        if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
-        return b.mlTargetPercent - a.mlTargetPercent;
-      });
-      // --- End Near Resistance ---
+          let algoM = undefined;
+          for (const k of candidateKeys) {
+            if (currentAllStocksModelMap.has(k)) {
+              algoM = currentAllStocksModelMap.get(k);
+              break;
+            }
+          }
+          if (algoM === undefined) {
+            algoM = getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]);
+          }
 
-      // --- Start Reaction Zone ---
-      reactionZone = currentData.filter(row => {
-        const group = (row['GROUP'] || '').toString().toUpperCase();
-        const cp = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
-        const algoFG = getNum(row['PROJ_FVG'] || row[nearResistanceIdx.algoFG]);
-        const algoM = getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]);
-        const algoW = getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW]);
+          let mlTargetPercent = undefined;
+          for (const k of candidateKeys) {
+            if (currentAllStocksMlGapMap.has(k)) {
+              mlTargetPercent = currentAllStocksMlGapMap.get(k);
+              break;
+            }
+          }
+          if (mlTargetPercent === undefined) {
+            if (closePrice > 0 && algoM > 0) {
+              mlTargetPercent = (algoM - closePrice) / closePrice;
+            } else {
+              const rawFallback = getNum(row['ML_TARGET_PERCENT'] || row[nearResistanceIdx.mlTargetPercent]);
+              mlTargetPercent = Math.abs(rawFallback) > 2 ? rawFallback / 100 : rawFallback;
+            }
+          }
 
-        if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'SMALLCAP') return false;
+          return {
+            dEma200Status: (row['D-EMA-200-Status'] || row[nearResistanceIdx.ema200Status] || '').toString(),
+            id: symRaw || (row['ID'] || '').toString(),
+            closePrice: closePrice,
+            resistance: getNum(row['RESISTANCE'] || row[nearResistanceIdx.resistance]),
+            support: getNum(row['SUPPORT'] || row[nearResistanceIdx.support]),
+            dBreakoutPrice: getNum(row['D_BREAKOUT_PRICE'] || row[nearResistanceIdx.breakout]),
+            mlTargetPercent: mlTargetPercent,
+            algoB: getNum(row['ALGO_B'] || row[nearResistanceIdx.algoB]),
+            algFgPercent: getNum(row[nearResistanceIdx.algFgPercent]),
+            wProjection2: getNum(row['W_PROJECTION_2'] || row[nearResistanceIdx.wProjection2]),
+            wProjection3: 0,
+            algoFG: getNum(row['PROJ_FVG'] || row[nearResistanceIdx.algoFG]),
+            algoM: algoM,
+            algoW: getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW]),
+            changePercent: getNum(row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')])
+          };
+        };
 
-        const nearFG = algoFG > 0 && Math.abs(cp - algoFG) <= (algoFG * 0.01);
-        const nearM = algoM > 0 && Math.abs(cp - algoM) <= (algoM * 0.01);
-        const nearW = algoW > 0 && Math.abs(cp - algoW) <= (algoW * 0.01);
+        if (FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER) {
+          nearResistance = currentData.filter(row => {
+            const status = (row['STATUS'] || '').toString().toUpperCase();
+            const group = (row['GROUP'] || '').toString().toUpperCase();
+            return status === 'BULLISH' && (group === 'LARGECAP' || group === 'MIDCAP' || group === 'SMALLCAP');
+          }).map(mapStock).sort((a, b) => {
+            if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
+            if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
+            return b.mlTargetPercent - a.mlTargetPercent;
+          });
+        }
 
-        return nearFG || nearM || nearW;
-      }).map(mapStock).sort((a, b) => b.mlTargetPercent - a.mlTargetPercent);
-      // --- End Reaction Zone ---
+        if (FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER) {
+          supportReversal = currentData.filter(row => {
+            const group = (row['GROUP'] || '').toString().toUpperCase();
+            const cp = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
+            const sup = getNum(row['SUPPORT'] || row[nearResistanceIdx.support]);
+            const brk = getNum(row['D_BREAKOUT_PRICE'] || row[nearResistanceIdx.breakout]);
+            return (group === 'LARGECAP' || group === 'MIDCAP' || group === 'SMALLCAP') && cp > sup && brk < sup;
+          }).map(mapStock).sort((a, b) => {
+            if (a.dEma200Status === 'ABOVE' && b.dEma200Status !== 'ABOVE') return -1;
+            if (a.dEma200Status !== 'ABOVE' && b.dEma200Status === 'ABOVE') return 1;
+            return b.mlTargetPercent - a.mlTargetPercent;
+          });
+        }
+
+        if (FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER) {
+          reactionZone = currentData.filter(row => {
+            const group = (row['GROUP'] || '').toString().toUpperCase();
+            const cp = getNum(row['CLOSE_PRICE'] || row[nearResistanceIdx.closePrice]);
+            const algoFG = getNum(row['PROJ_FVG'] || row[nearResistanceIdx.algoFG]);
+            const algoM = getNum(row['ML_FUT_PRICE_20D'] || row[nearResistanceIdx.algoM]);
+            const algoW = getNum(row['WOLFE_D'] || row[nearResistanceIdx.algoW]);
+
+            if (group !== 'LARGECAP' && group !== 'MIDCAP' && group !== 'SMALLCAP') return false;
+
+            const nearFG = algoFG > 0 && Math.abs(cp - algoFG) <= (algoFG * 0.01);
+            const nearM = algoM > 0 && Math.abs(cp - algoM) <= (algoM * 0.01);
+            const nearW = algoW > 0 && Math.abs(cp - algoW) <= (algoW * 0.01);
+
+            return nearFG || nearM || nearW;
+          }).map(mapStock).sort((a, b) => b.mlTargetPercent - a.mlTargetPercent);
+        }
+      }
 
       // --- INDICES sheet: official stock lists per index (fixes 32→52 bug for NIFTY 50 etc.) ---
       const INDICES_SHEET_ID = '1EHB65PXFold-zCt-QkMzI_nfbZTuy4hEeS9G1naXhZQ';

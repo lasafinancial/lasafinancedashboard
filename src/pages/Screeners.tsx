@@ -3,6 +3,7 @@ import { Filter, ChevronDown, TrendingUp, ArrowUpRight, Search, Zap, Crosshair, 
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { Link, useNavigate } from "react-router-dom";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,7 +22,7 @@ const screenerOptions = [
         borderColor: "group-hover:border-primary/50",
         gradient: "from-primary/20 to-transparent"
     },
-    {
+    ...(FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER ? [{
         path: "/screeners/near-resistance",
         label: "Near Resistance",
         description: "An algorithmic filter that highlights stocks approaching predefined algorithmic resistance levels in real time.",
@@ -30,8 +31,8 @@ const screenerOptions = [
         bgColor: "bg-emerald-400/10",
         borderColor: "group-hover:border-emerald-400/50",
         gradient: "from-emerald-400/20 to-transparent"
-    },
-    {
+    }] : []),
+    ...(FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER ? [{
         path: "/screeners/support-reversal",
         label: "Support Reversal",
         description: "An algorithmic filter that highlights stocks approaching predefined algorithmic support levels in real time.",
@@ -40,8 +41,8 @@ const screenerOptions = [
         bgColor: "bg-blue-400/10",
         borderColor: "group-hover:border-blue-400/50",
         gradient: "from-blue-400/20 to-transparent"
-    },
-    {
+    }] : []),
+    ...(FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER ? [{
         path: "/screeners/reaction-zone",
         label: "Reaction Zone",
         description: "An algorithmic filter that highlights stocks approaching any (Model, Pattern or Balance) of the predefined algorithmic levels in real time.",
@@ -50,7 +51,7 @@ const screenerOptions = [
         bgColor: "bg-purple-400/10",
         borderColor: "group-hover:border-purple-400/50",
         gradient: "from-purple-400/20 to-transparent"
-    },
+    }] : []),
     {
         path: "/screeners/intraday-breakout",
         label: "Intraday Volume Breakout",

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { FEATURE_FLAGS } from '../lib/featureFlags';
 import {
   subscribeToData,
   refreshAllData,
@@ -24,9 +25,9 @@ export function useLiveData() {
   const [marketPosition, setMarketPosition] = useState<MarketPositionData | null>(cached ? cached.marketPosition : (staticMarketPosition as unknown as MarketPositionData));
   const [indexPerformance, setIndexPerformance] = useState<any[]>(cached ? cached.indexPerformance || [] : []);
   const [nifty50Stocks, setNifty50Stocks] = useState<any[]>(cached ? (cached as any).nifty50Stocks || [] : []);
-  const [nearResistance, setNearResistance] = useState<any[]>(cached ? cached.nearResistance || [] : []);
-  const [supportReversal, setSupportReversal] = useState<any[]>(cached ? cached.supportReversal || [] : []);
-  const [reactionZone, setReactionZone] = useState<any[]>(cached ? cached.reactionZone || [] : []);
+  const [nearResistance, setNearResistance] = useState<any[]>(FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER && cached ? cached.nearResistance || [] : []);
+  const [supportReversal, setSupportReversal] = useState<any[]>(FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER && cached ? cached.supportReversal || [] : []);
+  const [reactionZone, setReactionZone] = useState<any[]>(FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER && cached ? cached.reactionZone || [] : []);
   const [intradayBreakout, setIntradayBreakout] = useState<any[]>(cached ? cached.intradayBreakout || [] : []);
   const [intradayBreakoutScanner, setIntradayBreakoutScanner] = useState<any[]>(cached ? (cached as any).intradayBreakoutScanner || [] : []);
   const [intradayReversal, setIntradayReversal] = useState<any[]>(cached ? cached.intradayReversal || [] : []);
@@ -51,9 +52,9 @@ export function useLiveData() {
       setMarketPosition(data.marketPosition);
       setIndexPerformance(data.indexPerformance || []);
       setNifty50Stocks((data as any).nifty50Stocks || []);
-      setNearResistance(data.nearResistance || []);
-      setSupportReversal(data.supportReversal || []);
-      setReactionZone(data.reactionZone || []);
+      setNearResistance(FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER ? (data.nearResistance || []) : []);
+      setSupportReversal(FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER ? (data.supportReversal || []) : []);
+      setReactionZone(FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER ? (data.reactionZone || []) : []);
       setIntradayBreakout(data.intradayBreakout || []);
       setIntradayBreakoutScanner((data as any).intradayBreakoutScanner || []);
       setIntradayReversal(data.intradayReversal || []);
