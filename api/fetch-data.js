@@ -251,8 +251,8 @@ async function fetchData() {
     }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' }),
-    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'DAILY_SECTOR_STOCK_ANALYSIS'!A:V" }).catch(e => {
-      console.warn('Failed to fetch DAILY_SECTOR_STOCK_ANALYSIS tab:', e.message);
+    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'RECOMMENDATION'!A:V" }).catch(e => {
+      console.warn('Failed to fetch RECOMMENDATION tab:', e.message);
       return { data: { values: [] } };
     })
   ]);
@@ -1775,7 +1775,7 @@ async function fetchData() {
   });
   console.log(`[OBV_FINAL] Attached OBV signals to ${finalStockData.filter(s => s.obvSignal && s.obvSignal !== '—').length}/${finalStockData.length} stockData items.`);
 
-  // --- Extract Exit / Target Screener from DAILY_SECTOR_STOCK_ANALYSIS ---
+  // --- Extract Exit / Target Screener from RECOMMENDATION tab ---
   let exitTargetScreener = [];
   try {
     const exitRows = exitTargetScreenerRes ? (exitTargetScreenerRes.data.values || []) : [];

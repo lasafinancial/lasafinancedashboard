@@ -146,7 +146,7 @@ export function ExitTargetScreener() {
                 EXIT / TARGET <span className="gradient-text italic">SCREENER</span>
               </h1>
               <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">
-                Daily Sector Stock Analysis • Exit & Target Tracker
+                Recommendation Analysis • Exit & Target Tracker
               </p>
             </div>
           </div>
@@ -342,7 +342,7 @@ export function ExitTargetScreener() {
         <div className="mt-4 flex flex-wrap items-center justify-between gap-4 px-2">
           <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Source: INDICES • DAILY_SECTOR_STOCK_ANALYSIS
+            Source: INDICES • RECOMMENDATION
           </div>
           <div className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
             Showing {filteredAndSortedData.length} records

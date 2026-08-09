@@ -1107,11 +1107,11 @@ async function fetchData() {
         console.warn('Could not fetch DAILY_NEWS:', newsErr.message);
       }
 
-      // --- 12a2. Fetch DAILY_SECTOR_STOCK_ANALYSIS tab (Exit / Target Screener) ---
+      // --- 12a2. Fetch RECOMMENDATION tab (Exit / Target Screener) ---
       try {
         const exitTargetRes = await sheets.spreadsheets.values.get({
           spreadsheetId: INDICES_SHEET_ID,
-          range: "'DAILY_SECTOR_STOCK_ANALYSIS'!A:V",
+          range: "'RECOMMENDATION'!A:V",
         });
         const exitRows = exitTargetRes.data.values || [];
         for (let i = 0; i < exitRows.length; i++) {
@@ -1148,9 +1148,9 @@ async function fetchData() {
             stoploss: row[21] !== undefined && row[21] !== null ? row[21].toString().trim() : ''
           });
         }
-        console.log(`Fetched ${exitTargetScreener.length} items for exitTargetScreener.`);
+        console.log(`Fetched ${exitTargetScreener.length} items for exitTargetScreener from RECOMMENDATION.`);
       } catch (exitErr) {
-        console.warn('Could not fetch DAILY_SECTOR_STOCK_ANALYSIS:', exitErr.message);
+        console.warn('Could not fetch RECOMMENDATION:', exitErr.message);
       }
 
       // --- 12b. Fetch Summaries tab (Independent) ---
