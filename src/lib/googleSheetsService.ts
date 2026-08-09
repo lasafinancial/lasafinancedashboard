@@ -137,6 +137,17 @@ export interface StockSummaryItem {
   generatedAt: string;
 }
 
+export interface ExitTargetScreenerItem {
+  id: string;
+  buyPrice: string;
+  targetPrice: string;
+  targetsHit: string;
+  status: string;
+  reason: string;
+  exitDate: string;
+  stoploss: string;
+}
+
 export interface GoogleSheetsData {
   marketMood: MarketMood;
   marketStrength: MarketStrengthItem[];
@@ -158,6 +169,7 @@ export interface GoogleSheetsData {
   niftyAnalysis?: NiftyAnalysisData;
   niftyOptionsData?: any[];
   summaries?: StockSummaryItem[];
+  exitTargetScreener?: ExitTargetScreenerItem[];
   lastUpdated: string;
 }
 
@@ -231,7 +243,8 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
         'stockData',
         'dailyNews',
         'summaries',
-        'playbackSnapshots'
+        'playbackSnapshots',
+        'exitTargetScreener'
       ];
 
       arraysToProtect.forEach(key => {

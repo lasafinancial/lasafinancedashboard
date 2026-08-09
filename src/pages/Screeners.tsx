@@ -81,6 +81,16 @@ const screenerOptions = [
         bgColor: "bg-emerald-400/10",
         borderColor: "group-hover:border-emerald-400/50",
         gradient: "from-emerald-400/20 to-transparent"
+    },
+    {
+        path: "/screeners/exit-target",
+        label: "EXIT / TARGET SCREENER",
+        description: "Dynamic tracking of target levels, buy prices, stoploss, and exit signals.",
+        icon: Crosshair,
+        color: "text-amber-400",
+        bgColor: "bg-amber-400/10",
+        borderColor: "group-hover:border-amber-400/50",
+        gradient: "from-amber-400/20 to-transparent"
     }
     // Multibagger Hidden per boss request
     /* {

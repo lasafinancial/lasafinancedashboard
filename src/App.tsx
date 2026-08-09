@@ -27,6 +27,7 @@ import BreakoutBoardV1 from "@/pages/BreakoutBoardV1";
 import NewBreakouts from "@/pages/NewBreakouts";
 import ObvAccumulation from "@/pages/ObvAccumulation";
 import NiftyAnalysis from "@/pages/NiftyAnalysis";
+import ExitTargetScreener from "@/pages/ExitTargetScreener";
 import Nifty50 from "@/pages/Nifty50";
 import DailyNews from "@/pages/DailyNews";
 import Backtests from "@/pages/Backtests";
@@ -238,6 +239,7 @@ const AppContent = () => {
             <Route path="/screeners/breakout-v1" element={<ProtectedRoute><BreakoutBoardV1 /></ProtectedRoute>} />
             <Route path="/screeners/new-breakouts" element={<ProtectedRoute><NewBreakouts /></ProtectedRoute>} />
             <Route path="/screeners/obv-accumulation" element={<ProtectedRoute><ObvAccumulation /></ProtectedRoute>} />
+            <Route path="/screeners/exit-target" element={<ProtectedRoute><ExitTargetScreener /></ProtectedRoute>} />
             <Route path="/nifty50" element={<ProtectedRoute><Nifty50 /></ProtectedRoute>} />
             <Route path="/daily-news" element={<ProtectedRoute><DailyNews /></ProtectedRoute>} />
             <Route path="/backtests" element={<ProtectedRoute><Backtests /></ProtectedRoute>} />

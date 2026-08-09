@@ -390,6 +390,7 @@ async function fetchData() {
   let goldenAlerts = [];
   let playbackSnapshots = [];
   let niftyAnalysis = { history: [] };
+  let exitTargetScreener = [];
   let currentPriceMap = new Map();
   let currentChangePercentMap = new Map();
   let currentObvSignalMap = new Map();
@@ -1104,6 +1105,52 @@ async function fetchData() {
         }
       } catch (newsErr) {
         console.warn('Could not fetch DAILY_NEWS:', newsErr.message);
+      }
+
+      // --- 12a2. Fetch DAILY_SECTOR_STOCK_ANALYSIS tab (Exit / Target Screener) ---
+      try {
+        const exitTargetRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: INDICES_SHEET_ID,
+          range: "'DAILY_SECTOR_STOCK_ANALYSIS'!A:V",
+        });
+        const exitRows = exitTargetRes.data.values || [];
+        for (let i = 0; i < exitRows.length; i++) {
+          const row = exitRows[i];
+          if (!row || row.length < 2) continue;
+          const rawId = (row[1] || '').toString().trim();
+          if (!rawId) continue;
+          const upperId = rawId.toUpperCase();
+          if (
+            upperId === 'ID' ||
+            upperId === 'RANK' ||
+            rawId.startsWith('──') ||
+            upperId.includes('SECTOR RANKING') ||
+            upperId.includes('TOP STOCKS') ||
+            upperId.includes('TRAJECTORY QUALIFICATION') ||
+            upperId.includes('PATTERNS') ||
+            upperId.includes('CAUTIONS') ||
+            upperId === 'WATCH NEXT' ||
+            upperId === 'MARKET REGIME' ||
+            upperId === 'DISCLAIMER' ||
+            upperId === 'TRAJECTORY OVERALL NOTE'
+          ) {
+            continue;
+          }
+
+          exitTargetScreener.push({
+            id: rawId,
+            buyPrice: row[3] !== undefined && row[3] !== null ? row[3].toString().trim() : '',
+            targetPrice: row[4] !== undefined && row[4] !== null ? row[4].toString().trim() : '',
+            targetsHit: row[5] !== undefined && row[5] !== null ? row[5].toString().trim() : '',
+            status: row[16] !== undefined && row[16] !== null ? row[16].toString().trim() : '',
+            reason: row[19] !== undefined && row[19] !== null ? row[19].toString().trim() : '',
+            exitDate: row[20] !== undefined && row[20] !== null ? row[20].toString().trim() : '',
+            stoploss: row[21] !== undefined && row[21] !== null ? row[21].toString().trim() : ''
+          });
+        }
+        console.log(`Fetched ${exitTargetScreener.length} items for exitTargetScreener.`);
+      } catch (exitErr) {
+        console.warn('Could not fetch DAILY_SECTOR_STOCK_ANALYSIS:', exitErr.message);
       }
 
       // --- 12b. Fetch Summaries tab (Independent) ---
@@ -1894,6 +1941,7 @@ async function fetchData() {
     dailyNews,
     niftyAnalysis,
     summaries,
+    exitTargetScreener,
     lastUpdated: new Date().toISOString()
   };
 }

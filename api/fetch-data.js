@@ -234,7 +234,8 @@ async function fetchData() {
     currentRes,
     allstocksRes,
     indicesRes,
-    newsRes
+    newsRes,
+    exitTargetScreenerRes
   ] = await Promise.all([
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'golden'" }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }),
@@ -249,7 +250,11 @@ async function fetchData() {
       }
     }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }),
-    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' })
+    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' }),
+    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'DAILY_SECTOR_STOCK_ANALYSIS'!A:V" }).catch(e => {
+      console.warn('Failed to fetch DAILY_SECTOR_STOCK_ANALYSIS tab:', e.message);
+      return { data: { values: [] } };
+    })
   ]);
 
   console.log('Starting Batch 2 Fetches...');
@@ -1770,6 +1775,48 @@ async function fetchData() {
   });
   console.log(`[OBV_FINAL] Attached OBV signals to ${finalStockData.filter(s => s.obvSignal && s.obvSignal !== '—').length}/${finalStockData.length} stockData items.`);
 
+  // --- Extract Exit / Target Screener from DAILY_SECTOR_STOCK_ANALYSIS ---
+  let exitTargetScreener = [];
+  try {
+    const exitRows = exitTargetScreenerRes ? (exitTargetScreenerRes.data.values || []) : [];
+    for (let i = 0; i < exitRows.length; i++) {
+      const row = exitRows[i];
+      if (!row || row.length < 2) continue;
+      const rawId = (row[1] || '').toString().trim();
+      if (!rawId) continue;
+      const upperId = rawId.toUpperCase();
+      if (
+        upperId === 'ID' ||
+        upperId === 'RANK' ||
+        rawId.startsWith('──') ||
+        upperId.includes('SECTOR RANKING') ||
+        upperId.includes('TOP STOCKS') ||
+        upperId.includes('TRAJECTORY QUALIFICATION') ||
+        upperId.includes('PATTERNS') ||
+        upperId.includes('CAUTIONS') ||
+        upperId === 'WATCH NEXT' ||
+        upperId === 'MARKET REGIME' ||
+        upperId === 'DISCLAIMER' ||
+        upperId === 'TRAJECTORY OVERALL NOTE'
+      ) {
+        continue;
+      }
+
+      exitTargetScreener.push({
+        id: rawId,
+        buyPrice: row[3] !== undefined && row[3] !== null ? row[3].toString().trim() : '',
+        targetPrice: row[4] !== undefined && row[4] !== null ? row[4].toString().trim() : '',
+        targetsHit: row[5] !== undefined && row[5] !== null ? row[5].toString().trim() : '',
+        status: row[16] !== undefined && row[16] !== null ? row[16].toString().trim() : '',
+        reason: row[19] !== undefined && row[19] !== null ? row[19].toString().trim() : '',
+        exitDate: row[20] !== undefined && row[20] !== null ? row[20].toString().trim() : '',
+        stoploss: row[21] !== undefined && row[21] !== null ? row[21].toString().trim() : ''
+      });
+    }
+  } catch (err) {
+    console.warn('Error processing exitTargetScreener:', err.message);
+  }
+
   return {
     marketMood,
     marketStrength: strengthData,
@@ -1791,6 +1838,7 @@ async function fetchData() {
     dailyNews,
     niftyAnalysis,
     summaries,
+    exitTargetScreener,
     lastUpdated: new Date().toISOString()
   };
 }
