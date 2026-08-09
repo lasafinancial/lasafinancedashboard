@@ -137,6 +137,12 @@ export function ExitTargetScreener() {
     }
 
     const upper = status.trim().toUpperCase();
+    if (upper === "OPEN") {
+      return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-black text-[10px] uppercase px-2 py-0.5">{status}</Badge>;
+    }
+    if (upper === "CLOSE" || upper === "CLOSED") {
+      return <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/30 font-black text-[10px] uppercase px-2 py-0.5">{status}</Badge>;
+    }
     if (upper.includes("TARGET") || upper.includes("HIT") || upper.includes("PROFIT") || upper.includes("WIN")) {
       return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-black text-[10px] uppercase px-2 py-0.5">{status}</Badge>;
     }
@@ -262,9 +268,9 @@ export function ExitTargetScreener() {
                   </TableHead>
                   <TableHead
                     className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors"
-                    onClick={() => toggleSort("targetsHit")}
+                    onClick={() => toggleSort("profit")}
                   >
-                    TARGETS HIT <SortIcon field="targetsHit" />
+                    PROFIT <SortIcon field="profit" />
                   </TableHead>
                   <TableHead
                     className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors"
@@ -324,7 +330,7 @@ export function ExitTargetScreener() {
                         onClick={() => handleStockClick(row.id)}
                       >
                         {/* DATE */}
-                        <TableCell className="py-2.5 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        <TableCell className="py-2.5 font-mono text-xs text-cyan-300 font-bold whitespace-nowrap">
                           {row.date || "—"}
                         </TableCell>
 
@@ -335,19 +341,27 @@ export function ExitTargetScreener() {
                           </span>
                         </TableCell>
 
-                        {/* 2. Buy Price */}
+                        {/* Buy Price */}
                         <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-blue-300">
                           {row.buyPrice ? row.buyPrice : "—"}
                         </TableCell>
 
-                        {/* 3. Target Price */}
+                        {/* Target Price */}
                         <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-emerald-400">
                           {row.targetPrice ? row.targetPrice : "—"}
                         </TableCell>
 
-                        {/* 4. Targets Hit */}
-                        <TableCell className="py-2.5 text-center font-mono font-bold text-xs text-amber-400">
-                          {row.targetsHit ? row.targetsHit : "—"}
+                        {/* PROFIT */}
+                        <TableCell className="py-2.5 text-center font-mono font-bold text-xs">
+                          {(() => {
+                            const val = row.profit || "";
+                            if (!val || val === "—") return <span className="text-white/40">—</span>;
+                            const num = parseFloat(val.replace(/,/g, "").replace(/%/g, ""));
+                            if (isNaN(num)) return <span className="text-white/80">{val}</span>;
+                            if (num > 0) return <span className="text-emerald-400 font-bold">{val}</span>;
+                            if (num < 0) return <span className="text-rose-400 font-bold">{val}</span>;
+                            return <span className="text-white/80 font-bold">{val}</span>;
+                          })()}
                         </TableCell>
 
                         {/* 5. Status */}

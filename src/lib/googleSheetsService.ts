@@ -142,7 +142,8 @@ export interface ExitTargetScreenerItem {
   id: string;
   buyPrice: string;
   targetPrice: string;
-  targetsHit: string;
+  targetsHit?: string;
+  profit: string;
   status: string;
   reason: string;
   exitDate: string;

@@ -1143,6 +1143,7 @@ async function fetchData() {
             buyPrice: row[3] !== undefined && row[3] !== null ? row[3].toString().trim() : '',
             targetPrice: row[4] !== undefined && row[4] !== null ? row[4].toString().trim() : '',
             targetsHit: row[5] !== undefined && row[5] !== null ? row[5].toString().trim() : '',
+            profit: row[17] !== undefined && row[17] !== null ? row[17].toString().trim() : '',
             status: row[16] !== undefined && row[16] !== null ? row[16].toString().trim() : '',
             reason: row[19] !== undefined && row[19] !== null ? row[19].toString().trim() : '',
             exitDate: row[20] !== undefined && row[20] !== null ? row[20].toString().trim() : '',
