@@ -138,6 +138,7 @@ export interface StockSummaryItem {
 }
 
 export interface ExitTargetScreenerItem {
+  date: string;
   id: string;
   buyPrice: string;
   targetPrice: string;

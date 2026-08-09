@@ -64,6 +64,7 @@ export function ExitTargetScreener() {
       const term = searchTerm.toLowerCase().trim();
       data = data.filter(
         item =>
+          (item.date || "").toLowerCase().includes(term) ||
           item.id.toLowerCase().includes(term) ||
           item.status.toLowerCase().includes(term) ||
           item.reason.toLowerCase().includes(term)
@@ -208,59 +209,65 @@ export function ExitTargetScreener() {
               <TableHeader className="bg-white/[0.03]">
                 <TableRow className="border-white/5 hover:bg-transparent">
                   <TableHead
+                    className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors"
+                    onClick={() => toggleSort("date")}
+                  >
+                    DATE <SortIcon field="date" />
+                  </TableHead>
+                  <TableHead
                     className="w-[140px] text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors"
                     onClick={() => toggleSort("id")}
                   >
-                    1. ID <SortIcon field="id" />
+                    ID <SortIcon field="id" />
                   </TableHead>
                   <TableHead
                     className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
                     onClick={() => toggleSort("buyPrice")}
                   >
-                    2. Buy Price <SortIcon field="buyPrice" />
+                    BUY PRICE <SortIcon field="buyPrice" />
                   </TableHead>
                   <TableHead
                     className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
                     onClick={() => toggleSort("targetPrice")}
                   >
-                    3. Target Price <SortIcon field="targetPrice" />
+                    TARGET PRICE <SortIcon field="targetPrice" />
                   </TableHead>
                   <TableHead
                     className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors"
                     onClick={() => toggleSort("targetsHit")}
                   >
-                    4. Targets Hit <SortIcon field="targetsHit" />
+                    TARGETS HIT <SortIcon field="targetsHit" />
                   </TableHead>
                   <TableHead
                     className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors"
                     onClick={() => toggleSort("status")}
                   >
-                    5. Status <SortIcon field="status" />
+                    STATUS <SortIcon field="status" />
                   </TableHead>
                   <TableHead
                     className="min-w-[200px] text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors"
                     onClick={() => toggleSort("reason")}
                   >
-                    6. Reason <SortIcon field="reason" />
+                    REASON <SortIcon field="reason" />
                   </TableHead>
                   <TableHead
                     className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors"
                     onClick={() => toggleSort("exitDate")}
                   >
-                    7. Exit Date <SortIcon field="exitDate" />
+                    EXIT DATE <SortIcon field="exitDate" />
                   </TableHead>
                   <TableHead
                     className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
                     onClick={() => toggleSort("stoploss")}
                   >
-                    8. Stoploss <SortIcon field="stoploss" />
+                    STOPLOSS <SortIcon field="stoploss" />
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-64 text-center">
+                    <TableCell colSpan={9} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <Loader2 className="h-8 w-8 text-primary animate-spin" />
                         <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">
@@ -271,7 +278,7 @@ export function ExitTargetScreener() {
                   </TableRow>
                 ) : filteredAndSortedData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-64 text-center">
+                    <TableCell colSpan={9} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <AlertCircle className="h-8 w-8 text-muted-foreground/30" />
                         <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">
@@ -288,7 +295,12 @@ export function ExitTargetScreener() {
                         className="border-white/5 hover:bg-white/[0.04] transition-colors group cursor-pointer"
                         onClick={() => handleStockClick(row.id)}
                       >
-                        {/* 1. ID */}
+                        {/* DATE */}
+                        <TableCell className="py-2.5 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                          {row.date || "—"}
+                        </TableCell>
+
+                        {/* ID */}
                         <TableCell className="py-2.5">
                           <span className="text-sm font-black text-white tracking-tight group-hover:text-primary transition-colors">
                             {row.id || "—"}

@@ -1803,6 +1803,7 @@ async function fetchData() {
       }
 
       exitTargetScreener.push({
+        date: row[0] !== undefined && row[0] !== null ? row[0].toString().trim() : '',
         id: rawId,
         buyPrice: row[3] !== undefined && row[3] !== null ? row[3].toString().trim() : '',
         targetPrice: row[4] !== undefined && row[4] !== null ? row[4].toString().trim() : '',
