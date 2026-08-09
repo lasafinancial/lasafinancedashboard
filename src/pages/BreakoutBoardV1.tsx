@@ -105,7 +105,11 @@ export function BreakoutBoardV1() {
         let data = sourceData.map(s => ({
             ...s,
             isPinned: pinnedSymbols.includes(s.symbol)
-        }));
+        })).filter(s => {
+            const price = typeof (s.close ?? s.price) === 'number' ? (s.close ?? s.price) : parseFloat(s.close ?? s.price);
+            const resistance = typeof s.resistance === 'number' ? s.resistance : parseFloat(s.resistance);
+            return !isNaN(price) && !isNaN(resistance) && resistance > 0 && price > resistance;
+        });
 
         if (searchTerm) {
             data = data.filter(s => s.symbol.toLowerCase().includes(searchTerm.toLowerCase()));
