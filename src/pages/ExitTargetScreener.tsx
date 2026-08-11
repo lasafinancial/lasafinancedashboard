@@ -14,6 +14,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ExitTargetScreenerItem } from "@/lib/googleSheetsService";
 
 type SortField = keyof ExitTargetScreenerItem;
@@ -55,6 +61,10 @@ export function ExitTargetScreener() {
     });
     return Array.from(statuses).sort();
   }, [exitTargetScreener]);
+
+  const statusOptions = useMemo(() => {
+    return ["ALL", ...availableStatuses];
+  }, [availableStatuses]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
