@@ -146,6 +146,7 @@ export interface ExitTargetScreenerItem {
   profit: string;
   status: string;
   reason: string;
+  exitReason?: string;
   exitDate: string;
   stoploss: string;
 }

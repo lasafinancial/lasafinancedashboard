@@ -9,6 +9,7 @@ const FEATURE_FLAGS = {
   ENABLE_BREAKOUT_SCREENER: false,       // Disables BREAKOUT (nearResistance) screener
   ENABLE_REVERSAL_SCREENER: false,       // Disables REVERSAL (supportReversal) screener
   ENABLE_REACTION_ZONE_SCREENER: false,   // Disables REACTION ZONE (reactionZone) screener
+  ENABLE_NEW_BREAKOUTS_SCREENER: false,   // Disables NEW BREAKOUTS (newBreakouts) screener
 };
 
 function isMarketOpen() {
@@ -1825,6 +1826,7 @@ async function fetchData() {
         profit: row[17] !== undefined && row[17] !== null ? row[17].toString().trim() : '',
         status: row[16] !== undefined && row[16] !== null ? row[16].toString().trim() : '',
         reason: row[19] !== undefined && row[19] !== null ? row[19].toString().trim() : '',
+        exitReason: row[13] !== undefined && row[13] !== null ? row[13].toString().trim() : '',
         exitDate: row[20] !== undefined && row[20] !== null ? row[20].toString().trim() : '',
         stoploss: row[21] !== undefined && row[21] !== null ? row[21].toString().trim() : ''
       });

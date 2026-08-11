@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { Search, ArrowUpRight, Loader2, Sparkles, TrendingUp, ChevronDown, ChevronUp, Info, Clock, Calendar, AlertCircle, BarChart2, Filter, RefreshCw, Pin, Play, Pause, SkipBack, SkipForward, FastForward, Rewind, Star } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
@@ -20,6 +21,9 @@ import { Badge } from "@/components/ui/badge";
 type FilterType = "ALL" | "WATCHLIST" | "STAR3" | "STAR2" | "ENTRY_READY" | "EXIT";
 
 export function NewBreakouts() {
+    if (!FEATURE_FLAGS.ENABLE_NEW_BREAKOUTS_SCREENER) {
+        return <Navigate to="/screeners" replace />;
+    }
     const navigate = useNavigate();
     const { intradayBreakoutScanner, lastUpdate, refresh, isLoading, stockData } = useLiveData();
     const { isFree } = useAuth();

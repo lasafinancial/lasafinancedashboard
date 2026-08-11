@@ -20,4 +20,6 @@ export const FEATURE_FLAGS = {
     ENABLE_BREAKOUT_SCREENER: false,       // Disables BREAKOUT (nearResistance) screener
     ENABLE_REVERSAL_SCREENER: false,       // Disables REVERSAL (supportReversal) screener
     ENABLE_REACTION_ZONE_SCREENER: false,   // Disables REACTION ZONE (reactionZone) screener
+    ENABLE_NEW_BREAKOUTS_SCREENER: false,   // Disables NEW BREAKOUTS (newBreakouts) screener
 };
+

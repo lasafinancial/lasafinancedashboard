@@ -68,16 +68,16 @@ export function ExitTargetScreener() {
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return null;
     return sortDirection === "asc" ? (
-      <ChevronUp className="w-3 h-3 ml-1 inline-block text-primary" />
+      <ChevronUp className="w-3 h-3 ml-1 inline-block text-amber-400" />
     ) : (
-      <ChevronDown className="w-3 h-3 ml-1 inline-block text-primary" />
+      <ChevronDown className="w-3 h-3 ml-1 inline-block text-amber-400" />
     );
   };
 
   const filteredAndSortedData = useMemo(() => {
     let data: ExitTargetScreenerItem[] = [...(exitTargetScreener || [])];
 
-    // Search filter (matches DATE, ID, Status, or Reason)
+    // Search filter (matches DATE, ID, Status, Reason, Exit Reason, or Exit Date)
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       data = data.filter(
@@ -85,7 +85,9 @@ export function ExitTargetScreener() {
           (item.date || "").toLowerCase().includes(term) ||
           item.id.toLowerCase().includes(term) ||
           item.status.toLowerCase().includes(term) ||
-          item.reason.toLowerCase().includes(term)
+          item.reason.toLowerCase().includes(term) ||
+          (item.exitReason || "").toLowerCase().includes(term) ||
+          (item.exitDate || "").toLowerCase().includes(term)
       );
     }
 
@@ -101,8 +103,8 @@ export function ExitTargetScreener() {
     const effectiveSortDir = sortField ? sortDirection : "desc";
 
     data.sort((a, b) => {
-      const valA = a[effectiveSortField] || "";
-      const valB = b[effectiveSortField] || "";
+      const valA = (a[effectiveSortField] as string) || "";
+      const valB = (b[effectiveSortField] as string) || "";
 
       // Handle Date fields
       if (effectiveSortField === "date" || effectiveSortField === "exitDate") {
@@ -164,144 +166,107 @@ export function ExitTargetScreener() {
 
   return (
     <div className="min-h-screen bg-[#020617] text-foreground selection:bg-primary/30">
-      {/* Background Glow */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
+      {/* Dynamic Ambient Glow */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-cyan-500/10 rounded-full blur-[120px] animate-pulse delay-1000" />
       </div>
 
-      <div className="relative container mx-auto px-2 py-4 max-w-[1600px]">
+      <div className="relative container mx-auto px-4 py-8 max-w-[1600px] space-y-6">
+
+        {/* Top Disclaimer */}
+        <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 text-center">
+          <p className="text-[11px] md:text-xs text-muted-foreground/80 leading-relaxed font-medium capitalize">
+            Exit and Target recommendations are tracked for informational and portfolio management purposes. Always perform your own risk analysis.
+          </p>
+        </div>
+
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row items-center justify-between bg-white/[0.02] border border-white/10 rounded-xl px-4 py-3 mb-4 gap-4 backdrop-blur-md">
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-primary/20 rounded-lg border border-primary/30">
-              <Crosshair className="w-5 h-5 text-primary" />
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white/[0.02] border border-white/10 rounded-2xl p-6 gap-6 backdrop-blur-md">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-black uppercase tracking-widest mb-1">
+              <Crosshair className="w-3.5 h-3.5" />
+              Recommendation Screener
             </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">
-                RECOMMENDATIONS <span className="gradient-text italic">SCREENER</span>
-              </h1>
-              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">
-                Recommendation Analysis • Exit & Target Tracker
-              </p>
-            </div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase">
+              RECOMMENDATION <span className="gradient-text italic font-bold">SCREENER</span>
+            </h1>
+            <p className="text-xs text-muted-foreground font-medium">
+              Track buy prices, target hits, profit/loss status, and exit signals in real time.
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Status Filter */}
-            {availableStatuses.length > 0 && (
-              <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-2 py-1">
-                <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-transparent text-xs text-white border-none focus:outline-none focus:ring-0 cursor-pointer"
-                >
-                  <option value="ALL" className="bg-[#020617] text-white">All Statuses</option>
-                  {availableStatuses.map(st => (
-                    <option key={st} value={st} className="bg-[#020617] text-white">{st}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Search Box */}
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          {/* Controls: Search, Status Filter & Refresh */}
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {/* Search Input */}
+            <div className="relative flex-1 md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search ID or Status..."
+                placeholder="Search symbol, reason, status..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-52 pl-10 pr-4 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all text-xs"
+                className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-400/50 text-xs text-white placeholder:text-muted-foreground/60 transition-all"
               />
             </div>
 
-            {/* Last Update */}
-            <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">
-              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-              <div className="text-xs font-bold text-yellow-500 font-mono tracking-tighter">
-                {lastUpdate ? lastUpdate.split(' ')[0] : '--:--'}
-              </div>
-            </div>
+            {/* Status Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold gap-2">
+                  <Filter className="w-3.5 h-3.5 text-amber-400" />
+                  STATUS: {statusFilter}
+                  <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-[#0b0f19] border-white/10 text-xs font-medium">
+                {statusOptions.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt}
+                    onClick={() => setStatusFilter(opt)}
+                    className={`cursor-pointer hover:bg-white/10 ${statusFilter === opt ? "text-amber-400 font-bold bg-amber-500/10" : "text-white/80"}`}
+                  >
+                    {opt}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Refresh Button */}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refresh(true)}
-              className="h-8 w-8 p-0 border-white/10 hover:bg-white/5"
+              onClick={() => refresh()}
+              className="h-9 border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold gap-2"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${isLoading ? 'animate-spin' : ''}`} />
+              Sync
             </Button>
           </div>
         </div>
 
         {/* Screener Table */}
-        <div className="bg-white/[0.01] border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm shadow-2xl">
+        <div className="bg-white/[0.01] border border-white/10 rounded-2xl overflow-hidden backdrop-blur-sm shadow-2xl">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-white/[0.03]">
                 <TableRow className="border-white/5 hover:bg-transparent">
-                  <TableHead
-                    className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors"
-                    onClick={() => toggleSort("date")}
-                  >
-                    DATE <SortIcon field="date" />
-                  </TableHead>
-                  <TableHead
-                    className="w-[140px] text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors"
-                    onClick={() => toggleSort("id")}
-                  >
-                    ID <SortIcon field="id" />
-                  </TableHead>
-                  <TableHead
-                    className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
-                    onClick={() => toggleSort("buyPrice")}
-                  >
-                    BUY PRICE <SortIcon field="buyPrice" />
-                  </TableHead>
-                  <TableHead
-                    className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
-                    onClick={() => toggleSort("targetPrice")}
-                  >
-                    TARGET PRICE <SortIcon field="targetPrice" />
-                  </TableHead>
-                  <TableHead
-                    className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors"
-                    onClick={() => toggleSort("profit")}
-                  >
-                    PROFIT <SortIcon field="profit" />
-                  </TableHead>
-                  <TableHead
-                    className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors"
-                    onClick={() => toggleSort("status")}
-                  >
-                    STATUS <SortIcon field="status" />
-                  </TableHead>
-                  <TableHead
-                    className="min-w-[200px] text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors"
-                    onClick={() => toggleSort("reason")}
-                  >
-                    REASON <SortIcon field="reason" />
-                  </TableHead>
-                  <TableHead
-                    className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors"
-                    onClick={() => toggleSort("exitDate")}
-                  >
-                    EXIT DATE <SortIcon field="exitDate" />
-                  </TableHead>
-                  <TableHead
-                    className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
-                    onClick={() => toggleSort("stoploss")}
-                  >
-                    STOPLOSS <SortIcon field="stoploss" />
-                  </TableHead>
+                  <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("date")}>DATE <SortIcon field="date" /></TableHead>
+                  <TableHead className="w-[140px] text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("id")}>ID <SortIcon field="id" /></TableHead>
+                  <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("buyPrice")}>BUY PRICE <SortIcon field="buyPrice" /></TableHead>
+                  <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("targetPrice")}>TARGET PRICE <SortIcon field="targetPrice" /></TableHead>
+                  <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("profit")}>PROFIT <SortIcon field="profit" /></TableHead>
+                  <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("status")}>STATUS <SortIcon field="status" /></TableHead>
+                  <TableHead className="min-w-[180px] text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("reason")}>REASON <SortIcon field="reason" /></TableHead>
+                  <TableHead className="min-w-[180px] text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("exitReason")}>EXIT REASON <SortIcon field="exitReason" /></TableHead>
+                  <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("exitDate")}>EXIT DATE <SortIcon field="exitDate" /></TableHead>
+                  <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("stoploss")}>STOPLOSS <SortIcon field="stoploss" /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-64 text-center">
+                    <TableCell colSpan={10} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <Loader2 className="h-8 w-8 text-primary animate-spin" />
                         <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">
@@ -312,7 +277,7 @@ export function ExitTargetScreener() {
                   </TableRow>
                 ) : filteredAndSortedData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-64 text-center">
+                    <TableCell colSpan={10} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <AlertCircle className="h-8 w-8 text-muted-foreground/30" />
                         <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">
@@ -329,29 +294,10 @@ export function ExitTargetScreener() {
                         className="border-white/5 hover:bg-white/[0.04] transition-colors group cursor-pointer"
                         onClick={() => handleStockClick(row.id)}
                       >
-                        {/* DATE */}
-                        <TableCell className="py-2.5 font-mono text-xs text-cyan-300 font-bold whitespace-nowrap">
-                          {row.date || "—"}
-                        </TableCell>
-
-                        {/* ID */}
-                        <TableCell className="py-2.5">
-                          <span className="text-sm font-black text-white tracking-tight group-hover:text-primary transition-colors">
-                            {row.id || "—"}
-                          </span>
-                        </TableCell>
-
-                        {/* Buy Price */}
-                        <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-blue-300">
-                          {row.buyPrice ? row.buyPrice : "—"}
-                        </TableCell>
-
-                        {/* Target Price */}
-                        <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-emerald-400">
-                          {row.targetPrice ? row.targetPrice : "—"}
-                        </TableCell>
-
-                        {/* PROFIT */}
+                        <TableCell className="py-2.5 font-mono text-xs text-cyan-300 font-bold whitespace-nowrap">{row.date || "—"}</TableCell>
+                        <TableCell className="py-2.5"><span className="text-sm font-black text-white tracking-tight group-hover:text-primary transition-colors">{row.id || "—"}</span></TableCell>
+                        <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-blue-300">{row.buyPrice ? row.buyPrice : "—"}</TableCell>
+                        <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-emerald-400">{row.targetPrice ? row.targetPrice : "—"}</TableCell>
                         <TableCell className="py-2.5 text-center font-mono font-bold text-xs">
                           {(() => {
                             const val = row.profit || "";
@@ -363,26 +309,11 @@ export function ExitTargetScreener() {
                             return <span className="text-white/80 font-bold">{val}</span>;
                           })()}
                         </TableCell>
-
-                        {/* 5. Status */}
-                        <TableCell className="py-2.5 text-center">
-                          {getStatusBadge(row.status)}
-                        </TableCell>
-
-                        {/* 6. Reason */}
-                        <TableCell className="py-2.5 text-xs text-white/80 max-w-[300px] truncate" title={row.reason}>
-                          {row.reason ? row.reason : "—"}
-                        </TableCell>
-
-                        {/* 7. Exit Date */}
-                        <TableCell className="py-2.5 text-center font-mono text-xs text-muted-foreground">
-                          {row.exitDate ? row.exitDate : "—"}
-                        </TableCell>
-
-                        {/* 8. Stoploss */}
-                        <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-rose-400">
-                          {row.stoploss ? row.stoploss : "—"}
-                        </TableCell>
+                        <TableCell className="py-2.5 text-center">{getStatusBadge(row.status)}</TableCell>
+                        <TableCell className="py-2.5 text-xs text-white/80 max-w-[200px] truncate" title={row.reason}>{row.reason ? row.reason : "—"}</TableCell>
+                        <TableCell className="py-2.5 text-xs text-amber-300/90 max-w-[200px] truncate" title={row.exitReason}>{row.exitReason ? row.exitReason : "—"}</TableCell>
+                        <TableCell className="py-2.5 text-center font-mono text-xs text-cyan-300">{row.exitDate ? row.exitDate : "—"}</TableCell>
+                        <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-rose-400">{row.stoploss ? row.stoploss : "—"}</TableCell>
                       </TableRow>
                     ))}
                   </PremiumProtector>
@@ -393,7 +324,7 @@ export function ExitTargetScreener() {
         </div>
 
         {/* Footer Info */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 px-2">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-2">
           <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             Source: INDICES • RECOMMENDATION
