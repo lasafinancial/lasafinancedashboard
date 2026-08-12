@@ -98,8 +98,9 @@ export function BreakoutBoardV1() {
 
     const filteredStocks = useMemo(() => {
         let sourceData = stocks || [];
-        if (isPlayback && playbackSnapshots && playbackSnapshots.length > 0) {
-            sourceData = playbackSnapshots[playbackIndex]?.stocks || [];
+        if (playbackSnapshots && playbackSnapshots.length > 0) {
+            const idx = isPlayback ? playbackIndex : playbackSnapshots.length - 1;
+            sourceData = playbackSnapshots[idx]?.stocks || stocks || [];
         }
 
         let data = sourceData.map(s => ({
@@ -202,8 +203,8 @@ export function BreakoutBoardV1() {
                     {/* Playback Controls */}
                     <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">
                         <div className="text-xl font-bold text-yellow-500 font-mono tracking-tighter min-w-[80px] text-center">
-                            {isPlayback && playbackSnapshots && playbackSnapshots[playbackIndex]
-                                ? playbackSnapshots[playbackIndex].time
+                            {playbackSnapshots && playbackSnapshots.length > 0
+                                ? (playbackSnapshots[isPlayback ? playbackIndex : playbackSnapshots.length - 1]?.time || '--:--')
                                 : (lastUpdate ? lastUpdate.split(' ')[0] : '--:--')}
                         </div>
                         <div className="w-[1px] h-6 bg-white/10 mx-2" />

@@ -95,8 +95,9 @@ export function IntradayDev() {
     const filteredStocks = useMemo(() => {
         // Base arrays based on mode
         let sourceData = stocks || [];
-        if (isPlayback && playbackSnapshots && playbackSnapshots.length > 0) {
-            sourceData = playbackSnapshots[playbackIndex]?.stocks || [];
+        if (playbackSnapshots && playbackSnapshots.length > 0) {
+            const idx = isPlayback ? playbackIndex : playbackSnapshots.length - 1;
+            sourceData = playbackSnapshots[idx]?.stocks || stocks || [];
         }
 
         let data = sourceData.map(s => ({
@@ -547,8 +548,8 @@ export function IntradayDev() {
                     <div className="flex items-center gap-2 sm:gap-4 flex-1 justify-center w-full max-w-2xl bg-black/50 px-2 sm:px-4 py-1.5 rounded-sm border border-white/5 shadow-inner">
                         {/* Clock */}
                         <div className="text-[24px] sm:text-[30px] font-semibold text-yellow-500 font-mono tracking-tighter w-auto min-w-[80px] sm:min-w-[100px] text-center leading-none">
-                            {isPlayback && playbackSnapshots && playbackSnapshots[playbackIndex]
-                                ? playbackSnapshots[playbackIndex].time
+                            {playbackSnapshots && playbackSnapshots.length > 0
+                                ? (playbackSnapshots[isPlayback ? playbackIndex : playbackSnapshots.length - 1]?.time || '...')
                                 : (lastUpdate ? lastUpdate.split(' ')[0] : '...')}
                         </div>
 
