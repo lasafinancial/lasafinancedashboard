@@ -107,8 +107,10 @@ export function BreakoutBoardV1() {
             ...s,
             isPinned: pinnedSymbols.includes(s.symbol)
         })).filter(s => {
-            const price = typeof (s.close ?? s.price) === 'number' ? (s.close ?? s.price) : parseFloat(s.close ?? s.price);
-            const resistance = typeof s.resistance === 'number' ? s.resistance : parseFloat(s.resistance);
+            const rawPrice = s.close ?? s.price;
+            const price = typeof rawPrice === 'number' ? rawPrice : parseFloat(String(rawPrice || '0').replace(/,/g, '').trim());
+            const rawRes = s.resistance;
+            const resistance = typeof rawRes === 'number' ? rawRes : parseFloat(String(rawRes || '0').replace(/,/g, '').trim());
             return !isNaN(price) && !isNaN(resistance) && resistance > 0 && price > resistance;
         });
 

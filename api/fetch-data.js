@@ -89,6 +89,17 @@ function getCredentials() {
     }
   }
 
+  if (!credentials) {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const keyPath = path.join(__dirname, '..', 'secerate_googlekey', 'key-partition-484615-n5-3411b9e54bd0.json');
+      if (fs.existsSync(keyPath)) {
+        credentials = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+      }
+    } catch (e) {}
+  }
+
   if (credentials && credentials.private_key) {
     credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
     credentials.private_key = credentials.private_key.trim();
@@ -1766,7 +1777,6 @@ async function fetchData() {
             };
           });
 
-          const timePointParsed = parseTime(timePoint);
           const changesAtTime = [...recentChanges]
             .filter(c => parseTime(c.time) <= timePointParsed)
             .sort((a, b) => parseTime(b.time) - parseTime(a.time))

@@ -1799,6 +1799,7 @@ async function fetchData() {
           const sym = (latest['Symbol'] || latest[0] || 'N/A').toString().trim().toUpperCase();
           const latestState = (latest['State'] || latest['N (State)'] || latest[12] || 'STRONG').toString().toUpperCase();
           const summary = intradaySummaryMap[sym] || {};
+          const scannerData = intradayBreakoutScanner.find(s => s.symbol.toUpperCase() === sym) || {};
 
           // Corrected Commentary Indices from Verified Headers:
           // 0:Symbol, 1:Time, 2:Open, 3:High, 4:Low, 5:Close, 6:Vol, 7:IsG, 8:RR_Vol, 
@@ -1827,9 +1828,10 @@ async function fetchData() {
             isGreen: (findLatest(7) || '').toString(),
             tier: summary.tier || (findLatest(12) ? 'MODERN' : 'DEVELOPING'),
             stars: summary.stars || '',
-            targetPrice: summary.targetPrice || 0,
+            targetPrice: scannerData.target || summary.targetPrice || 0,
             summaryTarget: summary.target || '',
-            resistance: summary.resistance || 0,
+            resistance: scannerData.resistance || summary.resistance || 0,
+            MODEL: scannerData.model || 0,
             state: latestState,
             event: (findLatest(13) || '').toString(),
             note: (findLatest(15) || '').toString(),
@@ -1838,8 +1840,11 @@ async function fetchData() {
             emaCrossover: findLatest(11),
             targetStr: findLatest(17),
             reasons: findLatest(14),
-            valV: summary.valV || '',
-            valW: summary.valW || '',
+            valV: (latest[20] !== undefined && latest[20] !== null && latest[20] !== '') ? latest[20].toString().trim() : (summary.valV || ''),
+            valW: (latest[21] !== undefined && latest[21] !== null && latest[21] !== '') ? latest[21].toString().trim() : (summary.valW || ''),
+            obvSignal: currentObvSignalMap.get(sym) || '—',
+            fr: currentFrMap.get(sym) || '—',
+            priceMove: scannerData.u !== undefined ? scannerData.u : 0,
             allSignals: symbolRows.length,
             recentChanges: recentChanges.filter(c => c.symbol === sym)
           };
@@ -1914,6 +1919,7 @@ async function fetchData() {
           const stocksAtTime = Object.values(snapshotState).map(latest => {
             const sym = (latest[0] || 'N/A').toString().trim().toUpperCase();
             const summary = intradaySummaryMap[sym] || {};
+            const scannerData = intradayBreakoutScanner.find(s => s.symbol.toUpperCase() === sym) || {};
             const defaultValV = (latest[20] !== undefined && latest[20] !== null && latest[20] !== '') ? latest[20].toString().trim() : (summary.valV || '');
             const histValV = getHistoricalBoToday(sym, timePoint, defaultValV);
             // Indices: 0:Sym, 1:Time, 5:Close, 9:EMA9, 10:EMA63, 11:Crossover, 12:State, 14:Reason, 17:Target
@@ -1925,9 +1931,10 @@ async function fetchData() {
               state: (latest[12] || 'STRONG').toString().toUpperCase(),
               tier: summary.tier || 'DEVELOPING',
               stars: summary.stars || '',
-              targetPrice: summary.targetPrice || 0,
+              targetPrice: scannerData.target || summary.targetPrice || 0,
               summaryTarget: summary.target || '',
-              resistance: summary.resistance || 0,
+              resistance: scannerData.resistance || summary.resistance || 0,
+              MODEL: scannerData.model || 0,
               event: (latest[13] || '').toString(),
               note: (latest[15] || '').toString(),
               entry: getNum(latest[15]),
@@ -1940,11 +1947,13 @@ async function fetchData() {
               targetStr: (latest[17] || '').toString().trim(),
               reasons: (latest[14] || '').toString().trim(),
               valV: histValV,
-              valW: summary.valW || ''
+              valW: summary.valW || '',
+              obvSignal: currentObvSignalMap.get(sym) || '—',
+              fr: currentFrMap.get(sym) || '—',
+              priceMove: scannerData.u !== undefined ? scannerData.u : 0
             };
           });
 
-          const timePointParsed = parseTime(timePoint);
           const changesAtTime = [...recentChanges]
             .filter(c => parseTime(c.time) <= timePointParsed)
             .sort((a, b) => parseTime(b.time) - parseTime(a.time))
