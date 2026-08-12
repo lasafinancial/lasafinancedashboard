@@ -395,6 +395,7 @@ async function fetchData() {
   let intradayDev = [];
   let goldenAlerts = [];
   let playbackSnapshots = [];
+  let historicalBoTodayMap = {};
   let niftyAnalysis = { history: [] };
   let exitTargetScreener = [];
   let currentPriceMap = new Map();
@@ -1523,14 +1524,47 @@ async function fetchData() {
     // --- Start Intraday Breakout Screener & Scanner ---
     intradayBreakout = [];
     intradayBreakoutScanner = [];
+    historicalBoTodayMap = {};
     try {
       const breakoutRes = await sheets.spreadsheets.values.get({
         spreadsheetId: EOD_SHEET_ID,
-        range: 'intraday-breakout-scanner!A:AB',
+        range: 'intraday-breakout-scanner!A:AC',
       });
       const breakoutRows = breakoutRes.data.values;
       if (breakoutRows && breakoutRows.length > 1) {
         const breakoutData = rowsToObjects(breakoutRows);
+        const breakoutHeaders = breakoutRows[0];
+        const boIdx = breakoutHeaders ? breakoutHeaders.findIndex(h => h && h.trim().toUpperCase() === 'BO_TODAY') : -1;
+        const boColIdx = boIdx !== -1 ? boIdx : 28;
+
+        const dates = [...new Set(breakoutRows.slice(1).map(r => r[1]).filter(Boolean))].sort((a, b) => new Date(b) - new Date(a));
+        const latestDate = dates[0];
+
+        breakoutRows.slice(1).forEach(r => {
+          const sym = (r[0] || '').toString().trim().toUpperCase();
+          const date = (r[1] || '').toString().trim();
+          const timeStr = (r[2] || '').toString().trim();
+          const boVal = (r[boColIdx] !== undefined && r[boColIdx] !== null) ? r[boColIdx].toString().trim() : '';
+
+          if (!sym || (latestDate && date !== latestDate)) return;
+          if (!historicalBoTodayMap[sym]) historicalBoTodayMap[sym] = [];
+
+          let h = 0, m = 0;
+          try {
+            const parts = timeStr.split(':');
+            h = parseInt(parts[0], 10) || 0;
+            m = parseInt(parts[1], 10) || 0;
+          } catch (e) {}
+
+          historicalBoTodayMap[sym].push({
+            timeMinutes: h * 60 + m,
+            val: boVal
+          });
+        });
+
+        Object.keys(historicalBoTodayMap).forEach(sym => {
+          historicalBoTodayMap[sym].sort((a, b) => a.timeMinutes - b.timeMinutes);
+        });
 
         // 1. Old Intraday Breakout (Last 2 Trading Days)
         const allBreakoutDates = [...new Set(breakoutData.map(r => r['Date']).filter(Boolean))];
@@ -1828,6 +1862,27 @@ async function fetchData() {
         // 2. Take the last 20 timestamps for the 5-minute history (assuming 1-5 min intervals)
         const playbackTimes = uniqueTimes; // Include all timestamps from 9:15 AM onwards
 
+        const getHistoricalBoToday = (sym, targetTimeStr, fallbackVal) => {
+          const entries = historicalBoTodayMap[sym];
+          if (!entries || entries.length === 0) return fallbackVal;
+          let targetMin = 0;
+          try {
+            const parts = targetTimeStr.split(':');
+            targetMin = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+          } catch (e) {}
+          let bestVal = null;
+          for (let i = 0; i < entries.length; i++) {
+            if (entries[i].timeMinutes <= targetMin) {
+              if (entries[i].val !== '') {
+                bestVal = entries[i].val;
+              }
+            } else {
+              break;
+            }
+          }
+          return (bestVal !== null && bestVal !== undefined && bestVal !== '') ? bestVal : fallbackVal;
+        };
+
         playbackSnapshots = playbackTimes.map(timePoint => {
           const snapshotState = {};
           // Find the latest record for each symbol up to this time point using RAW ARRAYS
@@ -1843,6 +1898,8 @@ async function fetchData() {
           const stocksAtTime = Object.values(snapshotState).map(latest => {
             const sym = (latest[0] || 'N/A').toString().trim().toUpperCase();
             const summary = intradaySummaryMap[sym] || {};
+            const defaultValV = (latest[20] !== undefined && latest[20] !== null && latest[20] !== '') ? latest[20].toString().trim() : (summary.valV || '');
+            const histValV = getHistoricalBoToday(sym, timePoint, defaultValV);
             // Indices: 0:Sym, 1:Time, 5:Close, 9:EMA9, 10:EMA63, 11:Crossover, 12:State, 14:Reason, 17:Target
             return {
               symbol: sym,
@@ -1866,7 +1923,7 @@ async function fetchData() {
               emaCrossover: (latest[11] || '').toString().trim(),
               targetStr: (latest[17] || '').toString().trim(),
               reasons: (latest[14] || '').toString().trim(),
-              valV: (latest[20] !== undefined && latest[20] !== null && latest[20] !== '') ? latest[20].toString().trim() : (summary.valV || ''),
+              valV: histValV,
               valW: summary.valW || ''
             };
           });
