@@ -396,6 +396,7 @@ async function fetchData() {
   let goldenAlerts = [];
   let playbackSnapshots = [];
   let historicalBoTodayMap = {};
+  let firstAppearanceMap = {};
   let niftyAnalysis = { history: [] };
   let exitTargetScreener = [];
   let currentPriceMap = new Map();
@@ -1525,6 +1526,7 @@ async function fetchData() {
     intradayBreakout = [];
     intradayBreakoutScanner = [];
     historicalBoTodayMap = {};
+    firstAppearanceMap = {};
     try {
       const breakoutRes = await sheets.spreadsheets.values.get({
         spreadsheetId: EOD_SHEET_ID,
@@ -1547,7 +1549,6 @@ async function fetchData() {
           const boVal = (r[boColIdx] !== undefined && r[boColIdx] !== null) ? r[boColIdx].toString().trim() : '';
 
           if (!sym || (latestDate && date !== latestDate)) return;
-          if (!historicalBoTodayMap[sym]) historicalBoTodayMap[sym] = [];
 
           let h = 0, m = 0;
           try {
@@ -1555,9 +1556,16 @@ async function fetchData() {
             h = parseInt(parts[0], 10) || 0;
             m = parseInt(parts[1], 10) || 0;
           } catch (e) {}
+          const timeMinutes = h * 60 + m;
+
+          if (firstAppearanceMap[sym] === undefined || timeMinutes < firstAppearanceMap[sym]) {
+            firstAppearanceMap[sym] = timeMinutes;
+          }
+
+          if (!historicalBoTodayMap[sym]) historicalBoTodayMap[sym] = [];
 
           historicalBoTodayMap[sym].push({
-            timeMinutes: h * 60 + m,
+            timeMinutes: timeMinutes,
             val: boVal
           });
         });
@@ -1885,12 +1893,20 @@ async function fetchData() {
 
         playbackSnapshots = playbackTimes.map(timePoint => {
           const snapshotState = {};
+          const timePointParsed = parseTime(timePoint);
           // Find the latest record for each symbol up to this time point using RAW ARRAYS
           devRows.slice(1).forEach(row => {
             const rowTime = (row[1] || 'N/A').toString();
-            if (parseTime(rowTime) <= parseTime(timePoint)) {
+            if (parseTime(rowTime) <= timePointParsed) {
               const symbol = (row[0] || '').toString().trim().toUpperCase();
               if (!symbol || symbol === 'N/A') return;
+
+              // Stock Eligibility Check: Stock must have appeared in intraday-breakout-scanner at or before timePoint
+              const firstMin = firstAppearanceMap[symbol];
+              if (firstMin === undefined || firstMin > timePointParsed) {
+                return;
+              }
+
               snapshotState[symbol] = row;
             }
           });
