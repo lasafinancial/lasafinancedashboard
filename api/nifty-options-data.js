@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { getGoogleCredentialsHelper } from './_credentialsHelper.js';
+import { getGoogleCredentialsHelper } from './credentialsHelper.js';
 
 const SPREADSHEET_ID = '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU';
 

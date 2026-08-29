@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { getGoogleCredentialsHelper } from './_credentialsHelper.js';
+import { getGoogleCredentialsHelper } from './credentialsHelper.js';
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
