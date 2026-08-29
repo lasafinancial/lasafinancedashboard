@@ -20,6 +20,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { ExitTargetScreenerItem } from "@/lib/googleSheetsService";
 
 type SortField = keyof ExitTargetScreenerItem;
@@ -50,6 +58,12 @@ export function ExitTargetScreener() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [sortField, setSortField] = useState<SortField | null>("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [selectedReasonTile, setSelectedReasonTile] = useState<{
+    stock: string;
+    typeLabel: string;
+    text: string;
+    date?: string;
+  } | null>(null);
 
   // Extract unique status list for filtering
   const availableStatuses = useMemo(() => {
@@ -320,8 +334,50 @@ export function ExitTargetScreener() {
                           })()}
                         </TableCell>
                         <TableCell className="py-2.5 text-center">{getStatusBadge(row.status)}</TableCell>
-                        <TableCell className="py-2.5 text-xs text-white/80 max-w-[200px] truncate" title={row.reason}>{row.reason ? row.reason : "—"}</TableCell>
-                        <TableCell className="py-2.5 text-xs text-amber-300/90 max-w-[200px] truncate" title={row.exitReason}>{row.exitReason ? row.exitReason : "—"}</TableCell>
+                        <TableCell className="py-2.5 text-xs text-white/80 max-w-[220px]">
+                          {row.reason ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedReasonTile({
+                                  stock: row.id,
+                                  typeLabel: "Recommendation Reason",
+                                  text: row.reason,
+                                  date: row.date,
+                                });
+                              }}
+                              className="inline-flex items-center gap-1.5 max-w-full truncate px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-amber-500/10 hover:border-amber-500/30 text-white/90 transition-all cursor-pointer group/tile text-left"
+                              title="Click to read full reason tile"
+                            >
+                              <span className="truncate">{row.reason}</span>
+                            </button>
+                          ) : (
+                            <span className="text-white/40">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-2.5 text-xs text-amber-300/90 max-w-[220px]">
+                          {row.exitReason ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedReasonTile({
+                                  stock: row.id,
+                                  typeLabel: "Exit Reason",
+                                  text: row.exitReason,
+                                  date: row.exitDate || row.date,
+                                });
+                              }}
+                              className="inline-flex items-center gap-1.5 max-w-full truncate px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/25 text-amber-300 transition-all cursor-pointer group/tile text-left font-medium"
+                              title="Click to read full exit reason tile"
+                            >
+                              <span className="truncate">{row.exitReason}</span>
+                            </button>
+                          ) : (
+                            <span className="text-white/40">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="py-2.5 text-center font-mono text-xs text-cyan-300">{row.exitDate ? row.exitDate : "—"}</TableCell>
                         <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-rose-400">{row.stoploss ? row.stoploss : "—"}</TableCell>
                       </TableRow>
@@ -344,6 +400,41 @@ export function ExitTargetScreener() {
           </div>
         </div>
       </div>
+
+      {/* Reason Text Tile Modal */}
+      <Dialog open={!!selectedReasonTile} onOpenChange={(open) => !open && setSelectedReasonTile(null)}>
+        <DialogContent className="bg-[#0b0f19]/95 text-white border border-white/15 max-w-lg rounded-2xl p-6 shadow-2xl backdrop-blur-xl">
+          <DialogHeader className="flex flex-col space-y-1.5 pb-3 border-b border-white/10 text-left">
+            <div className="flex items-center justify-between gap-2">
+              <DialogTitle className="text-lg font-black tracking-tight text-white flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                  {selectedReasonTile?.stock}
+                </span>
+                <span className="text-sm font-bold text-white/90">{selectedReasonTile?.typeLabel}</span>
+              </DialogTitle>
+            </div>
+            {selectedReasonTile?.date && (
+              <DialogDescription className="text-xs text-muted-foreground font-mono">
+                Date: {selectedReasonTile.date}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          <div className="my-4 p-4 rounded-xl bg-white/[0.03] border border-white/10 text-sm leading-relaxed text-white/90 font-sans whitespace-pre-wrap break-words max-h-[60vh] overflow-y-auto selection:bg-amber-500/30">
+            {selectedReasonTile?.text}
+          </div>
+
+          <DialogFooter className="sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setSelectedReasonTile(null)}
+              className="w-full sm:w-auto bg-white/5 border-white/10 hover:bg-white/10 text-white font-bold rounded-xl"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

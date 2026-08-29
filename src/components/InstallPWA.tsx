@@ -23,6 +23,15 @@ interface InstallPWAProps {
 export function InstallPWA({ className, variant = "default" }: InstallPWAProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [isStandalone, setIsStandalone] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+      (navigator as any).standalone === true ||
+      document.referrer.includes("android-app://")
+    );
+  });
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -30,12 +39,40 @@ export function InstallPWA({ className, variant = "default" }: InstallPWAProps) 
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
+    const checkStandalone = () => {
+      const isStandaloneMode =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+        (navigator as any).standalone === true ||
+        document.referrer.includes("android-app://");
+      setIsStandalone(isStandaloneMode);
+    };
+
+    checkStandalone();
+
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    const mediaQuery = window.matchMedia("(display-mode: standalone)");
+    const handleChange = (e: MediaQueryListEvent) => setIsStandalone(e.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+    }
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener("change", handleChange);
+      } else {
+        mediaQuery.removeListener(handleChange);
+      }
     };
   }, []);
+
+  if (isStandalone) {
+    return null;
+  }
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
