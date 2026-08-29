@@ -3,15 +3,7 @@
 
 import admin from 'firebase-admin';
 import { google } from 'googleapis';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-let serviceAccountKey;
-try {
-  serviceAccountKey = require('../secerate_googlekey/key-partition-484615-n5-3411b9e54bd0.json');
-} catch (e) {
-  console.warn('Could not require serviceAccountKey:', e.message);
-}
+import { getGoogleCredentialsHelper } from './_credentialsHelper.js';
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 
@@ -76,44 +68,7 @@ if (!admin.apps.length) {
 }
 
 function getGoogleCredentials() {
-  const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  const base64Key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64;
-  let credentials;
-
-  if (base64Key) {
-    try {
-      const decoded = Buffer.from(base64Key, 'base64').toString('utf-8');
-      credentials = JSON.parse(decoded);
-    } catch (e) {}
-  }
-
-  if (!credentials && key) {
-    try {
-      let cleanKey = key.trim();
-      if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
-        (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
-        cleanKey = cleanKey.slice(1, -1).trim();
-      }
-      credentials = JSON.parse(cleanKey);
-      if (typeof credentials === 'string') {
-        credentials = JSON.parse(credentials);
-      }
-    } catch (e) {}
-  }
-
-  if (!credentials) {
-    credentials = serviceAccountKey;
-  }
-
-  if (credentials && credentials.private_key) {
-    credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
-    credentials.private_key = credentials.private_key.trim();
-    if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
-      credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
-    }
-  }
-
-  return credentials;
+  return getGoogleCredentialsHelper();
 }
 
 function getDynamicStatus(price, lowerRange, upperRange) {

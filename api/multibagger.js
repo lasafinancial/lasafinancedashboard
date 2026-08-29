@@ -1,13 +1,5 @@
 import { google } from 'googleapis';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-let serviceAccountKey;
-try {
-  serviceAccountKey = require('../secerate_googlekey/key-partition-484615-n5-3411b9e54bd0.json');
-} catch (e) {
-  console.warn('Could not require serviceAccountKey:', e.message);
-}
+import { getGoogleCredentialsHelper } from './_credentialsHelper.js';
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 
@@ -20,39 +12,7 @@ function colToIdx(col) {
 }
 
 function getCredentials() {
-  const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  let credentials;
-
-  if (key) {
-    try {
-      let cleanKey = key.trim();
-
-      if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
-        (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
-        cleanKey = cleanKey.slice(1, -1).trim();
-      }
-
-      credentials = JSON.parse(cleanKey);
-      if (typeof credentials === 'string') {
-        credentials = JSON.parse(credentials);
-      }
-    } catch (e) {
-      console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY from env:', e.message);
-    }
-  }
-
-  if (!credentials) {
-    credentials = serviceAccountKey;
-  }
-
-  if (credentials && credentials.private_key) {
-    credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
-    credentials.private_key = credentials.private_key.trim();
-    if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
-      credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
-    }
-  }
-  return credentials;
+  return getGoogleCredentialsHelper();
 }
 
 export default async function handler(req, res) {
