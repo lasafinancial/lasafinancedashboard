@@ -5,7 +5,7 @@
   "framework": "vite",
   "functions": {
     "api/**/*.js": {
-      "includeFiles": ["datapulling/**", "secerate_googlekey/**"]
+      "includeFiles": "datapulling/**"
     }
   },
   "rewrites": [
