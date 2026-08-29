@@ -80,6 +80,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
     { path: "/nifty50", label: "NIFTY", icon: TrendingUp },
     { path: "/daily-news", label: "News", icon: Newspaper },
     { path: "/screeners", label: "Screeners", icon: Filter },
+    { path: "/pricing", label: "Packages", icon: Crown },
     { path: "/help", label: "Help", icon: HelpCircle },
   ];
 
@@ -408,6 +409,9 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
               <Link to="/screeners" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname.startsWith("/screeners") ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
                 <Filter className="h-5 w-5" />
               </Link>
+              <Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname === "/pricing" ? "bg-amber-500/20 text-amber-400" : "text-amber-400/90 hover:text-amber-400"}`} title="Packages & Pricing">
+                <Crown className="h-5 w-5" />
+              </Link>
             </div>
 
             {/* Live Indicator Mobile */}
@@ -425,8 +429,49 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[55vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-[#060606] overflow-y-auto">
+              <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-[#060606] overflow-y-auto">
                 <div className="flex flex-col min-h-full gap-6 pb-8">
+                  {/* Mobile User Profile & Packages Card */}
+                  <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-xl bg-primary/20 flex items-center justify-center ring-1 ring-primary/40">
+                          <User className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-white truncate max-w-[120px]">
+                            {userData?.name || "User"}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-tight">
+                            {isElite ? 'Elite Member' : isPro ? 'Pro Member' : 'Free Tier'}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                        {isElite ? 'Elite' : isPro ? 'Pro' : 'Free'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <Link
+                        to="/pricing"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-semibold text-white transition-all"
+                      >
+                        <User className="h-3.5 w-3.5 text-primary" />
+                        <span>Account</span>
+                      </Link>
+                      <Link
+                        to="/pricing"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-emerald-500/20 border border-amber-500/30 hover:from-amber-500/30 hover:to-emerald-500/30 text-xs font-bold text-amber-300 transition-all shadow-lg shadow-amber-500/10"
+                      >
+                        <Crown className="h-3.5 w-3.5 text-amber-400" />
+                        <span>Packages</span>
+                      </Link>
+                    </div>
+                  </div>
+
                   {/* Mobile Nav Links */}
                   <div className="flex flex-col gap-2">
                     <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Menu</h3>

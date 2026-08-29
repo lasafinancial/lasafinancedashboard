@@ -280,8 +280,8 @@ export const Pricing = () => {
                     </div>
 
                     {/* Elite Annual Banner */}
-                    <div className="bg-[#0f1714] border-l-2 border-emerald-500 p-6 flex flex-col md:flex-row items-center justify-between gap-6 relative border-t border-r border-b border-white/5 mt-4">
-                        <div className="flex items-center gap-4">
+                    <div className="bg-[#0f1714] border-l-2 border-emerald-500 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative border-t border-r border-b border-white/5 mt-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <span className="text-[10px] font-bold tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded border border-emerald-500/20 uppercase whitespace-nowrap">
                                 Annual - Elite
                             </span>
@@ -291,8 +291,8 @@ export const Pricing = () => {
                             </div>
                         </div>
                         
-                        <div className="flex items-center gap-6">
-                            <div className="text-right">
+                        <div className="flex flex-wrap items-center gap-4 sm:gap-6 w-full md:w-auto justify-between md:justify-end">
+                            <div className="text-left sm:text-right">
                                 <div className="text-emerald-400 text-sm font-bold">₹3,000 saved</div>
                                 <div className="text-[10px] text-muted-foreground font-mono">vs monthly</div>
                             </div>
@@ -303,7 +303,7 @@ export const Pricing = () => {
                             <div className="text-xs text-muted-foreground font-mono tracking-tight">
                                 per year
                             </div>
-                            <button className="px-6 py-3 text-xs font-bold tracking-widest text-black bg-emerald-400 hover:bg-emerald-300 transition-colors uppercase rounded ml-4">
+                            <button className="w-full sm:w-auto px-6 py-3 text-xs font-bold tracking-widest text-black bg-emerald-400 hover:bg-emerald-300 transition-colors uppercase rounded ml-0 sm:ml-4">
                                 Get Annual
                             </button>
                         </div>
