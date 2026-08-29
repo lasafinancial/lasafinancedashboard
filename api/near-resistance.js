@@ -1,5 +1,13 @@
 import { google } from 'googleapis';
-import serviceAccountKey from '../secerate_googlekey/key-partition-484615-n5-3411b9e54bd0.json';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+let serviceAccountKey;
+try {
+  serviceAccountKey = require('../secerate_googlekey/key-partition-484615-n5-3411b9e54bd0.json');
+} catch (e) {
+  console.warn('Could not require serviceAccountKey:', e.message);
+}
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 
