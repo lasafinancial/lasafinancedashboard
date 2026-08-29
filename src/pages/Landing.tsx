@@ -4,10 +4,16 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, Database, BarChart3, ShieldCheck, Zap } from "lucide-react";
 import { InteractiveHero } from "@/components/ui/interactive-hero";
 import { SplineSceneBasic } from "@/components/ui/spline-scene-basic";
+import { InstallPWA } from "@/components/InstallPWA";
 
 export default function LandingPage({ onEnter }: { onEnter: () => void }) {
   return (
     <div className="min-h-screen bg-black text-white selection:bg-indigo-500/30">
+      {/* Top Right Fixed Install Button */}
+      <div className="fixed top-6 right-6 z-[100]">
+        <InstallPWA />
+      </div>
+
       {/* Background Schema Visualizer */}
         <div className="fixed inset-0 z-0">
           <SchemaCard showContent={false} />
@@ -59,8 +65,8 @@ export default function LandingPage({ onEnter }: { onEnter: () => void }) {
           ))}
         </div>
 
-        {/* Enter Button */}
-        <div className="animate-fade-in delay-1000 mb-10">
+        {/* Enter Button & Install App Button */}
+        <div className="animate-fade-in delay-1000 mb-10 flex flex-wrap items-center justify-center gap-4">
           <Button 
             onClick={onEnter}
             className="group relative px-8 py-6 bg-white text-black hover:bg-white/90 rounded-full text-lg font-semibold transition-all hover:scale-105 active:scale-95 overflow-hidden"
@@ -71,6 +77,8 @@ export default function LandingPage({ onEnter }: { onEnter: () => void }) {
             </span>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           </Button>
+
+          <InstallPWA />
         </div>
 
         {/* Interactive Hero Section */}
