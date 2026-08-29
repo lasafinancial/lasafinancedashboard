@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
   "functions": {
     "api/**/*.js": {
       "includeFiles": "datapulling/**"
@@ -11,7 +14,7 @@
       "destination": "/api/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|assets/|manifest\\.json|pwa-.*|apple-touch-icon.*|favicon.*|complogo.*|company-banner.*).* )",
       "destination": "/index.html"
     }
   ],
