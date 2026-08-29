@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader2, Send, Filter, ChevronDown, Menu, MessageSquare, HelpCircle, TrendingUp, Newspaper } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import { InstallPWA } from "@/components/InstallPWA";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -283,6 +284,9 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
+            {/* Install PWA Button */}
+            <InstallPWA />
+
             {/* Live Indicator */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
               <span className="relative flex h-2 w-2">
@@ -391,6 +395,8 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
 
           {/* Mobile Menu */}
           <div className="md:hidden flex items-center gap-2">
+            <InstallPWA />
+
             {/* Mobile Quick Links */}
             <div className="flex items-center gap-1 mr-1">
               <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname === "/" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>

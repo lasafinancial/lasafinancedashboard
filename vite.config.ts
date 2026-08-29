@@ -21,7 +21,8 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.ico', 'complogo.png', 'logo.jpg', 'apple-touch-icon.png', 'company-banner.jpg'],
+      manifestFilename: 'manifest.json',
+      includeAssets: ['favicon.ico', 'complogo.png', 'logo.jpg', 'apple-touch-icon.png', 'company-banner.jpg', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-512x512-maskable.png'],
       manifest: {
         short_name: "LaSa Research",
         name: "LaSa Research Portal",
