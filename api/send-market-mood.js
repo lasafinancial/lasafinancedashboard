@@ -3,6 +3,7 @@
 
 import admin from 'firebase-admin';
 import { google } from 'googleapis';
+import serviceAccountKey from '../secerate_googlekey/key-partition-484615-n5-3411b9e54bd0.json';
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 
@@ -69,50 +70,42 @@ if (!admin.apps.length) {
 function getGoogleCredentials() {
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   const base64Key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64;
+  let credentials;
 
-  if (!key && !base64Key) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY or GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 not set');
-  }
-
-  try {
-    let credentials;
-
-    // Try base64 first (more reliable for Vercel)
-    if (base64Key) {
-      console.log('Using Base64 encoded Google credentials');
+  if (base64Key) {
+    try {
       const decoded = Buffer.from(base64Key, 'base64').toString('utf-8');
       credentials = JSON.parse(decoded);
-    } else {
-      console.log('Using direct JSON Google credentials');
-      let cleanKey = key.trim();
+    } catch (e) {}
+  }
 
-      // Remove potential surrounding quotes from Vercel env var
+  if (!credentials && key) {
+    try {
+      let cleanKey = key.trim();
       if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
         (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
         cleanKey = cleanKey.slice(1, -1).trim();
       }
-
       credentials = JSON.parse(cleanKey);
       if (typeof credentials === 'string') {
         credentials = JSON.parse(credentials);
       }
-    }
-
-    // Normalize private key format
-    if (credentials?.private_key) {
-      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
-      credentials.private_key = credentials.private_key.trim();
-      if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
-        credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
-      }
-    }
-
-    console.log('Google credentials parsed successfully');
-    return credentials;
-  } catch (e) {
-    console.error('Failed to parse Google credentials:', e.message);
-    throw e;
+    } catch (e) {}
   }
+
+  if (!credentials) {
+    credentials = serviceAccountKey;
+  }
+
+  if (credentials && credentials.private_key) {
+    credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+    credentials.private_key = credentials.private_key.trim();
+    if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
+      credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
+    }
+  }
+
+  return credentials;
 }
 
 function getDynamicStatus(price, lowerRange, upperRange) {

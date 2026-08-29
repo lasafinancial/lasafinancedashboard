@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import serviceAccountKey from '../secerate_googlekey/key-partition-484615-n5-3411b9e54bd0.json';
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 const SWING_SHEET_ID = '1GEhcqN8roNR1F3601XNEDjQZ1V0OfSUtMxUPE2rcdNs';
@@ -100,6 +101,10 @@ function getCredentials() {
     } catch (e) {}
   }
 
+  if (!credentials) {
+    credentials = serviceAccountKey;
+  }
+
   if (credentials && credentials.private_key) {
     credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
     credentials.private_key = credentials.private_key.trim();
@@ -109,7 +114,7 @@ function getCredentials() {
   }
 
   if (!credentials) {
-    throw new Error('No Google credentials found (env)');
+    throw new Error('No Google credentials found');
   }
   return credentials;
 }

@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import serviceAccountKey from '../secerate_googlekey/key-partition-484615-n5-3411b9e54bd0.json';
 
 const SPREADSHEET_ID = '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU';
 
@@ -9,44 +10,38 @@ const CACHE_DURATION = 60 * 1000; // 60 seconds
 
 function getCredentials() {
     const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-    if (!key) {
-        throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable not set');
-    }
+    let credentials;
 
-    try {
-        let cleanKey = key.trim();
-
-        // Remove potential surrounding quotes from Vercel env var
-        if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
-            (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
-            cleanKey = cleanKey.slice(1, -1).trim();
-        }
-
-        // In case the key was double-encoded as a JSON string
-        let credentials;
+    if (key) {
         try {
+            let cleanKey = key.trim();
+
+            if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) ||
+                (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
+                cleanKey = cleanKey.slice(1, -1).trim();
+            }
+
             credentials = JSON.parse(cleanKey);
             if (typeof credentials === 'string') {
                 credentials = JSON.parse(credentials);
             }
         } catch (e) {
-            throw new Error(`JSON Parse Error: ${e.message}`);
+            console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY from env:', e.message);
         }
-
-        if (credentials && credentials.private_key) {
-            // Robustly replace escaped newlines
-            credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
-
-            // Remove any leading/trailing quotes that might have been accidentally included in the private_key value
-            credentials.private_key = credentials.private_key.trim();
-            if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
-                credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
-            }
-        }
-        return credentials;
-    } catch (e) {
-        throw new Error(`Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY: ${e.message}`);
     }
+
+    if (!credentials) {
+        credentials = serviceAccountKey;
+    }
+
+    if (credentials && credentials.private_key) {
+        credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+        credentials.private_key = credentials.private_key.trim();
+        if (credentials.private_key.startsWith('"') && credentials.private_key.endsWith('"')) {
+            credentials.private_key = credentials.private_key.slice(1, -1).replace(/\\n/g, '\n');
+        }
+    }
+    return credentials;
 }
 
 export default async function handler(req, res) {
