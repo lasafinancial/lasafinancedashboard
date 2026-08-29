@@ -4,13 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun node_modules/vite/bin/vite.js",
-    "dev:full": "node server.cjs & bun node_modules/vite/bin/vite.js",
+    "dev": "vite",
+    "dev:full": "node server.cjs & vite",
     "server": "node server.cjs",
-    "build": "bun node_modules/vite/bin/vite.js build",
-    "build:dev": "bun node_modules/vite/bin/vite.js build --mode development",
+    "build": "vite build",
+    "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "bun node_modules/vite/bin/vite.js preview",
+    "preview": "vite preview",
     "fetch-data": "node datapulling/fetch_google_sheets.cjs"
   },
   "dependencies": {
