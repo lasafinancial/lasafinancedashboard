@@ -695,103 +695,107 @@ const Admin = () => {
                                 )}
                             </motion.div>
                         )}
+                    </GlassCard>
 
-                        {/* Device Diagnostic & Instant Test Panel */}
-                        <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
-                            <h4 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-                                <Bell className="w-4 h-4 text-primary" /> Device Notification Diagnostics
-                            </h4>
-
-                            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span>Browser Permission Status:</span>
-                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                        typeof window !== 'undefined' && Notification.permission === 'granted'
-                                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                            : typeof window !== 'undefined' && Notification.permission === 'denied'
-                                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                    }`}>
-                                        {typeof window !== 'undefined' ? Notification.permission.toUpperCase() : 'UNKNOWN'}
-                                    </span>
-                                </div>
-
-                                {typeof window !== 'undefined' && Notification.permission === 'denied' && (
-                                    <p className="text-xs text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                                        ⚠️ Notifications are <strong>BLOCKED</strong> in your browser settings for this site. To fix: Click the Lock 🔒 icon next to the website URL bar ➔ Site Settings ➔ Set <strong>Notifications</strong> to <strong>ALLOW</strong>.
-                                    </p>
-                                )}
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="w-full text-xs bg-white/5 hover:bg-white/10 border-white/10"
-                                        onClick={async () => {
-                                            if (Notification.permission === 'default') {
-                                                await Notification.requestPermission();
-                                                window.location.reload();
-                                                return;
-                                            }
-                                            if (Notification.permission !== 'granted') {
-                                                alert("Notification permission is not granted. Please allow notifications in site settings.");
-                                                return;
-                                            }
-                                            try {
-                                                if ('serviceWorker' in navigator) {
-                                                    const reg = await navigator.serviceWorker.ready;
-                                                    reg.showNotification('🔔 LASA Instant Test', {
-                                                        body: 'Success! Native push notifications are working on this device.',
-                                                        icon: '/complogo.png',
-                                                        badge: '/complogo.png',
-                                                        requireInteraction: true
-                                                    });
-                                                }
-                                                new Notification('🔔 LASA Instant Test', {
-                                                    body: 'Success! Native push notifications are working on this device.',
-                                                    icon: '/complogo.png'
-                                                });
-                                            } catch (e: any) {
-                                                alert("Error showing notification: " + e.message);
-                                            }
-                                        }}
-                                    >
-                                        🧪 Test Banner on This Device
-                                    </Button>
-
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="w-full text-xs bg-white/5 hover:bg-white/10 border-white/10"
-                                        onClick={async () => {
-                                            try {
-                                                const token = await requestNotificationPermission();
-                                                if (token) {
-                                                    await saveTokenToFirestore(token);
-                                                    toast({
-                                                        title: "Token Synced!",
-                                                        description: "Device FCM Token successfully saved to Firestore."
-                                                    });
-                                                } else {
-                                                    toast({
-                                                        title: "Permission Required",
-                                                        description: "Could not get token. Make sure notifications are allowed.",
-                                                        variant: "destructive"
-                                                    });
-                                                }
-                                            } catch (e: any) {
-                                                toast({
-                                                    title: "Sync Error",
-                                                    description: e.message,
-                                                    variant: "destructive"
-                                                });
-                                            }
-                                        }}
-                                    >
-                                        🔄 Re-sync Device Token
-                                    </Button>
-                                </div>
+                    {/* Standalone Prominent Device Diagnostic Card */}
+                    <GlassCard className="p-6 md:p-8 w-full max-w-2xl border-primary/30 bg-gradient-to-b from-primary/10 via-background/40 to-background/60 shadow-xl space-y-6">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                            <div className="space-y-1">
+                                <h3 className="text-lg font-bold flex items-center gap-2 gradient-text">
+                                    <Bell className="w-5 h-5 text-primary animate-pulse" /> Device Notification Diagnostics
+                                </h3>
+                                <p className="text-xs text-muted-foreground">Test notification popups directly on your current device.</p>
                             </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                typeof window !== 'undefined' && Notification.permission === 'granted'
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                    : typeof window !== 'undefined' && Notification.permission === 'denied'
+                                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            }`}>
+                                {typeof window !== 'undefined' ? Notification.permission.toUpperCase() : 'UNKNOWN'}
+                            </span>
+                        </div>
+
+                        {typeof window !== 'undefined' && Notification.permission === 'denied' && (
+                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs space-y-2">
+                                <div className="font-bold text-red-400 flex items-center gap-2 text-sm">
+                                    <AlertCircle className="w-4 h-4" /> Notifications Are Blocked in Browser Settings
+                                </div>
+                                <p>To unblock: Click the Lock 🔒 icon next to your website URL bar ➔ Site Settings ➔ Set <strong>Notifications</strong> to <strong>ALLOW</strong>.</p>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Button
+                                type="button"
+                                variant="default"
+                                className="w-full h-11 text-sm font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                                onClick={async () => {
+                                    if (Notification.permission === 'default') {
+                                        const res = await Notification.requestPermission();
+                                        if (res === 'granted') {
+                                            window.location.reload();
+                                        }
+                                        return;
+                                    }
+                                    if (Notification.permission !== 'granted') {
+                                        alert("Notification permission is not granted. Click the Lock icon in your address bar to set Notifications to ALLOW.");
+                                        return;
+                                    }
+                                    try {
+                                        if ('serviceWorker' in navigator) {
+                                            const reg = await navigator.serviceWorker.ready;
+                                            reg.showNotification('🔔 LASA Instant Test', {
+                                                body: 'Success! Native push notifications are working on this device.',
+                                                icon: '/complogo.png',
+                                                badge: '/complogo.png',
+                                                requireInteraction: true
+                                            });
+                                        }
+                                        new Notification('🔔 LASA Instant Test', {
+                                            body: 'Success! Native push notifications are working on this device.',
+                                            icon: '/complogo.png'
+                                        });
+                                    } catch (e: any) {
+                                        alert("Error showing notification: " + e.message);
+                                    }
+                                }}
+                            >
+                                🧪 Test Banner on This Device
+                            </Button>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full h-11 text-sm font-semibold bg-white/5 hover:bg-white/10 border-white/10"
+                                onClick={async () => {
+                                    try {
+                                        const token = await requestNotificationPermission();
+                                        if (token) {
+                                            await saveTokenToFirestore(token);
+                                            toast({
+                                                title: "Token Synced!",
+                                                description: "Device FCM Token successfully saved to Firestore."
+                                            });
+                                        } else {
+                                            toast({
+                                                title: "Permission Required",
+                                                description: "Could not get token. Make sure notifications are allowed.",
+                                                variant: "destructive"
+                                            });
+                                        }
+                                    } catch (e: any) {
+                                        toast({
+                                            title: "Sync Error",
+                                            description: e.message,
+                                            variant: "destructive"
+                                        });
+                                    }
+                                }}
+                            >
+                                🔄 Re-sync Device Token
+                            </Button>
                         </div>
                     </GlassCard>
                 </TabsContent>
