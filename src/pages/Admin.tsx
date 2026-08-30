@@ -63,6 +63,7 @@ const Admin = () => {
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [result, setResult] = useState<any>(null);
+    const [tokenCount, setTokenCount] = useState<number | null>(null);
 
     // User Management State
     const [users, setUsers] = useState<any[]>([]);
@@ -127,11 +128,17 @@ const Admin = () => {
             setActivityLogs(logs);
         });
 
+        // Fetch fcm_tokens count
+        const unsubscribeTokens = onSnapshot(collection(db, 'fcm_tokens'), (snapshot) => {
+            setTokenCount(snapshot.size);
+        });
+
         return () => {
             unsubscribeUsers();
             unsubscribeHelp();
             unsubscribeMarket();
             unsubscribeLogs();
+            unsubscribeTokens();
         };
     }, [isAuthorized]);
 
@@ -714,6 +721,15 @@ const Admin = () => {
                                     : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                             }`}>
                                 {typeof window !== 'undefined' ? Notification.permission.toUpperCase() : 'UNKNOWN'}
+                            </span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between text-xs sm:text-sm font-semibold">
+                            <span className="flex items-center gap-2 text-white/90">
+                                📱 Total Subscribed Devices in Database:
+                            </span>
+                            <span className="px-3 py-1 rounded-lg bg-primary/20 text-primary border border-primary/30 font-bold text-sm">
+                                {tokenCount !== null ? `${tokenCount} Device(s)` : 'Loading...'}
                             </span>
                         </div>
 

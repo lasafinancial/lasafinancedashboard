@@ -193,7 +193,12 @@ const AppContent = () => {
   const shouldShowNavbar = !isLoginPage && (isFullyOnboarded || !user);
 
   if (showLanding) {
-    return <LandingPage onEnter={handleEnter} />;
+    return (
+      <>
+        <NotificationPromptBanner />
+        <LandingPage onEnter={handleEnter} />
+      </>
+    );
   }
 
   // Show splash screen if live data is still loading OR auth is still loading
