@@ -81,13 +81,18 @@ export default async function handler(req, res) {
         const db = admin.firestore();
         const tokensSnapshot = await db.collection('fcm_tokens').get();
 
-        const tokens = [];
+        const tokensSet = new Set();
         tokensSnapshot.forEach(doc => {
-            if (doc.data().token) tokens.push(doc.data().token);
+            const data = doc.data() || {};
+            const candidate = data.token || data.fcmToken || data.fcm_token || doc.id;
+            if (candidate && typeof candidate === 'string' && candidate.length > 20) {
+                tokensSet.add(candidate.trim());
+            }
         });
+        const tokens = Array.from(tokensSet);
 
         if (tokens.length === 0) {
-            return res.status(200).json({ successCount: 0, failedCount: 0, message: 'No users subscribed.' });
+            return res.status(200).json({ successCount: 0, failedCount: 0, message: 'No users subscribed (0 tokens in database).' });
         }
 
         let successCount = 0;
