@@ -54,6 +54,7 @@ import Login from "@/pages/Login";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import { ProfileSetupModal } from "@/components/auth/ProfileSetupModal";
 import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationPromptBanner } from "@/components/layout/NotificationPromptBanner";
 
 const queryClient = new QueryClient();
 
@@ -203,6 +204,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300 flex flex-col pb-16">
+      <NotificationPromptBanner />
       <OnboardingModal
         isOpen={showOnboarding}
         onOpenChange={setShowOnboarding}
