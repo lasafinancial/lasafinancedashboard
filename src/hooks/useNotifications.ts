@@ -66,19 +66,30 @@ export function useNotifications() {
         description: notifBody,
       });
 
-      // Safely show notification popup via Service Worker (works on Mobile and Desktop)
-      if ('serviceWorker' in navigator && Notification.permission === 'granted') {
-        navigator.serviceWorker.ready.then((reg) => {
-          reg.showNotification(notifTitle, {
-            body: notifBody,
-            icon: '/complogo.png',
-            badge: '/complogo.png',
-            image: notifImage,
-            data: payload.data,
-          } as any);
-        }).catch((err) => {
-          console.warn('Service Worker notification error:', err);
-        });
+      // Safely show notification popup via Service Worker with instant fallback
+      if (Notification.permission === 'granted') {
+        const notifOptions = {
+          body: notifBody,
+          icon: '/complogo.png',
+          badge: '/complogo.png',
+          image: notifImage,
+          data: payload.data,
+          requireInteraction: true,
+        };
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.showNotification(notifTitle, notifOptions as any);
+          }).catch(() => {
+            try {
+              new Notification(notifTitle, notifOptions);
+            } catch (e) {}
+          });
+        } else {
+          try {
+            new Notification(notifTitle, notifOptions);
+          } catch (e) {}
+        }
       }
     });
 

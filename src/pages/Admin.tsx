@@ -687,14 +687,112 @@ const Admin = () => {
                                             <span>Broadcast Completed</span>
                                         </div>
                                         <div className="text-sm grid grid-cols-3 gap-4 text-emerald-400/80">
-                                            <div>Sent: {result.sentTo}</div>
-                                            <div>Success: {result.successCount}</div>
-                                            <div>Failed: {result.failedCount}</div>
+                                            <div>Sent: {result.sentTo || result.successCount || 0}</div>
+                                            <div>Success: {result.successCount || 0}</div>
+                                            <div>Failed: {result.failedCount || 0}</div>
                                         </div>
                                     </div>
                                 )}
                             </motion.div>
                         )}
+
+                        {/* Device Diagnostic & Instant Test Panel */}
+                        <div className="mt-8 pt-6 border-t border-white/10 space-y-4">
+                            <h4 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
+                                <Bell className="w-4 h-4 text-primary" /> Device Notification Diagnostics
+                            </h4>
+
+                            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span>Browser Permission Status:</span>
+                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                        typeof window !== 'undefined' && Notification.permission === 'granted'
+                                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                            : typeof window !== 'undefined' && Notification.permission === 'denied'
+                                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                    }`}>
+                                        {typeof window !== 'undefined' ? Notification.permission.toUpperCase() : 'UNKNOWN'}
+                                    </span>
+                                </div>
+
+                                {typeof window !== 'undefined' && Notification.permission === 'denied' && (
+                                    <p className="text-xs text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                                        ⚠️ Notifications are <strong>BLOCKED</strong> in your browser settings for this site. To fix: Click the Lock 🔒 icon next to the website URL bar ➔ Site Settings ➔ Set <strong>Notifications</strong> to <strong>ALLOW</strong>.
+                                    </p>
+                                )}
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full text-xs bg-white/5 hover:bg-white/10 border-white/10"
+                                        onClick={async () => {
+                                            if (Notification.permission === 'default') {
+                                                await Notification.requestPermission();
+                                                window.location.reload();
+                                                return;
+                                            }
+                                            if (Notification.permission !== 'granted') {
+                                                alert("Notification permission is not granted. Please allow notifications in site settings.");
+                                                return;
+                                            }
+                                            try {
+                                                if ('serviceWorker' in navigator) {
+                                                    const reg = await navigator.serviceWorker.ready;
+                                                    reg.showNotification('🔔 LASA Instant Test', {
+                                                        body: 'Success! Native push notifications are working on this device.',
+                                                        icon: '/complogo.png',
+                                                        badge: '/complogo.png',
+                                                        requireInteraction: true
+                                                    });
+                                                }
+                                                new Notification('🔔 LASA Instant Test', {
+                                                    body: 'Success! Native push notifications are working on this device.',
+                                                    icon: '/complogo.png'
+                                                });
+                                            } catch (e: any) {
+                                                alert("Error showing notification: " + e.message);
+                                            }
+                                        }}
+                                    >
+                                        🧪 Test Banner on This Device
+                                    </Button>
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full text-xs bg-white/5 hover:bg-white/10 border-white/10"
+                                        onClick={async () => {
+                                            try {
+                                                const token = await requestNotificationPermission();
+                                                if (token) {
+                                                    await saveTokenToFirestore(token);
+                                                    toast({
+                                                        title: "Token Synced!",
+                                                        description: "Device FCM Token successfully saved to Firestore."
+                                                    });
+                                                } else {
+                                                    toast({
+                                                        title: "Permission Required",
+                                                        description: "Could not get token. Make sure notifications are allowed.",
+                                                        variant: "destructive"
+                                                    });
+                                                }
+                                            } catch (e: any) {
+                                                toast({
+                                                    title: "Sync Error",
+                                                    description: e.message,
+                                                    variant: "destructive"
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        🔄 Re-sync Device Token
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
                     </GlassCard>
                 </TabsContent>
 
