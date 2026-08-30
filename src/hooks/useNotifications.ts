@@ -33,13 +33,22 @@ export function useNotifications() {
       return;
     }
 
-    // Check if already enabled
-    const enabled = isNotificationEnabled();
-    setIsEnabled(enabled);
-
-    if (enabled) {
-      setToken(getStoredToken());
+    const isExplicitlyDisabled = localStorage.getItem('notifications_disabled') === 'true';
+    if (isExplicitlyDisabled) {
+      setIsEnabled(false);
+      return;
     }
+
+    // Default to ENABLED: auto-request/sync token on load
+    requestNotificationPermission().then(async (fcmToken) => {
+      if (fcmToken) {
+        await saveTokenToFirestore(fcmToken);
+        setToken(fcmToken);
+        setIsEnabled(true);
+      }
+    }).catch(err => {
+      console.warn('Auto notification setup error:', err);
+    });
   }, []);
 
   // Set up foreground message listener
@@ -47,19 +56,27 @@ export function useNotifications() {
     if (!isEnabled) return;
 
     const unsubscribe = onForegroundMessage((payload: NotificationPayload) => {
-      // Show toast for foreground notifications
+      const notifTitle = payload.notification?.title || payload.data?.title || 'LASA Dashboard';
+      const notifBody = payload.notification?.body || payload.data?.body || 'New notification';
+      const notifImage = payload.data?.image || payload.notification?.image || '/testingnoti.png';
+
+      // Show toast inside app
       toast({
-        title: payload.notification?.title || 'LASA Dashboard',
-        description: payload.notification?.body || 'New notification',
+        title: notifTitle,
+        description: notifBody,
       });
 
-      // Also show native notification if page is not focused
-      if (document.hidden && Notification.permission === 'granted') {
-        new Notification(payload.notification?.title || 'LASA Dashboard', {
-          body: payload.notification?.body,
-          icon: '/complogo.png',
-          image: payload.data?.image || payload.notification?.image || '/testingnoti.png',
-        } as any);
+      // Always pop up native OS desktop / mobile system notification
+      if (Notification.permission === 'granted') {
+        try {
+          new Notification(notifTitle, {
+            body: notifBody,
+            icon: '/complogo.png',
+            image: notifImage,
+          } as any);
+        } catch (e) {
+          console.warn('Native Notification failed:', e);
+        }
       }
     });
 
@@ -84,6 +101,7 @@ export function useNotifications() {
     setIsLoading(true);
 
     try {
+      localStorage.removeItem('notifications_disabled');
       const fcmToken = await requestNotificationPermission();
 
       if (fcmToken) {

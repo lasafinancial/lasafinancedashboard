@@ -13,7 +13,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BFB8IrNUPvVzjErLSo-dmcd5fAXNYmGvX6vBxnnn2cXNW87AjP9D9lpZxjZFzdS9W0njbYkoTS8rGtMoj260riM';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -94,11 +94,14 @@ export function onForegroundMessage(callback: (payload: any) => void): (() => vo
 
 // Check if notifications are enabled
 export function isNotificationEnabled(): boolean {
-  return Notification.permission === 'granted' && !!localStorage.getItem('fcm_token');
+  if (typeof window === 'undefined') return false;
+  if (localStorage.getItem('notifications_disabled') === 'true') return false;
+  return Notification.permission === 'granted' || !!localStorage.getItem('fcm_token');
 }
 
 // Disable notifications (remove token from localStorage)
 export function disableNotifications(): void {
+  localStorage.setItem('notifications_disabled', 'true');
   localStorage.removeItem('fcm_token');
 }
 

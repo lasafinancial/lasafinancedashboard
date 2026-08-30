@@ -2,39 +2,66 @@
 // This uses Firebase Admin SDK to send notifications to subscribed devices
 
 import admin from 'firebase-admin';
+import fs from 'fs';
+import path from 'path';
 
 function getFirebaseCredentials() {
   const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   const base64Key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64;
-  if (!key && !base64Key) return null;
-  try {
-    let credentials;
-    if (base64Key) {
+
+  if (base64Key) {
+    try {
       const decoded = Buffer.from(base64Key, 'base64').toString('utf-8');
-      credentials = JSON.parse(decoded);
-    } else {
+      const creds = JSON.parse(decoded);
+      if (creds?.private_key) creds.private_key = creds.private_key.replace(/\\n/g, '\n').trim();
+      return creds;
+    } catch (e) {
+      console.error('Base64 parse error:', e.message);
+    }
+  }
+
+  if (key) {
+    try {
       let cleanKey = key.trim();
       if ((cleanKey.startsWith("'") && cleanKey.endsWith("'")) || (cleanKey.startsWith('"') && cleanKey.endsWith('"'))) {
         cleanKey = cleanKey.slice(1, -1).trim();
       }
-      credentials = JSON.parse(cleanKey);
+      const creds = JSON.parse(cleanKey);
+      if (creds?.private_key) creds.private_key = creds.private_key.replace(/\\n/g, '\n').trim();
+      return creds;
+    } catch (e) {
+      console.error('Raw key parse error:', e.message);
     }
-    if (credentials?.private_key) {
-      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n').trim();
-    }
-    return credentials;
-  } catch (e) {
-    console.error('Firebase Auth Parse Error:', e.message);
-    return null;
   }
+
+  // Disk fallback for Vercel bundled file
+  try {
+    const filePath = path.join(process.cwd(), 'firebase-service-account.json');
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const creds = JSON.parse(content);
+      if (creds?.private_key) creds.private_key = creds.private_key.replace(/\\n/g, '\n').trim();
+      return creds;
+    }
+  } catch (e) {
+    console.error('File fallback parse error:', e.message);
+  }
+
+  return null;
 }
 
 if (!admin.apps.length) {
   const serviceAccount = getFirebaseCredentials();
-  admin.initializeApp({
-    credential: serviceAccount ? admin.credential.cert(serviceAccount) : admin.credential.applicationDefault(),
-    projectId: 'lasa-dashboard-2f21d',
-  });
+  if (serviceAccount) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: 'lasa-dashboard-2f21d',
+    });
+  } else {
+    admin.initializeApp({
+      projectId: 'lasa-dashboard-2f21d',
+    });
+  }
 }
 
 export default async function handler(req, res) {

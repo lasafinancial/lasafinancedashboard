@@ -398,6 +398,33 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
           <div className="md:hidden flex items-center gap-2">
             <InstallPWA />
 
+            {/* Notification Toggle - Mobile Header */}
+            {isSupported && (
+              <button
+                onClick={toggleNotifications}
+                disabled={isLoading}
+                className={`relative p-2 rounded-lg transition-all duration-200 ${isEnabled
+                  ? 'bg-primary/10 border border-primary/20 text-primary'
+                  : 'bg-white/5 border border-white/10 text-muted-foreground'
+                  }`}
+                title={isEnabled ? 'Disable notifications' : 'Enable notifications'}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isEnabled ? (
+                  <Bell className="h-4 w-4" />
+                ) : (
+                  <BellOff className="h-4 w-4" />
+                )}
+                {isEnabled && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* Mobile Quick Links */}
             <div className="flex items-center gap-1 mr-1">
               <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname === "/" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>

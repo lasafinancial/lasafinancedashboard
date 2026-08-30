@@ -5,7 +5,7 @@
   "framework": "vite",
   "functions": {
     "api/**/*.js": {
-      "includeFiles": "datapulling/**"
+      "includeFiles": "{datapulling/**,firebase-service-account.json}"
     }
   },
   "rewrites": [
@@ -14,7 +14,7 @@
       "destination": "/api/:path*"
     },
     {
-      "source": "/((?!api/|assets/|manifest\\.json|pwa-.*|apple-touch-icon.*|favicon.*|complogo.*|company-banner.*).* )",
+      "source": "/((?!api/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ],
