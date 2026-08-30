@@ -16,21 +16,21 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages
+// Handle background messages via Firebase SDK
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
-  // Parse image from either location, prioritizing data if explicit
-  const image = payload.data?.image || payload.notification?.image || '/testingnoti.png';
+  const title = payload.notification?.title || payload.data?.title || 'LASA Dashboard';
+  const body = payload.notification?.body || payload.data?.body || 'You have a new notification';
+  const image = payload.data?.image || payload.notification?.image || '/complogo.png';
 
-  const notificationTitle = payload.notification?.title || 'LASA Dashboard';
   const notificationOptions = {
-    body: payload.notification?.body || 'You have a new notification',
+    body: body,
     icon: '/complogo.png',
     badge: '/complogo.png',
     image: image,
     tag: payload.data?.tag || 'lasa-notification',
-    data: payload.data,
+    data: payload.data || {},
     requireInteraction: true,
     actions: [
       { action: 'open', title: 'Open Dashboard' },
@@ -38,7 +38,34 @@ messaging.onBackgroundMessage((payload) => {
     ]
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  self.registration.showNotification(title, notificationOptions);
+});
+
+// Fallback push event handler for raw webpush frames
+self.addEventListener('push', (event) => {
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      console.log('[firebase-messaging-sw.js] Raw Push event received:', payload);
+      const title = payload.notification?.title || payload.data?.title || 'LASA Dashboard';
+      const body = payload.notification?.body || payload.data?.body || 'You have a new notification';
+      const image = payload.data?.image || payload.notification?.image || '/complogo.png';
+
+      event.waitUntil(
+        self.registration.showNotification(title, {
+          body: body,
+          icon: '/complogo.png',
+          badge: '/complogo.png',
+          image: image,
+          tag: 'lasa-push-notification',
+          data: payload.data || {},
+          requireInteraction: true
+        })
+      );
+    } catch (e) {
+      console.error('[firebase-messaging-sw.js] Push parse error:', e);
+    }
+  }
 });
 
 // Handle notification click
@@ -51,12 +78,10 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  // Open the dashboard when notification is clicked
   const urlToOpen = event.notification.data?.url || '/';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Check if there's already a window open
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i];
         if (client.url.includes(self.location.origin) && 'focus' in client) {
@@ -64,7 +89,6 @@ self.addEventListener('notificationclick', (event) => {
           return client.focus();
         }
       }
-      // If no window is open, open a new one
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }
@@ -72,12 +96,12 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Handle service worker installation
 self.addEventListener('install', (event) => {
   console.log('[firebase-messaging-sw.js] Service Worker installed');
+  self.skipWaiting();
 });
 
-// Handle service worker activation
 self.addEventListener('activate', (event) => {
   console.log('[firebase-messaging-sw.js] Service Worker activated');
+  event.waitUntil(clients.claim());
 });

@@ -51,23 +51,22 @@ export function useNotifications() {
     });
   }, []);
 
-  // Set up foreground message listener
+  // Set up foreground message listener unconditionally once initialized
   useEffect(() => {
-    if (!isEnabled) return;
-
     const unsubscribe = onForegroundMessage((payload: NotificationPayload) => {
+      console.log('[useNotifications] Foreground message received:', payload);
       const notifTitle = payload.notification?.title || payload.data?.title || 'LASA Dashboard';
       const notifBody = payload.notification?.body || payload.data?.body || 'New notification';
-      const notifImage = payload.data?.image || payload.notification?.image || '/testingnoti.png';
+      const notifImage = payload.data?.image || payload.notification?.image || '/complogo.png';
 
-      // Show toast inside app
+      // 1. Show toast inside app
       toast({
         title: notifTitle,
         description: notifBody,
       });
 
-      // Safely show notification popup via Service Worker with instant fallback
-      if (Notification.permission === 'granted') {
+      // 2. Safely show native notification banner
+      if (typeof window !== 'undefined' && Notification.permission === 'granted') {
         const notifOptions = {
           body: notifBody,
           icon: '/complogo.png',
@@ -98,7 +97,7 @@ export function useNotifications() {
         unsubscribe();
       }
     };
-  }, [isEnabled]);
+  }, []);
 
   // Enable notifications
   const enableNotifications = useCallback(async () => {

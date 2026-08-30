@@ -53,10 +53,12 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Login from "@/pages/Login";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import { ProfileSetupModal } from "@/components/auth/ProfileSetupModal";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
+  useNotifications(); // Mount notification listener globally across app
   const [showLanding, setShowLanding] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCountrySelection, setShowCountrySelection] = useState(false);

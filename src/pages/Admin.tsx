@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send, Lock, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, Upload, Users, Search as SearchIcon, Trash2, Crown, UserMinus, UserCheck, RotateCcw, Book, Edit2, Sparkles, Mail, Phone, BarChart3, Clock, MousePointer2, History, ExternalLink, Bell, Star, Info } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
-import { db } from '@/lib/firebase';
+import { db, requestNotificationPermission, saveTokenToFirestore } from '@/lib/firebase';
 import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, orderBy, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 import {
