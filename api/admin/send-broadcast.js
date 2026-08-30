@@ -116,9 +116,40 @@ export default async function handler(req, res) {
                         image: notifImage,
                         url: '/'
                     },
+                    android: {
+                        priority: 'high',
+                        notification: {
+                            title,
+                            body,
+                            image: notifImage,
+                            sound: 'default',
+                            priority: 'high',
+                            channelId: 'default',
+                            visibility: 'public'
+                        }
+                    },
+                    apns: {
+                        headers: {
+                            'apns-priority': '10'
+                        },
+                        payload: {
+                            aps: {
+                                alert: {
+                                    title,
+                                    body
+                                },
+                                sound: 'default',
+                                'mutable-content': 1
+                            }
+                        },
+                        fcmOptions: {
+                            image: notifImage
+                        }
+                    },
                     webpush: {
                         headers: {
-                            Urgency: 'high'
+                            Urgency: 'high',
+                            TTL: '86400'
                         },
                         notification: {
                             title,

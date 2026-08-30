@@ -2,6 +2,7 @@
   "short_name": "LaSa Research",
   "name": "LaSa Research Portal",
   "id": "/",
+  "gcm_sender_id": "103953800507",
   "icons": [
     {
       "src": "/pwa-192x192.png",

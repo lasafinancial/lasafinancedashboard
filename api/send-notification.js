@@ -64,18 +64,57 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'FCM token is required' });
     }
 
+    const notifImage = data?.image || '/testingnoti.png';
+    const notifTitle = title || 'LASA Dashboard';
+    const notifBody = body || 'You have a new notification';
+
     const message = {
       token,
       notification: {
-        title: title || 'LASA Dashboard',
-        body: body || 'You have a new notification',
+        title: notifTitle,
+        body: notifBody,
+        image: notifImage,
       },
       data: data || {},
-      webpush: {
+      android: {
+        priority: 'high',
         notification: {
-          icon: '/complogo.png',                    // Company logo
-          badge: '/complogo.png',                   // Company logo
-          image: data?.image || '/testingnoti.png', // Banner image (default to test image)
+          title: notifTitle,
+          body: notifBody,
+          image: notifImage,
+          sound: 'default',
+          priority: 'high',
+          channelId: 'default',
+          visibility: 'public'
+        }
+      },
+      apns: {
+        headers: {
+          'apns-priority': '10'
+        },
+        payload: {
+          aps: {
+            alert: {
+              title: notifTitle,
+              body: notifBody
+            },
+            sound: 'default',
+            'mutable-content': 1
+          }
+        },
+        fcmOptions: {
+          image: notifImage
+        }
+      },
+      webpush: {
+        headers: {
+          Urgency: 'high',
+          TTL: '86400'
+        },
+        notification: {
+          icon: '/complogo.png',
+          badge: '/complogo.png',
+          image: notifImage,
           requireInteraction: true,
         },
         fcmOptions: {
