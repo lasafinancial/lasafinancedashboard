@@ -81,28 +81,37 @@ export default async function handler(req, res) {
         const db = admin.firestore();
         const tokensSnapshot = await db.collection('fcm_tokens').get();
 
-        const tokensSet = new Set();
+        const tokenMap = new Map();
         tokensSnapshot.forEach(doc => {
             const data = doc.data() || {};
             const candidate = data.token || data.fcmToken || data.fcm_token || doc.id;
             if (candidate && typeof candidate === 'string' && candidate.length > 20) {
-                tokensSet.add(candidate.trim());
+                tokenMap.set(candidate.trim(), {
+                    docId: doc.id,
+                    userAgent: data.userAgent || 'Unknown Device',
+                    platform: data.platform || 'Unknown Platform',
+                    updatedAt: data.updatedAt || data.createdAt || 'Unknown Date'
+                });
             }
         });
-        const tokens = Array.from(tokensSet);
+
+        const tokens = Array.from(tokenMap.keys());
 
         if (tokens.length === 0) {
-            return res.status(200).json({ successCount: 0, failedCount: 0, message: 'No users subscribed (0 tokens in database).' });
+            return res.status(200).json({ successCount: 0, failedCount: 0, message: 'No users subscribed (0 tokens in database).', deviceDetails: [] });
         }
 
         let successCount = 0;
         let failedCount = 0;
         const invalidTokens = [];
+        const deviceDetails = [];
 
         // Send to each token
         for (const token of tokens) {
+            const info = tokenMap.get(token) || {};
+            const notifImage = image || '/testingnoti.png';
+
             try {
-                const notifImage = image || '/testingnoti.png';
                 const message = {
                     token,
                     notification: {
@@ -167,20 +176,44 @@ export default async function handler(req, res) {
 
                 await admin.messaging().send(message);
                 successCount++;
+                deviceDetails.push({
+                    token: token.substring(0, 15) + '...',
+                    docId: info.docId,
+                    userAgent: info.userAgent,
+                    platform: info.platform,
+                    updatedAt: info.updatedAt,
+                    status: 'SUCCESS',
+                    error: null
+                });
             } catch (error) {
                 failedCount++;
-                if (error.code === 'messaging/registration-token-not-registered' ||
-                    error.code === 'messaging/invalid-registration-token') {
+                const isInvalid = error.code === 'messaging/registration-token-not-registered' ||
+                                  error.code === 'messaging/invalid-registration-token';
+                if (isInvalid) {
                     invalidTokens.push(token);
                 }
+                deviceDetails.push({
+                    token: token.substring(0, 15) + '...',
+                    docId: info.docId,
+                    userAgent: info.userAgent,
+                    platform: info.platform,
+                    updatedAt: info.updatedAt,
+                    status: isInvalid ? 'EXPIRED_DELETED' : 'FAILED',
+                    error: error.message || 'Push delivery failed'
+                });
             }
         }
 
-        // Cleanup invalid tokens
+        // Cleanup invalid tokens from Firestore automatically
         if (invalidTokens.length > 0) {
             const batch = db.batch();
             invalidTokens.forEach(token => {
-                batch.delete(db.collection('fcm_tokens').doc(token));
+                const info = tokenMap.get(token);
+                if (info?.docId) {
+                    batch.delete(db.collection('fcm_tokens').doc(info.docId));
+                } else {
+                    batch.delete(db.collection('fcm_tokens').doc(token));
+                }
             });
             await batch.commit();
         }
@@ -189,7 +222,8 @@ export default async function handler(req, res) {
             success: true,
             successCount,
             failedCount,
-            sentTo: tokens.length
+            sentTo: tokens.length,
+            deviceDetails
         });
 
     } catch (error) {

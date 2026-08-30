@@ -64,6 +64,50 @@ const Admin = () => {
     const [uploading, setUploading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [tokenCount, setTokenCount] = useState<number | null>(null);
+    const [tokenList, setTokenList] = useState<any[]>([]);
+
+    const formatDeviceName = (platform?: string, userAgent?: string) => {
+        const agent = (userAgent || '').toLowerCase();
+        const plat = (platform || '').toLowerCase();
+
+        let os = 'Device';
+        let icon = '📱';
+
+        if (agent.includes('android') || plat.includes('android')) {
+            os = 'Android Phone';
+            icon = '📱';
+        } else if (agent.includes('iphone') || agent.includes('ipad') || plat.includes('iphone')) {
+            os = 'iPhone / iPad';
+            icon = '🍎';
+        } else if (agent.includes('windows') || plat.includes('win')) {
+            os = 'Windows PC';
+            icon = '💻';
+        } else if (agent.includes('mac') || plat.includes('mac')) {
+            os = 'Mac Computer';
+            icon = '🖥️';
+        } else if (agent.includes('linux')) {
+            os = 'Linux PC';
+            icon = '🐧';
+        }
+
+        let browser = '';
+        if (agent.includes('edg')) browser = 'Edge';
+        else if (agent.includes('chrome')) browser = 'Chrome';
+        else if (agent.includes('safari')) browser = 'Safari';
+        else if (agent.includes('firefox')) browser = 'Firefox';
+
+        return `${icon} ${os} ${browser ? `(${browser})` : ''}`.trim();
+    };
+
+    const handleDeleteToken = async (tokenId: string) => {
+        if (!confirm("Delete this device token from database?")) return;
+        try {
+            await deleteDoc(doc(db, 'fcm_tokens', tokenId));
+            toast({ title: "Token Removed", description: "Device token deleted successfully." });
+        } catch (e: any) {
+            toast({ title: "Delete Error", description: e.message, variant: "destructive" });
+        }
+    };
 
     // User Management State
     const [users, setUsers] = useState<any[]>([]);
@@ -128,9 +172,11 @@ const Admin = () => {
             setActivityLogs(logs);
         });
 
-        // Fetch fcm_tokens count
+        // Fetch fcm_tokens count & items
         const unsubscribeTokens = onSnapshot(collection(db, 'fcm_tokens'), (snapshot) => {
             setTokenCount(snapshot.size);
+            const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setTokenList(list);
         });
 
         return () => {
@@ -681,37 +727,95 @@ const Admin = () => {
                         </form>
 
                         {result && (
-                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-8">
+                            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-8 space-y-4">
                                 {result.error ? (
                                     <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 flex items-center gap-3">
                                         <AlertCircle className="w-5 h-5" />
                                         <span>{result.error}</span>
                                     </div>
                                 ) : (
-                                    <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
-                                        <div className="flex items-center gap-3 mb-2 font-semibold text-lg">
-                                            <CheckCircle2 className="w-5 h-5" />
-                                            <span>Broadcast Completed</span>
+                                    <div className="p-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 space-y-4">
+                                        <div className="flex items-center justify-between font-semibold text-lg border-b border-emerald-500/20 pb-3">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                                <span>Broadcast Delivery Summary</span>
+                                            </div>
+                                            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                                Sent to {result.sentTo || 0} Device(s)
+                                            </span>
                                         </div>
-                                        <div className="text-sm grid grid-cols-3 gap-4 text-emerald-400/80">
-                                            <div>Sent: {result.sentTo || result.successCount || 0}</div>
-                                            <div>Success: {result.successCount || 0}</div>
-                                            <div>Failed: {result.failedCount || 0}</div>
+
+                                        <div className="text-sm grid grid-cols-3 gap-4 text-emerald-400/90 font-medium">
+                                            <div className="p-2.5 rounded-lg bg-black/20 text-center">
+                                                <span className="block text-xs text-emerald-400/60">Total Target</span>
+                                                <span className="text-base font-bold text-emerald-300">{result.sentTo || 0}</span>
+                                            </div>
+                                            <div className="p-2.5 rounded-lg bg-black/20 text-center">
+                                                <span className="block text-xs text-emerald-400/60">Successful</span>
+                                                <span className="text-base font-bold text-emerald-400">{result.successCount || 0}</span>
+                                            </div>
+                                            <div className="p-2.5 rounded-lg bg-black/20 text-center">
+                                                <span className="block text-xs text-emerald-400/60">Failed / Deleted</span>
+                                                <span className="text-base font-bold text-amber-400">{result.failedCount || 0}</span>
+                                            </div>
                                         </div>
+
+                                        {/* Per-Device Delivery Audit Table */}
+                                        {result.deviceDetails && result.deviceDetails.length > 0 && (
+                                            <div className="space-y-2 pt-2 border-t border-emerald-500/20">
+                                                <p className="text-xs font-semibold text-emerald-300/90 flex items-center gap-1.5">
+                                                    <Info className="w-3.5 h-3.5" /> Per-Device Delivery Audit Breakdown:
+                                                </p>
+                                                <div className="rounded-xl overflow-hidden border border-emerald-500/20 bg-black/40 text-xs">
+                                                    <div className="grid grid-cols-12 gap-2 p-2.5 bg-emerald-500/10 font-bold border-b border-emerald-500/20 text-emerald-200">
+                                                        <div className="col-span-5">Device OS / Agent</div>
+                                                        <div className="col-span-3">Token Ref</div>
+                                                        <div className="col-span-4 text-right">Status / Result</div>
+                                                    </div>
+                                                    <div className="divide-y divide-emerald-500/10 max-h-48 overflow-y-auto">
+                                                        {result.deviceDetails.map((dev: any, idx: number) => (
+                                                            <div key={idx} className="grid grid-cols-12 gap-2 p-2.5 items-center">
+                                                                <div className="col-span-5 font-semibold text-white/90 truncate">
+                                                                    {formatDeviceName(dev.platform, dev.userAgent)}
+                                                                </div>
+                                                                <div className="col-span-3 font-mono text-[10px] text-white/50 truncate">
+                                                                    {dev.token}
+                                                                </div>
+                                                                <div className="col-span-4 text-right">
+                                                                    {dev.status === 'SUCCESS' ? (
+                                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-[10px]">
+                                                                            ✅ DELIVERED
+                                                                        </span>
+                                                                    ) : dev.status === 'EXPIRED_DELETED' ? (
+                                                                        <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-[10px]" title={dev.error}>
+                                                                            ⚠️ STALE (AUTO-CLEANED)
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 border border-red-500/30 font-bold text-[10px]" title={dev.error}>
+                                                                            ❌ FAILED
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </motion.div>
                         )}
                     </GlassCard>
 
-                    {/* Standalone Prominent Device Diagnostic Card */}
+                    {/* Standalone Prominent Device Diagnostic & Subscribed Devices Card */}
                     <GlassCard className="p-6 md:p-8 w-full max-w-2xl border-primary/30 bg-gradient-to-b from-primary/10 via-background/40 to-background/60 shadow-xl space-y-6">
                         <div className="flex items-center justify-between border-b border-white/10 pb-4">
                             <div className="space-y-1">
                                 <h3 className="text-lg font-bold flex items-center gap-2 gradient-text">
                                     <Bell className="w-5 h-5 text-primary animate-pulse" /> Device Notification Diagnostics
                                 </h3>
-                                <p className="text-xs text-muted-foreground">Test notification popups directly on your current device.</p>
+                                <p className="text-xs text-muted-foreground">Test notification popups and inspect all registered subscriber devices.</p>
                             </div>
                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                                 typeof window !== 'undefined' && Notification.permission === 'granted'
@@ -731,6 +835,59 @@ const Admin = () => {
                             <span className="px-3 py-1 rounded-lg bg-primary/20 text-primary border border-primary/30 font-bold text-sm">
                                 {tokenCount !== null ? `${tokenCount} Device(s)` : 'Loading...'}
                             </span>
+                        </div>
+
+                        {/* Interactive Subscribed Devices Inspector Table */}
+                        <div className="space-y-3 pt-2 border-t border-white/10">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                    <Users className="w-4 h-4 text-primary" /> Registered Device Inventory
+                                </h4>
+                                <span className="text-[11px] text-muted-foreground">
+                                    Real-time Firestore FCM List
+                                </span>
+                            </div>
+
+                            {tokenList.length === 0 ? (
+                                <div className="p-4 rounded-xl border border-white/10 bg-black/20 text-center text-xs text-muted-foreground">
+                                    No subscribed devices found in database. Users will be automatically registered when they enable alerts.
+                                </div>
+                            ) : (
+                                <div className="rounded-xl overflow-hidden border border-white/10 bg-black/30 text-xs">
+                                    <div className="grid grid-cols-12 gap-2 p-2.5 bg-white/5 font-bold border-b border-white/10 text-white/80">
+                                        <div className="col-span-5">Device Type / Browser</div>
+                                        <div className="col-span-4">Token Ref</div>
+                                        <div className="col-span-3 text-right">Action</div>
+                                    </div>
+                                    <div className="divide-y divide-white/5 max-h-56 overflow-y-auto">
+                                        {tokenList.map((item) => (
+                                            <div key={item.id} className="grid grid-cols-12 gap-2 p-2.5 items-center hover:bg-white/5 transition-colors">
+                                                <div className="col-span-5 font-medium text-white flex flex-col min-w-0">
+                                                    <span className="truncate">{formatDeviceName(item.platform, item.userAgent)}</span>
+                                                    <span className="text-[10px] text-muted-foreground truncate">
+                                                        {item.updatedAt ? (typeof item.updatedAt === 'string' ? item.updatedAt.slice(0, 10) : 'Recent') : 'Active'}
+                                                    </span>
+                                                </div>
+                                                <div className="col-span-4 font-mono text-[10px] text-white/50 truncate">
+                                                    {item.id ? `${item.id.slice(0, 12)}...` : 'Token'}
+                                                </div>
+                                                <div className="col-span-3 text-right">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleDeleteToken(item.id)}
+                                                        className="h-7 px-2 text-[11px] text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                                        title="Delete Device Token"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {typeof window !== 'undefined' && Notification.permission === 'denied' && (
