@@ -771,24 +771,47 @@ const Admin = () => {
                                 className="w-full h-11 text-sm font-semibold bg-white/5 hover:bg-white/10 border-white/10"
                                 onClick={async () => {
                                     try {
-                                        const token = await requestNotificationPermission();
+                                        if (!('Notification' in window)) {
+                                            toast({ title: "Not Supported", description: "Notifications not supported on this browser.", variant: "destructive" });
+                                            return;
+                                        }
+                                        const perm = await Notification.requestPermission();
+                                        if (perm !== 'granted') {
+                                            toast({ title: "Permission Denied", description: "Please set Notifications to ALLOW in browser settings.", variant: "destructive" });
+                                            return;
+                                        }
+                                        const { messaging } = await import('@/lib/firebase');
+                                        const { getToken } = await import('firebase/messaging');
+                                        if (!messaging) {
+                                            toast({ title: "Initialization Error", description: "Firebase messaging not initialized.", variant: "destructive" });
+                                            return;
+                                        }
+                                        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                                        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BFB8IrNUPvVzjErLSo-dmcd5fAXNYmGvX6vBxnnn2cXNW87AjP9D9lpZxjZFzdS9W0njbYkoTS8rGtMoj260riM';
+                                        const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
                                         if (token) {
-                                            await saveTokenToFirestore(token);
-                                            toast({
-                                                title: "Token Synced!",
-                                                description: "Device FCM Token successfully saved to Firestore."
+                                            localStorage.setItem('fcm_token', token);
+                                            const res = await fetch('/api/save-token', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    token,
+                                                    userAgent: navigator.userAgent,
+                                                    platform: navigator.platform
+                                                })
                                             });
+                                            if (res.ok) {
+                                                toast({ title: "Token Synced Successfully! 🎉", description: "This device is registered to receive all broadcast notifications." });
+                                            } else {
+                                                throw new Error("Failed to post token to backend API");
+                                            }
                                         } else {
-                                            toast({
-                                                title: "Permission Required",
-                                                description: "Could not get token. Make sure notifications are allowed.",
-                                                variant: "destructive"
-                                            });
+                                            throw new Error("Could not acquire FCM token from browser");
                                         }
                                     } catch (e: any) {
                                         toast({
-                                            title: "Sync Error",
-                                            description: e.message,
+                                            title: "Sync Status",
+                                            description: e.message || "Failed to sync token",
                                             variant: "destructive"
                                         });
                                     }
