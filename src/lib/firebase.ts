@@ -55,8 +55,10 @@ export async function requestNotificationPermission(): Promise<string | null> {
       return null;
     }
 
-    // Register service worker
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    // Register service worker with dedicated scope to prevent PWA controller collision
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/firebase-cloud-messaging-push-scope'
+    });
 
     // Get FCM token
     const token = await getToken(messaging, {

@@ -786,7 +786,7 @@ const Admin = () => {
                                             toast({ title: "Initialization Error", description: "Firebase messaging not initialized.", variant: "destructive" });
                                             return;
                                         }
-                                        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                                        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/firebase-cloud-messaging-push-scope' });
                                         const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BFB8IrNUPvVzjErLSo-dmcd5fAXNYmGvX6vBxnnn2cXNW87AjP9D9lpZxjZFzdS9W0njbYkoTS8rGtMoj260riM';
                                         const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
                                         if (token) {
