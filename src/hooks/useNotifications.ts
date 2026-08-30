@@ -66,17 +66,19 @@ export function useNotifications() {
         description: notifBody,
       });
 
-      // Always pop up native OS desktop / mobile system notification
-      if (Notification.permission === 'granted') {
-        try {
-          new Notification(notifTitle, {
+      // Safely show notification popup via Service Worker (works on Mobile and Desktop)
+      if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+        navigator.serviceWorker.ready.then((reg) => {
+          reg.showNotification(notifTitle, {
             body: notifBody,
             icon: '/complogo.png',
+            badge: '/complogo.png',
             image: notifImage,
+            data: payload.data,
           } as any);
-        } catch (e) {
-          console.warn('Native Notification failed:', e);
-        }
+        }).catch((err) => {
+          console.warn('Service Worker notification error:', err);
+        });
       }
     });
 
