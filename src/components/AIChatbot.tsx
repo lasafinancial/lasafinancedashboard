@@ -39,7 +39,7 @@ export const AIChatbot = () => {
         {
           id: '1',
           role: 'assistant',
-          content: 'Hello! I am your LASA Finance AI assistant. 🚀\n\nI can help you analyze market metrics, explain financial terms, or guide you through the dashboard features. What would you like to know?',
+          content: 'Hello! I am your LASA Research Services AI assistant. 🚀\n\nI can help you analyze market metrics, explain financial terms, or guide you through the dashboard features. What would you like to know?',
           timestamp: new Date(),
         },
       ]);

@@ -2549,6 +2549,9 @@ const NIFTY_OPTIONS_CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
 
 app.get('/api/nifty-options-data', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'public, max-age=900, s-maxage=900');
+    res.setHeader('X-Cache-Duration', '15 Minutes (900s)');
+
     const now = Date.now();
     if (cachedNiftyOptionsData && (now - lastNiftyOptionsFetchTime < NIFTY_OPTIONS_CACHE_DURATION) && req.query.force !== 'true') {
       console.log('[NIFTY-OPTIONS] Returning 15-min cached data.');

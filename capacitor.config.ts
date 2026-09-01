@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.lasafinancial.app',
-  appName: 'LASA FINANCIAL',
+  appName: 'LASA RESEARCH SERVICES',
   webDir: 'dist',
   server: {
     // This allows the app to load your local dev server for live changes

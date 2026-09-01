@@ -55,7 +55,7 @@ export function ProfileSetupModal({ isOpen, onComplete }: ProfileSetupModalProps
 
                     <div className="p-4 bg-muted/40 rounded-xl border border-white/5 space-y-3">
                         <p className="text-xs leading-relaxed text-muted-foreground">
-                            <span className="font-bold text-foreground">Disclaimer:</span> LASA Finance is an analytics and educational platform. We provide market tools and data visualization. We are <span className="font-bold text-foreground">NOT</span> a SEBI-registered investment adviser.
+                            <span className="font-bold text-foreground">Disclaimer:</span> LASA Research Services is an analytics and educational platform. We provide market tools and data visualization. We are <span className="font-bold text-foreground">NOT</span> a SEBI-registered investment adviser.
                         </p>
                         <p className="text-xs leading-relaxed text-muted-foreground">
                             No content here constitutes investment advice. Always consult a qualified financial advisor before investing.

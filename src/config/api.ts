@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 
 /**
- * LASA FINANCIAL - API Configuration
+ * LASA RESEARCH SERVICES - API Configuration
  * 
  * When running as a native app (Capacitor), we must use absolute URLs
  * because '/' refers to the local device filesystem, not the Vercel server.

@@ -94,7 +94,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
               <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full group-hover:bg-primary/30 transition-colors" />
               <img src="/complogo.png" alt="LASA Logo" className="relative h-8 w-8 object-contain" />
             </div>
-            <span className="text-xl font-bold gradient-text">LASA FINANCE</span>
+            <span className="text-xl font-bold gradient-text">LASA RESEARCH SERVICES</span>
           </Link>
 
           {/* Navigation Links - Desktop */}

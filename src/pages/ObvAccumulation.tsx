@@ -370,7 +370,7 @@ export function ObvAccumulation() {
                 {/* Footer Disclaimer */}
                 <div className="mt-8 pt-8 border-t border-white/5 text-[11px] text-muted-foreground/60 leading-relaxed max-w-5xl mx-auto space-y-4">
                     <p>
-                        Research services provided by Lasa Financial Services, SEBI Registered Research Analyst - Regn. No. INH0000XXXXX - BSE Enlistment No. XXXX Registered office: [address]
+                        Research services provided by Lasa Research Services, SEBI Registered Research Analyst - Regn. No. INH0000XXXXX - BSE Enlistment No. XXXX Registered office: [address]
                     </p>
                     <div className="flex gap-2">
                         <div className="w-1 bg-indigo-500 rounded-full"></div>
@@ -401,7 +401,7 @@ export function ObvAccumulation() {
                             Methodology — OBV Accumulation Scan
                         </DialogTitle>
                         <p className="text-xs text-muted-foreground mt-1">
-                            LASA Finance · Research Methodology Document
+                            LASA Research Services · Research Methodology Document
                         </p>
                     </DialogHeader>
 

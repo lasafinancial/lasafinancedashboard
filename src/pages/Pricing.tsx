@@ -334,7 +334,7 @@ export const Pricing = () => {
                                 Trade Ideas & Research Reports
                             </div>
                             <p className="text-[11px] text-muted-foreground leading-relaxed font-mono opacity-60">
-                                Trade ideas are published by Lasa, a SEBI Registered Research Analyst (Reg. No. INH000XXXXXX) under SEBI (Research Analysts) Regulations, 2014. Research is prepared for the exclusive use of registered subscribers and is not for public circulation or redistribution. The analyst or Lasa may or may not hold positions in mentioned securities. Conflicts of interest, if any, are disclosed in each report. Past performance is not indicative of future results. F&O instruments carry higher risk and are suitable only for investors with adequate risk tolerance. Risk profiling is mandatory prior to onboarding for Elite subscribers.
+                                Trade ideas are published by Lasa Research Services, a SEBI Registered Research Analyst (Reg. No. INH000XXXXXX) under SEBI (Research Analysts) Regulations, 2014. Research is prepared for the exclusive use of registered subscribers and is not for public circulation or redistribution. The analyst or Lasa Research Services may or may not hold positions in mentioned securities. Conflicts of interest, if any, are disclosed in each report. Past performance is not indicative of future results. F&O instruments carry higher risk and are suitable only for investors with adequate risk tolerance. Risk profiling is mandatory prior to onboarding for Elite subscribers.
                             </p>
                         </div>
                     </div>
@@ -344,7 +344,7 @@ export const Pricing = () => {
                             Full Regulatory Disclosure
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed font-mono opacity-60">
-                            Lasa is a SEBI Registered Research Analyst under SEBI (Research Analysts) Regulations, 2014 | Reg. No. INH000XXXXXX. All research, analyses, trade ideas, and market content shared are for registered subscribers only and not for public circulation. This is not an offer or solicitation to buy or sell any securities. Investments in equity and F&O markets are subject to market risk. Read all scheme-related documents carefully. Past performance is not indicative of future returns. No guaranteed returns are promised or implied. Pricing is standardised for all subscribers of the same tier in compliance with SEBI RA Regulations. | Grievances: contact@lasa.in | SEBI Scores: scores.sebi.gov.in
+                            Lasa Research Services is a SEBI Registered Research Analyst under SEBI (Research Analysts) Regulations, 2014 | Reg. No. INH000XXXXXX. All research, analyses, trade ideas, and market content shared are for registered subscribers only and not for public circulation. This is not an offer or solicitation to buy or sell any securities. Investments in equity and F&O markets are subject to market risk. Read all scheme-related documents carefully. Past performance is not indicative of future returns. No guaranteed returns are promised or implied. Pricing is standardised for all subscribers of the same tier in compliance with SEBI RA Regulations. | Grievances: contact@lasa.in | SEBI Scores: scores.sebi.gov.in
                         </p>
                     </div>
                 </div>

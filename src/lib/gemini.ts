@@ -23,7 +23,7 @@ export async function getStockNarration(input: NarrationInput): Promise<string> 
     }
 
     const prompt = `
-Act as a Senior Market Strategist at LASA Financial. 
+Act as a Senior Market Strategist at LASA Research Services. 
 Your goal is to provide a highly detailed, professional, and conversational narration of a stock's technical setup.
 
 Stock: ${input.symbol}

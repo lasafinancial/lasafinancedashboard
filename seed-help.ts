@@ -15,7 +15,7 @@ const articles = [
     {
         title: "Upgrading to Pro",
         category: "Account & Billing",
-        content: "LASA Finance Pro offers exclusive access to:\n- Reaction Zone Scanner\n- Advanced Multibagger alerts\n- Real-time notification priority\n\nTo upgrade, visit your Profile settings and click on 'Upgrade to Pro' or contact our support team via the Feedback button."
+        content: "LASA Research Services Pro offers exclusive access to:\n- Reaction Zone Scanner\n- Advanced Multibagger alerts\n- Real-time notification priority\n\nTo upgrade, visit your Profile settings and click on 'Upgrade to Pro' or contact our support team via the Feedback button."
     },
     {
         title: "Setting up Notifications",

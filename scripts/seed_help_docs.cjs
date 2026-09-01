@@ -45,7 +45,7 @@ const db = admin.firestore();
 
 const docs = [
     {
-        title: "Welcome to LASA Finance 🚀",
+        title: "Welcome to LASA Research Services 🚀",
         category: "General",
         content: "Welcome to the next generation of market intelligence. LASA (Live Analytics & Sentiment Analysis) is designed for modern traders who value speed and data-driven accuracy.\n\n### Where to Start?\n1. **Market Dashboard**: Get a 10,000ft view of the market mood and RSI telemetry.\n2. **Scanners**: Use our proprietary filters to find stocks at critical pivot points.\n3. **Pro Analysis**: Access deeper insights and high-conviction 'Multi-Bagger' picks.\n\nOur philosophy is simple: Simplify complex data so you can trade with confidence."
     },

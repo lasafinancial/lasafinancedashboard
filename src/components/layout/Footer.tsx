@@ -33,7 +33,7 @@ export function Footer() {
 
                     {/* Bottom Links & Copyright */}
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground border-t border-white/5 pt-6">
-                        <p>© {currentYear} LASA Finance. All rights reserved.</p>
+                        <p>© {currentYear} LASA Research Services. All rights reserved.</p>
                         <div className="flex items-center gap-6">
                             <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
                             <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>

@@ -26,7 +26,7 @@ export default function LandingPage({ onEnter }: { onEnter: () => void }) {
             {/* Hero Title */}
             <div className="mb-12 text-center w-full px-4">
               <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-[10rem] font-bold tracking-tighter animate-scale-in leading-[0.9] py-4 break-words">
-                LASA <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-white to-indigo-400 animate-gradient">FINANCE</span>
+                LASA <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-white to-indigo-400 animate-gradient">RESEARCH SERVICES</span>
               </h1>
             </div>
 
@@ -35,7 +35,7 @@ export default function LandingPage({ onEnter }: { onEnter: () => void }) {
             <div className="absolute inset-0 rounded-full bg-indigo-500/30 blur-3xl animate-pulse" />
             <img 
               src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=1000" 
-              alt="LASA Finance AI" 
+              alt="LASA Research Services AI" 
               className="relative w-full h-full object-cover rounded-3xl border border-white/20 shadow-2xl shadow-indigo-500/40 transform hover:scale-105 transition-transform duration-500"
             />
           </div>

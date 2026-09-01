@@ -25,7 +25,7 @@ export const SplashScreen = ({ progress }: { progress: number }) => {
                     </div>
                     <div className="flex flex-col items-center text-center">
                         <span className="text-2xl md:text-3xl font-black tracking-tight text-foreground">
-                            LASA <span className="gradient-text">FINANCIAL SERVICES</span>
+                            LASA <span className="gradient-text">RESEARCH SERVICES</span>
                         </span>
                         <span className="text-[10px] md:text-xs font-bold tracking-[0.3em] text-muted-foreground/60 mt-1 uppercase">
                             Think Global... Think Smart

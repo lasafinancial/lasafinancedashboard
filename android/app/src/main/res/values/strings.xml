@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">LASA FINANCIAL</string>
-    <string name="title_activity_main">LASA FINANCIAL</string>
+    <string name="app_name">LASA RESEARCH SERVICES</string>
+    <string name="title_activity_main">LASA RESEARCH SERVICES</string>
     <string name="package_name">com.lasafinancial.app</string>
     <string name="custom_url_scheme">com.lasafinancial.app</string>
 </resources>

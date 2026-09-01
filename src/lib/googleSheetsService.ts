@@ -221,16 +221,6 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
 
     const data: GoogleSheetsData = await response.json();
 
-    // Fetch Nifty Options Data
-    try {
-      const optionsRes = await fetch(getApiUrl('/api/nifty-options-data'));
-      if (optionsRes.ok) {
-        data.niftyOptionsData = await optionsRes.json();
-      }
-    } catch (e) {
-      console.warn('Could not fetch nifty options data:', e);
-    }
-
     // --- FALLBACK-TO-CACHE RESILIENCE LAYER ---
     // If the backend Google Sheets are momentarily empty due to an update,
     // prevent the frontend from rendering an empty "No Data Found" state.
