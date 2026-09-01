@@ -99,11 +99,11 @@ export const AIChatbot = () => {
 
     // 3. Website Help / Features
     if (q.includes('how to') || q.includes('use') || q.includes('help') || q.includes('features')) {
-      return `LASA Dashboard offers three main sections:\n1. **Market Dashboard**: High-level overview of indicators.\n2. **Stock Analysis**: Deep dive into specific stocks with interactive charts.\n3. **Sector Analysis**: Comparative view of different market segments.\n\nYou can navigate using the top bar!`;
+      return `LASA Research Services Dashboard offers three main sections:\n1. **Market Dashboard**: High-level overview of indicators.\n2. **Stock Analysis**: Deep dive into specific stocks with interactive charts.\n3. **Sector Analysis**: Comparative view of different market segments.\n\nYou can navigate using the top bar!`;
     }
 
     if (q.includes('about') || q.includes('what is lasa') || q.includes('who are you')) {
-      return `LASA (Live Analytics & Sentiment Analysis) is a next-gen financial dashboard designed to provide real-time market insights using technical indicators and machine learning. I'm your virtual assistant here to make sense of all that data!`;
+      return `LASA Research Services is a professional market analytics and decision-support platform designed to provide real-time quantitative insights, technical indicators, and algorithmic setups. I'm your virtual assistant here to help you navigate our research tools!`;
     }
 
     // 4. Financial Definitions
@@ -117,7 +117,7 @@ export const AIChatbot = () => {
 
     // 5. Greetings
     if (q.includes('hi') || q.includes('hello') || q.includes('hey')) {
-      return "Hello! I'm LASA AI. How can I help you navigate the markets today? You can ask me about specific stocks, market sentiment, or how to use this dashboard.";
+      return "Hello! I'm your LASA Research Services AI Assistant. How can I help you navigate the markets today? You can ask me about specific stocks, market sentiment, or how to use this dashboard.";
     }
 
     if (q.includes('thank')) {
@@ -196,7 +196,7 @@ export const AIChatbot = () => {
                     <Sparkles className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-sm">LASA Intelligence</h3>
+                    <h3 className="font-semibold text-sm">LASA Research Services</h3>
                     <div className="flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                       <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">System Functional</span>
@@ -230,7 +230,7 @@ export const AIChatbot = () => {
                           {m.role === 'user' ? <User className="h-3.5 w-3.5 text-primary" /> : <Bot className="h-3.5 w-3.5 text-muted-foreground" />}
                         </div>
                         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-tight">
-                          {m.role === 'user' ? 'Guest' : 'LASA Expert'}
+                          {m.role === 'user' ? 'Guest' : 'LASA Research Services'}
                         </span>
                       </div>
                       <div
@@ -250,7 +250,7 @@ export const AIChatbot = () => {
                         <div className="h-6 w-6 rounded-full flex items-center justify-center border bg-secondary border-border">
                           <Bot className="h-3.5 w-3.5 text-muted-foreground" />
                         </div>
-                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-tight">LASA Expert</span>
+                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-tight">LASA Research Services</span>
                       </div>
                       <div className="bg-secondary/50 border border-border/50 dark:bg-white/[0.03] dark:border-white/10 rounded-2xl rounded-tl-none px-4 py-3 max-w-[85%] backdrop-blur-sm">
                         <div className="flex gap-1.5 py-1">
@@ -267,7 +267,7 @@ export const AIChatbot = () => {
               {/* Suggestions */}
               {!isTyping && messages.length < 4 && (
                 <div className="px-4 py-2 flex gap-2 overflow-x-auto no-scrollbar flex-shrink-0">
-                  {['RSI status?', 'Top stocks?', 'About LASA'].map((suggestion) => (
+                  {['RSI status?', 'Top stocks?', 'About LASA Research Services'].map((suggestion) => (
                     <button
                       key={suggestion}
                       onClick={() => { setInput(suggestion); handleSend(); }}
@@ -306,7 +306,7 @@ export const AIChatbot = () => {
                   </Button>
                 </form>
                 <p className="text-[9px] text-center mt-3 text-muted-foreground/60 uppercase tracking-widest font-medium">
-                  Powered by LASA Intelligence Engine
+                  Powered by LASA Research Services
                 </p>
               </div>
           </GlassCard>

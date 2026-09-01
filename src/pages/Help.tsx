@@ -85,7 +85,7 @@ const Help = () => {
                 <motion.div variants={itemVariants} className="space-y-4">
                     <h1 className="text-5xl md:text-6xl font-black tracking-tight gradient-text leading-tight">How can we help?</h1>
                     <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed font-medium">
-                        Search our knowledge base or let LASA AI assist you.
+                        Search our knowledge base or let LASA Research Services assist you.
                     </p>
                 </motion.div>
                 <motion.div variants={itemVariants}>
@@ -94,7 +94,7 @@ const Help = () => {
                             <div className="flex-1 relative">
                                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground/40" />
                                 <Input
-                                    placeholder="Ask LASA AI: 'Why should I upgrade to Pro?'"
+                                    placeholder="Ask LASA Research Services: 'Why should I upgrade to Pro?'"
                                     className="pl-14 h-16 bg-transparent border-none text-lg placeholder:text-muted-foreground/30 focus-visible:ring-0"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -219,7 +219,7 @@ const Help = () => {
                     <div className="flex items-center gap-4 text-muted-foreground text-sm font-medium">
                         <div className="flex items-center gap-2">
                             <div className="h-6 w-6 rounded-full bg-primary/20" />
-                            <span>LASA Expert team</span>
+                            <span>LASA Research Services team</span>
                         </div>
                         <span className="h-1 w-1 rounded-full bg-white/20" />
                         <span>Updated {selectedArticle.updatedAt?.toDate().toLocaleDateString() || 'Recently'}</span>
@@ -269,7 +269,7 @@ const Help = () => {
                         <Sparkles className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg">LASA AI Assistant</h3>
+                        <h3 className="font-bold text-lg">LASA Research Services Assistant</h3>
                         <p className="text-[10px] uppercase tracking-widest text-primary font-bold">Intelligent Search</p>
                     </div>
                 </div>

@@ -89,12 +89,12 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="relative">
+          <Link to="/" className="flex items-center gap-2 group shrink-0 mr-2 lg:mr-4">
+            <div className="relative shrink-0">
               <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full group-hover:bg-primary/30 transition-colors" />
               <img src="/complogo.png" alt="LASA Logo" className="relative h-8 w-8 object-contain" />
             </div>
-            <span className="text-xl font-bold gradient-text">LASA RESEARCH SERVICES</span>
+            <span className="text-base sm:text-lg lg:text-xl font-bold gradient-text whitespace-nowrap">LASA RESEARCH SERVICES</span>
           </Link>
 
           {/* Navigation Links - Desktop */}
