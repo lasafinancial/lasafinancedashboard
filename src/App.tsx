@@ -51,7 +51,6 @@ import { useActivityLogger } from "@/hooks/useActivityLogger";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Login from "@/pages/Login";
-import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import { ProfileSetupModal } from "@/components/auth/ProfileSetupModal";
 import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationPromptBanner } from "@/components/layout/NotificationPromptBanner";

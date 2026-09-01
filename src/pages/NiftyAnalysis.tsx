@@ -66,7 +66,7 @@ export default function NiftyAnalysis() {
                     return { ...row, parsedOptions };
                 });
         },
-        refetchInterval: 300000 // Refetch every 5 mins
+        refetchInterval: 900000 // Refetch every 15 mins
     });
 
     // Default to the latest live frame on initial load

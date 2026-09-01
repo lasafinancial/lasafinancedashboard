@@ -6,7 +6,7 @@ const SPREADSHEET_ID = '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU';
 // Simple in-memory cache to handle rapid user hits and prevent 429 Quota Exceeded
 let cachedData = null;
 let lastFetchTime = 0;
-const CACHE_DURATION = 60 * 1000; // 60 seconds
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes (900 seconds)
 
 function getCredentials() {
     return getGoogleCredentialsHelper();
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
             return obj;
         });
 
-        res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
+        res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate');
         
         // Update local cache
         cachedData = data;

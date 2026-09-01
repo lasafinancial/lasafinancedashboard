@@ -2543,9 +2543,18 @@ app.post('/api/otp', async (req, res) => {
 });
 
 //niftyoptionsfetching
+let cachedNiftyOptionsData = null;
+let lastNiftyOptionsFetchTime = 0;
+const NIFTY_OPTIONS_CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
 
 app.get('/api/nifty-options-data', async (req, res) => {
   try {
+    const now = Date.now();
+    if (cachedNiftyOptionsData && (now - lastNiftyOptionsFetchTime < NIFTY_OPTIONS_CACHE_DURATION) && req.query.force !== 'true') {
+      console.log('[NIFTY-OPTIONS] Returning 15-min cached data.');
+      return res.json(cachedNiftyOptionsData);
+    }
+
     const SPREADSHEET_ID = '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU';
     const credentials = getCredentials();
     const auth = new google.auth.GoogleAuth({
@@ -2588,6 +2597,9 @@ app.get('/api/nifty-options-data', async (req, res) => {
       });
       return obj;
     });
+
+    cachedNiftyOptionsData = data;
+    lastNiftyOptionsFetchTime = Date.now();
 
     res.json(data);
   } catch (error) {
