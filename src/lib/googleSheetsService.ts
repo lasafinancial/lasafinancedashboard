@@ -151,6 +151,20 @@ export interface ExitTargetScreenerItem {
   stoploss: string;
 }
 
+export interface WeeklyRecommendationItem {
+  date: string;
+  id: string;
+  entryDate: string;
+  buyPrice: string;
+  currentPrice: string;
+  profit: string;
+  status: string;
+  reason: string;
+  fundamentalView: string;
+  exitReason: string;
+  exitDate: string;
+}
+
 export interface GoogleSheetsData {
   marketMood: MarketMood;
   marketStrength: MarketStrengthItem[];
@@ -173,6 +187,7 @@ export interface GoogleSheetsData {
   niftyOptionsData?: any[];
   summaries?: StockSummaryItem[];
   exitTargetScreener?: ExitTargetScreenerItem[];
+  weeklyRecommendation?: WeeklyRecommendationItem[];
   lastUpdated: string;
 }
 
@@ -237,7 +252,8 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
         'dailyNews',
         'summaries',
         'playbackSnapshots',
-        'exitTargetScreener'
+        'exitTargetScreener',
+        'weeklyRecommendation'
       ];
 
       arraysToProtect.forEach(key => {

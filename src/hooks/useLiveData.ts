@@ -40,6 +40,7 @@ export function useLiveData() {
   const [niftyOptionsData, setNiftyOptionsData] = useState<any[]>(cached ? (cached as any).niftyOptionsData || [] : []);
   const [summaries, setSummaries] = useState<any[]>(cached ? cached.summaries || [] : []);
   const [exitTargetScreener, setExitTargetScreener] = useState<any[]>(cached ? cached.exitTargetScreener || [] : []);
+  const [weeklyRecommendation, setWeeklyRecommendation] = useState<any[]>(cached ? cached.weeklyRecommendation || [] : []);
   const [isLoading, setIsLoading] = useState(!cached);
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
 
@@ -67,6 +68,7 @@ export function useLiveData() {
       setNiftyOptionsData((data as any).niftyOptionsData || []);
       setSummaries(data.summaries || []);
       setExitTargetScreener(data.exitTargetScreener || []);
+      setWeeklyRecommendation(data.weeklyRecommendation || []);
       setLastUpdate(new Date().toLocaleTimeString());
       setIsLoading(false);
     });
@@ -103,6 +105,7 @@ export function useLiveData() {
     niftyOptionsData,
     summaries,
     exitTargetScreener,
+    weeklyRecommendation,
     isLoading,
     lastUpdate,
     refresh: refreshAllData

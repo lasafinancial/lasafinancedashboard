@@ -399,6 +399,7 @@ async function fetchData() {
   let firstAppearanceMap = {};
   let niftyAnalysis = { history: [] };
   let exitTargetScreener = [];
+  let weeklyRecommendation = [];
   let currentPriceMap = new Map();
   let currentChangePercentMap = new Map();
   let currentObvSignalMap = new Map();
@@ -1169,6 +1170,49 @@ async function fetchData() {
         console.log(`Fetched ${exitTargetScreener.length} items for exitTargetScreener from RECOMMENDATION.`);
       } catch (exitErr) {
         console.warn('Could not fetch RECOMMENDATION:', exitErr.message);
+      }
+
+      // --- 12a3. Fetch WEEKLY-RECOMMENDATION tab ---
+      try {
+        const weeklyRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: INDICES_SHEET_ID,
+          range: "'WEEKLY-RECOMMENDATION'!A:AZ",
+        });
+        const weeklyRows = weeklyRes.data.values || [];
+        for (let i = 0; i < weeklyRows.length; i++) {
+          const row = weeklyRows[i];
+          if (!row || row.length < 2) continue;
+          const rawId = (row[1] || '').toString().trim();
+          if (!rawId) continue;
+          const upperId = rawId.toUpperCase();
+          if (
+            upperId === 'ID' ||
+            upperId === 'SYMBOL' ||
+            upperId === 'RANK' ||
+            rawId.startsWith('──') ||
+            upperId.includes('SECTOR') ||
+            upperId.includes('DISCLAIMER')
+          ) {
+            continue;
+          }
+
+          weeklyRecommendation.push({
+            date: row[0] !== undefined && row[0] !== null ? row[0].toString().trim() : '',
+            id: rawId,
+            entryDate: row[3] !== undefined && row[3] !== null ? row[3].toString().trim() : '',
+            buyPrice: row[4] !== undefined && row[4] !== null ? row[4].toString().trim() : '',
+            currentPrice: row[41] !== undefined && row[41] !== null ? row[41].toString().trim() : '',
+            profit: row[27] !== undefined && row[27] !== null ? row[27].toString().trim() : '',
+            status: row[42] !== undefined && row[42] !== null ? row[42].toString().trim() : '',
+            reason: row[37] !== undefined && row[37] !== null ? row[37].toString().trim() : '',
+            fundamentalView: row[38] !== undefined && row[38] !== null ? row[38].toString().trim() : '',
+            exitReason: row[30] !== undefined && row[30] !== null ? row[30].toString().trim() : '',
+            exitDate: row[28] !== undefined && row[28] !== null ? row[28].toString().trim() : ''
+          });
+        }
+        console.log(`Fetched ${weeklyRecommendation.length} items for weeklyRecommendation from WEEKLY-RECOMMENDATION.`);
+      } catch (weeklyErr) {
+        console.warn('Could not fetch WEEKLY-RECOMMENDATION:', weeklyErr.message);
       }
 
       // --- 12b. Fetch Summaries tab (Independent) ---
@@ -2040,6 +2084,7 @@ async function fetchData() {
     niftyAnalysis,
     summaries,
     exitTargetScreener,
+    weeklyRecommendation,
     lastUpdated: new Date().toISOString()
   };
 }

@@ -1,5 +1,5 @@
 // Enhanced Screeners Page
-import { Filter, ChevronDown, TrendingUp, ArrowUpRight, Search, Zap, Crosshair, BarChart2, Rocket, Activity } from "lucide-react";
+import { Filter, ChevronDown, TrendingUp, ArrowUpRight, Search, Zap, Crosshair, BarChart2, Rocket, Activity, Calendar } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { Link, useNavigate } from "react-router-dom";
@@ -92,6 +92,16 @@ const screenerOptions = [
         bgColor: "bg-amber-400/10",
         borderColor: "group-hover:border-amber-400/50",
         gradient: "from-amber-400/20 to-transparent"
+    },
+    {
+        path: "/screeners/weekly-recommendations",
+        label: "WEEKLY RECOMMENDATIONS",
+        description: "Weekly setups tracking entry levels, current prices, target returns, technical summaries, and fundamental outlooks.",
+        icon: Calendar,
+        color: "text-cyan-400",
+        bgColor: "bg-cyan-400/10",
+        borderColor: "group-hover:border-cyan-400/50",
+        gradient: "from-cyan-400/20 to-transparent"
     }
     // Multibagger Hidden per boss request
     /* {

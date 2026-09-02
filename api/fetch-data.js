@@ -207,7 +207,8 @@ async function fetchData() {
     allstocksRes,
     indicesRes,
     newsRes,
-    exitTargetScreenerRes
+    exitTargetScreenerRes,
+    weeklyRecommendationRes
   ] = await Promise.all([
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'golden'" }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }),
@@ -225,6 +226,10 @@ async function fetchData() {
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'RECOMMENDATION'!A:V" }).catch(e => {
       console.warn('Failed to fetch RECOMMENDATION tab:', e.message);
+      return { data: { values: [] } };
+    }),
+    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'WEEKLY-RECOMMENDATION'!A:AZ" }).catch(e => {
+      console.warn('Failed to fetch WEEKLY-RECOMMENDATION tab:', e.message);
       return { data: { values: [] } };
     })
   ]);
@@ -1872,6 +1877,45 @@ async function fetchData() {
     console.warn('Error processing exitTargetScreener:', err.message);
   }
 
+  // --- Extract Weekly Recommendation Screener from WEEKLY-RECOMMENDATION tab ---
+  let weeklyRecommendation = [];
+  try {
+    const weeklyRows = weeklyRecommendationRes ? (weeklyRecommendationRes.data.values || []) : [];
+    for (let i = 0; i < weeklyRows.length; i++) {
+      const row = weeklyRows[i];
+      if (!row || row.length < 2) continue;
+      const rawId = (row[1] || '').toString().trim();
+      if (!rawId) continue;
+      const upperId = rawId.toUpperCase();
+      if (
+        upperId === 'ID' ||
+        upperId === 'SYMBOL' ||
+        upperId === 'RANK' ||
+        rawId.startsWith('──') ||
+        upperId.includes('SECTOR') ||
+        upperId.includes('DISCLAIMER')
+      ) {
+        continue;
+      }
+
+      weeklyRecommendation.push({
+        date: row[0] !== undefined && row[0] !== null ? row[0].toString().trim() : '',
+        id: rawId,
+        entryDate: row[3] !== undefined && row[3] !== null ? row[3].toString().trim() : '',
+        buyPrice: row[4] !== undefined && row[4] !== null ? row[4].toString().trim() : '',
+        currentPrice: row[41] !== undefined && row[41] !== null ? row[41].toString().trim() : '',
+        profit: row[27] !== undefined && row[27] !== null ? row[27].toString().trim() : '',
+        status: row[42] !== undefined && row[42] !== null ? row[42].toString().trim() : '',
+        reason: row[37] !== undefined && row[37] !== null ? row[37].toString().trim() : '',
+        fundamentalView: row[38] !== undefined && row[38] !== null ? row[38].toString().trim() : '',
+        exitReason: row[30] !== undefined && row[30] !== null ? row[30].toString().trim() : '',
+        exitDate: row[28] !== undefined && row[28] !== null ? row[28].toString().trim() : ''
+      });
+    }
+  } catch (err) {
+    console.warn('Error processing weeklyRecommendation:', err.message);
+  }
+
   return {
     marketMood,
     marketStrength: strengthData,
@@ -1894,6 +1938,7 @@ async function fetchData() {
     niftyAnalysis,
     summaries,
     exitTargetScreener,
+    weeklyRecommendation,
     lastUpdated: new Date().toISOString()
   };
 }
