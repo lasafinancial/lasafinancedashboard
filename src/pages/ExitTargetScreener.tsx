@@ -278,6 +278,7 @@ export function ExitTargetScreener() {
                   <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("date")}>DATE <SortIcon field="date" /></TableHead>
                   <TableHead className="w-[140px] text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("id")}>ID <SortIcon field="id" /></TableHead>
                   <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("buyPrice")}>BUY PRICE <SortIcon field="buyPrice" /></TableHead>
+                  <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("currentPrice")}>CURRENT PRICE <SortIcon field="currentPrice" /></TableHead>
                   <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("targetPrice")}>TARGET PRICE <SortIcon field="targetPrice" /></TableHead>
                   <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("profit")}>PROFIT <SortIcon field="profit" /></TableHead>
                   <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("status")}>STATUS <SortIcon field="status" /></TableHead>
@@ -290,7 +291,7 @@ export function ExitTargetScreener() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="h-64 text-center">
+                    <TableCell colSpan={11} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <Loader2 className="h-8 w-8 text-primary animate-spin" />
                         <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">
@@ -301,7 +302,7 @@ export function ExitTargetScreener() {
                   </TableRow>
                 ) : filteredAndSortedData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="h-64 text-center">
+                    <TableCell colSpan={11} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <AlertCircle className="h-8 w-8 text-muted-foreground/30" />
                         <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">
@@ -321,6 +322,7 @@ export function ExitTargetScreener() {
                         <TableCell className="py-2.5 font-mono text-xs text-cyan-300 font-bold whitespace-nowrap">{row.date || "—"}</TableCell>
                         <TableCell className="py-2.5"><span className="text-sm font-black text-white tracking-tight group-hover:text-primary transition-colors">{row.id || "—"}</span></TableCell>
                         <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-blue-300">{row.buyPrice ? row.buyPrice : "—"}</TableCell>
+                        <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-cyan-400">{row.currentPrice ? row.currentPrice : "—"}</TableCell>
                         <TableCell className="py-2.5 text-right font-mono font-bold text-xs text-emerald-400">{row.targetPrice ? row.targetPrice : "—"}</TableCell>
                         <TableCell className="py-2.5 text-center font-mono font-bold text-xs">
                           {(() => {

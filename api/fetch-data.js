@@ -224,7 +224,7 @@ async function fetchData() {
     }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }),
     safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' }),
-    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'RECOMMENDATION'!A:V" }).catch(e => {
+    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'RECOMMENDATION'!A:Z" }).catch(e => {
       console.warn('Failed to fetch RECOMMENDATION tab:', e.message);
       return { data: { values: [] } };
     }),
@@ -1863,6 +1863,7 @@ async function fetchData() {
         date: row[0] !== undefined && row[0] !== null ? row[0].toString().trim() : '',
         id: rawId,
         buyPrice: row[3] !== undefined && row[3] !== null ? row[3].toString().trim() : '',
+        currentPrice: row[24] !== undefined && row[24] !== null ? row[24].toString().trim() : '',
         targetPrice: row[4] !== undefined && row[4] !== null ? row[4].toString().trim() : '',
         targetsHit: row[5] !== undefined && row[5] !== null ? row[5].toString().trim() : '',
         profit: row[17] !== undefined && row[17] !== null ? row[17].toString().trim() : '',
