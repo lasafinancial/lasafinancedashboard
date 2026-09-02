@@ -20,7 +20,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 
-type SortField = "symbol" | "close" | "resistance" | "model" | "mlGap" | "balance" | "obvSignal";
+type SortField = "symbol" | "close" | "support" | "resistance" | "obvSignal";
 type SortDirection = "asc" | "desc";
 
 export function ObvAccumulation() {
@@ -76,16 +76,14 @@ export function ObvAccumulation() {
             const boData = intradayBreakout?.find((bo) => bo.symbol === stock.symbol);
             
             const history = stock.history || [];
-            const latest = history[history.length - 1];
-            const lastValidFvg = history.slice().reverse().find(h => h.projFvg && h.projFvg > 0)?.projFvg;
+            const validHistorySupport = history.slice().reverse().find(h => !h.isLive && typeof h.support === 'number' && h.support > 0)?.support;
+            const validHistoryResistance = history.slice().reverse().find(h => !h.isLive && typeof h.resistance === 'number' && h.resistance > 0)?.resistance;
             
             return {
                 symbol: stock.symbol,
                 close: stock.price,
-                resistance: latest?.resistance || latestScannerEntry?.resistance,
-                model: latestScannerEntry?.model || latest?.mlFutPrice20d,
-                mlGap: latestScannerEntry?.mlGap || 0,
-                balance: lastValidFvg || latestScannerEntry?.BALANCE || latestScannerEntry?.balance || boData?.BALANCE || "—",
+                support: (stock as any).support || validHistorySupport || latestScannerEntry?.support || boData?.SUPPORT,
+                resistance: (stock as any).resistance || validHistoryResistance || latestScannerEntry?.resistance || boData?.RESISTANCE,
                 fr: (stock as any).fr || latestScannerEntry?.fr || "—",
                 obvSignal: (stock as any).obvSignal || latestScannerEntry?.obvSignal || "—"
             };
@@ -275,20 +273,11 @@ export function ObvAccumulation() {
                                         <TableHead onClick={() => toggleSort("close")} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
                                             PRICE {getSortIcon("close")}
                                         </TableHead>
+                                        <TableHead onClick={() => toggleSort("support")} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
+                                            SUPPORT {getSortIcon("support")}
+                                        </TableHead>
                                         <TableHead onClick={() => toggleSort("resistance")} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
                                             RESISTANCE {getSortIcon("resistance")}
-                                        </TableHead>
-                                        <TableHead onClick={() => toggleSort("model")} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
-                                            MODEL {getSortIcon("model")}
-                                        </TableHead>
-                                        <TableHead onClick={() => toggleSort("mlGap")} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
-                                            <span className="flex items-center justify-end gap-1">
-                                                MODEL GAP % <Info className="w-3.5 h-3.5 text-gray-500" />
-                                                {getSortIcon("mlGap")}
-                                            </span>
-                                        </TableHead>
-                                        <TableHead onClick={() => toggleSort("balance")} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
-                                            BALANCE {getSortIcon("balance")}
                                         </TableHead>
                                         <TableHead onClick={() => toggleSort("obvSignal")} className="w-[160px] text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center cursor-pointer hover:text-white transition-colors">
                                             OBV WEEKLY {getSortIcon("obvSignal")}
@@ -314,29 +303,15 @@ export function ObvAccumulation() {
                                                 <TableCell className="py-4 text-right font-semibold text-[13px] text-gray-200">
                                                     ₹{formatNumber(stock.close)}
                                                 </TableCell>
+
+                                                {/* Support (Column DH) */}
+                                                <TableCell className="py-4 text-right font-semibold text-[13px] text-emerald-400">
+                                                    {stock.support && stock.support !== "N/A" && stock.support !== "—" ? `₹${formatNumber(stock.support)}` : "—"}
+                                                </TableCell>
                                                 
                                                 {/* Resistance */}
                                                 <TableCell className="py-4 text-right font-semibold text-[13px] text-rose-400">
-                                                    ₹{formatNumber(stock.resistance)}
-                                                </TableCell>
-                                                
-                                                {/* Model */}
-                                                <TableCell className="py-4 text-right">
-                                                    <span className="text-[13px] font-semibold text-gray-200">
-                                                        {stock.model && stock.model !== "N/A" && stock.model !== "" ? `₹${formatNumber(stock.model)}` : "—"}
-                                                    </span>
-                                                </TableCell>
-
-                                                {/* ML_Gap% */}
-                                                <TableCell className="py-4 text-right font-semibold text-[13px]">
-                                                    <span className={stock.mlGap > 0 ? "text-gray-400" : stock.mlGap < 0 ? "text-gray-400" : "text-white/60"}>
-                                                        {formatPercent(stock.mlGap)}
-                                                    </span>
-                                                </TableCell>
-                                                
-                                                {/* Balance */}
-                                                <TableCell className="py-4 text-right font-semibold text-[13px] text-gray-200">
-                                                    {typeof stock.balance === 'number' ? `₹${formatNumber(stock.balance)}` : "—"}
+                                                    {stock.resistance && stock.resistance !== "N/A" && stock.resistance !== "—" ? `₹${formatNumber(stock.resistance)}` : "—"}
                                                 </TableCell>
                                                 
                                                 {/* Obv Weekly */}
@@ -467,7 +442,7 @@ export function ObvAccumulation() {
                         <div>
                             <h3 className="text-base font-bold text-white mb-2">5. Output Fields</h3>
                             <p>
-                                For each qualifying stock, the scan displays: current price; computed resistance level; model projection midpoint (the full projection band and its reliability classification are shown on the stock's research page); model gap % (the arithmetic distance between price and the model projection — a computed distance, not an expected return); balance zone where one exists; and the weekly OBV state. All levels are drawn from the LASA daily research snapshot — the same values published on each stock's research page — so no surface of the platform can display a different figure for the same stock on the same day.
+                                For each qualifying stock, the scan displays: current price; computed support level (Column DH); computed resistance level (Column DI); and the weekly OBV accumulation state. All levels are drawn from the LASA daily research snapshot — the same values published on each stock's research page — so no surface of the platform can display a different figure for the same stock on the same day.
                             </p>
                         </div>
 
