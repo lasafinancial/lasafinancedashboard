@@ -31,8 +31,34 @@ export function IntradayBreakout() {
     const { intradayBreakout: stocks, isLoading, stockData } = useLiveData();
     const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedDate, setSelectedDate] = useState<string>("LATEST");
     const [sortField, setSortField] = useState<SortField>("time");
     const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+    // Extract all unique dates available in data
+    const availableDates = useMemo(() => {
+        if (!stocks || stocks.length === 0) return [];
+        const dateSet = new Set<string>();
+        stocks.forEach(s => {
+            if (s.date && s.date.trim() && s.date !== "N/A") {
+                dateSet.add(s.date.trim());
+            }
+        });
+        // Sort descending (latest date first)
+        return Array.from(dateSet).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    }, [stocks]);
+
+    const latestDate = availableDates[0] || "";
+
+    // Count entries per date
+    const dateCounts = useMemo(() => {
+        const counts: Record<string, number> = {};
+        (stocks || []).forEach(s => {
+            const d = s.date?.trim() || "";
+            if (d) counts[d] = (counts[d] || 0) + 1;
+        });
+        return counts;
+    }, [stocks]);
 
     const formatNumber = (num: number) => {
         if (num === null || num === undefined) return "N/A";
@@ -59,6 +85,13 @@ export function IntradayBreakout() {
     const processedStocks = useMemo(() => {
         if (!stocks) return [];
         let data = [...stocks];
+
+        // Filter by Date: Default to LATEST date (Today) unless ALL or specific date is chosen
+        if (selectedDate === "LATEST" && latestDate) {
+            data = data.filter(s => (s.date || "").trim() === latestDate);
+        } else if (selectedDate !== "ALL" && selectedDate) {
+            data = data.filter(s => (s.date || "").trim() === selectedDate);
+        }
 
         if (searchTerm) {
             data = data.filter(stock =>
@@ -90,7 +123,12 @@ export function IntradayBreakout() {
         });
 
         return data;
-    }, [stocks, searchTerm, sortField, sortDirection]);
+    }, [stocks, selectedDate, latestDate, searchTerm, sortField, sortDirection]);
+
+    // Unique stocks count for active view
+    const uniqueStocksCount = useMemo(() => {
+        return new Set(processedStocks.map(s => s.symbol)).size;
+    }, [processedStocks]);
 
     const handleStockClick = (symbol: string) => {
         navigate(`/stocks?symbol=${symbol}`);
@@ -103,12 +141,12 @@ export function IntradayBreakout() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 rounded-full blur-[120px] animate-pulse delay-700" />
             </div>
 
-            <div className="relative container mx-auto px-4 py-8">
+            <div className="relative container mx-auto px-4 py-8 max-w-[1600px] space-y-6">
                 {/* Header Section */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
+                    className="space-y-4"
                 >
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                         <div className="space-y-2">
@@ -117,7 +155,7 @@ export function IntradayBreakout() {
                                 Screener: Intraday
                             </div>
                             <div className="flex items-center gap-3">
-                                <h1 className="text-3xl font-bold tracking-tight">
+                                <h1 className="text-3xl font-bold tracking-tight text-white uppercase">
                                     Intraday Volume <span className="gradient-text italic">Breakout</span>
                                 </h1>
                                 <Dialog>
@@ -131,23 +169,23 @@ export function IntradayBreakout() {
                                             <DialogTitle className="text-2xl font-bold gradient-text">Intraday Volume Breakout Scanner</DialogTitle>
                                         </DialogHeader>
                                         <div className="space-y-4 text-sm text-gray-300 mt-4 leading-relaxed">
-                                            <p>This scanner tracks stocks showing high-intensity breakouts during market hours, combining volume spikes with significant price movements.</p>
+                                            <p>This scanner tracks all stocks showing high-intensity breakouts during market hours, capturing all volume spikes and price velocity triggers throughout the day.</p>
                                             <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
                                                 <h3 className="font-semibold text-primary mb-2">Key Criteria:</h3>
                                                 <ul className="list-disc pl-5 space-y-1 text-gray-400">
-                                                    <li>Volume Multiplier: Compares current volume to standard averages</li>
+                                                    <li>Volume Multiplier: Compares current candle volume to baseline volume</li>
                                                     <li>Price % Move: Real-time price velocity tracking</li>
                                                     <li>Structural Levels: Integration with Balance, Model, and Pattern zones</li>
                                                 </ul>
                                             </div>
-                                            <p className="italic text-gray-400">Unique signals are captured across the last two trading days to identify both fresh momentum and continuation patterns.</p>
+                                            <p className="italic text-gray-400">All triggered breakout entries for the selected trading day are captured in real-time.</p>
                                         </div>
                                     </DialogContent>
                                 </Dialog>
                             </div>
                             <p className="text-muted-foreground text-sm flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4 text-primary" />
-                                High-velocity momentum breakouts with volume confirmation.
+                                High-velocity momentum breakouts with volume confirmation across the entire trading day.
                             </p>
                         </div>
 
@@ -158,8 +196,73 @@ export function IntradayBreakout() {
                                 placeholder="Search symbol..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm backdrop-blur-md"
+                                className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm backdrop-blur-md text-white placeholder:text-muted-foreground/60"
                             />
+                        </div>
+                    </div>
+
+                    {/* Date Selector Tabs & Daily Summary */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5">
+                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mr-1">
+                                <Calendar className="w-3.5 h-3.5 text-primary" />
+                                Date:
+                            </span>
+
+                            {/* Today / Latest Date Tab */}
+                            {latestDate && (
+                                <button
+                                    onClick={() => setSelectedDate("LATEST")}
+                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                        selectedDate === "LATEST"
+                                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-black"
+                                            : "bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10"
+                                    }`}
+                                >
+                                    <span>Today ({latestDate})</span>
+                                    <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${selectedDate === 'LATEST' ? 'bg-black/30 text-white' : 'bg-white/10 text-white/60'}`}>
+                                        {dateCounts[latestDate] || 0} entries
+                                    </span>
+                                </button>
+                            )}
+
+                            {/* Other Past Dates */}
+                            {availableDates.slice(1, 4).map(dateStr => (
+                                <button
+                                    key={dateStr}
+                                    onClick={() => setSelectedDate(dateStr)}
+                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                        selectedDate === dateStr
+                                            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-black"
+                                            : "bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10"
+                                    }`}
+                                >
+                                    <span>{dateStr}</span>
+                                    <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${selectedDate === dateStr ? 'bg-black/30 text-white' : 'bg-white/10 text-white/60'}`}>
+                                        {dateCounts[dateStr] || 0}
+                                    </span>
+                                </button>
+                            ))}
+
+                            {/* All Dates Option */}
+                            <button
+                                onClick={() => setSelectedDate("ALL")}
+                                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                    selectedDate === "ALL"
+                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-black"
+                                        : "bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10"
+                                }`}
+                            >
+                                <span>All Dates</span>
+                                <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${selectedDate === 'ALL' ? 'bg-black/30 text-white' : 'bg-white/10 text-white/60'}`}>
+                                    {stocks?.length || 0}
+                                </span>
+                            </button>
+                        </div>
+
+                        {/* Day Stats Badge */}
+                        <div className="flex items-center gap-2 text-xs font-mono font-medium text-muted-foreground">
+                            <span className="text-white font-bold">{processedStocks.length}</span> entries across <span className="text-cyan-400 font-bold">{uniqueStocksCount}</span> unique stocks
                         </div>
                     </div>
                 </motion.div>
