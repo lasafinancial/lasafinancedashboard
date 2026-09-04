@@ -491,10 +491,18 @@ export function WeeklyRecommendationScreener() {
                         </div>
 
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-base md:text-lg font-black text-white tracking-tight group-hover:text-cyan-300 transition-colors truncate">
                               {item.id}
                             </h3>
+                            <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold text-cyan-300">
+                              Positional
+                            </span>
+                            {(item.entryDate || item.date) && (
+                              <span className="px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-[10px] font-bold text-blue-300">
+                                Initiated: {item.entryDate || item.date}
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground truncate max-w-[220px] md:max-w-md font-medium">
                             {companyName}
@@ -544,18 +552,21 @@ export function WeeklyRecommendationScreener() {
                     </div>
 
                     {/* Footer Row: LASA Branding & Entry Date & Holding Period */}
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground/80 pt-2 border-t border-white/5">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground/80 pt-2 border-t border-white/5 flex-wrap gap-2">
                       <div className="flex items-center gap-1.5 font-medium text-white/70">
                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-400/80" />
                         <span>LASA Research (SEBI RA)</span>
                       </div>
-                      <div className="flex items-center gap-2 font-mono text-[11px]">
+                      <div className="flex items-center gap-2 font-mono text-[11px] flex-wrap">
                         {item.holdingWeeks && (
                           <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold text-[10px]">
                             {item.holdingWeeks} Weeks
                           </span>
                         )}
-                        <span>{isExited && item.exitDate ? `Closing: ${item.exitDate}` : `Entry: ${item.entryDate || item.date || "—"}`}</span>
+                        <span>Initiated: <strong className="text-blue-300 font-bold">{item.entryDate || item.date || "—"}</strong></span>
+                        {isExited && item.exitDate && (
+                          <span className="text-rose-300">• Closing: <strong className="font-bold">{item.exitDate}</strong></span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -594,7 +605,7 @@ export function WeeklyRecommendationScreener() {
                         {selectedStock.id.slice(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <DialogTitle className="text-xl font-black text-white tracking-tight">
                             {selectedStock.id}
                           </DialogTitle>
@@ -603,6 +614,16 @@ export function WeeklyRecommendationScreener() {
                             : "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px] font-black uppercase px-2 py-0.5"}>
                             {isExitedModal ? "CLOSED" : "BUY • ONGOING"}
                           </Badge>
+                          {(selectedStock.entryDate || selectedStock.date) && (
+                            <span className="px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-[10px] font-bold text-blue-300">
+                              Initiated: {selectedStock.entryDate || selectedStock.date}
+                            </span>
+                          )}
+                          {isExitedModal && selectedStock.exitDate && (
+                            <span className="px-2 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-[10px] font-bold text-rose-300">
+                              Closing: {selectedStock.exitDate}
+                            </span>
+                          )}
                         </div>
                         <DialogDescription className="text-xs text-muted-foreground font-medium">
                           {stockNameMap.get(selectedStock.id.toUpperCase()) || selectedStock.id}
@@ -694,6 +715,10 @@ export function WeeklyRecommendationScreener() {
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-muted-foreground uppercase tracking-wider">Trading Horizon</span>
                     <span className="font-bold text-cyan-300 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20">Positional (2 – 6 Months)</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs border-t border-white/5 pt-2">
+                    <span className="font-bold text-muted-foreground uppercase tracking-wider">Initiation Date</span>
+                    <span className="font-mono font-bold text-blue-300">{selectedStock.entryDate || selectedStock.date || "—"}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs border-t border-white/5 pt-2">
                     <span className="font-bold text-muted-foreground uppercase tracking-wider">Holding Period</span>
