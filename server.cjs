@@ -13,6 +13,11 @@ const FEATURE_FLAGS = {
   ENABLE_REACTION_ZONE_SCREENER: false,   // Disables REACTION ZONE (reactionZone) screener
 };
 
+// 1-hour cache for Positional / Weekly Recommendations (sheet updates weekly, so hourly refresh is optimal)
+let cachedWeeklyRecommendation = null;
+let lastWeeklyFetchTime = 0;
+const WEEKLY_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
 // Global error handlers to prevent silent crashes
 process.on('uncaughtException', (err) => {
   console.error('FATAL: Uncaught Exception:', err);
@@ -1128,7 +1133,7 @@ async function fetchData() {
       try {
         const exitTargetRes = await sheets.spreadsheets.values.get({
           spreadsheetId: INDICES_SHEET_ID,
-          range: "'RECOMMENDATION'!A:Z",
+          range: "'RECOMMENDATION'!A:AZ",
         });
         const exitRows = exitTargetRes.data.values || [];
         for (let i = 0; i < exitRows.length; i++) {
@@ -1161,12 +1166,16 @@ async function fetchData() {
             currentPrice: row[24] !== undefined && row[24] !== null ? row[24].toString().trim() : '',
             targetPrice: row[4] !== undefined && row[4] !== null ? row[4].toString().trim() : '',
             targetsHit: row[5] !== undefined && row[5] !== null ? row[5].toString().trim() : '',
-            profit: row[17] !== undefined && row[17] !== null ? row[17].toString().trim() : '',
+            profit: row[25] !== undefined && row[25] !== null && row[25].toString().trim() !== ''
+              ? row[25].toString().trim()
+              : (row[17] !== undefined && row[17] !== null ? row[17].toString().trim() : ''),
             status: row[16] !== undefined && row[16] !== null ? row[16].toString().trim() : '',
             reason: row[19] !== undefined && row[19] !== null ? row[19].toString().trim() : '',
             exitReason: row[13] !== undefined && row[13] !== null ? row[13].toString().trim() : '',
             exitDate: row[20] !== undefined && row[20] !== null ? row[20].toString().trim() : '',
-            stoploss: row[21] !== undefined && row[21] !== null ? row[21].toString().trim() : ''
+            exitPrice: row[23] !== undefined && row[23] !== null ? row[23].toString().trim() : '',
+            stoploss: row[21] !== undefined && row[21] !== null ? row[21].toString().trim() : '',
+            holdingDays: row[26] !== undefined && row[26] !== null ? row[26].toString().trim() : ''
           });
         }
         console.log(`Fetched ${exitTargetScreener.length} items for exitTargetScreener from RECOMMENDATION.`);
@@ -1174,47 +1183,69 @@ async function fetchData() {
         console.warn('Could not fetch RECOMMENDATION:', exitErr.message);
       }
 
-      // --- 12a3. Fetch WEEKLY-RECOMMENDATION tab ---
-      try {
-        const weeklyRes = await sheets.spreadsheets.values.get({
-          spreadsheetId: INDICES_SHEET_ID,
-          range: "'WEEKLY-RECOMMENDATION'!A:AZ",
-        });
-        const weeklyRows = weeklyRes.data.values || [];
-        for (let i = 0; i < weeklyRows.length; i++) {
-          const row = weeklyRows[i];
-          if (!row || row.length < 2) continue;
-          const rawId = (row[1] || '').toString().trim();
-          if (!rawId) continue;
-          const upperId = rawId.toUpperCase();
-          if (
-            upperId === 'ID' ||
-            upperId === 'SYMBOL' ||
-            upperId === 'RANK' ||
-            rawId.startsWith('──') ||
-            upperId.includes('SECTOR') ||
-            upperId.includes('DISCLAIMER')
-          ) {
-            continue;
-          }
-
-          weeklyRecommendation.push({
-            date: row[0] !== undefined && row[0] !== null ? row[0].toString().trim() : '',
-            id: rawId,
-            entryDate: row[3] !== undefined && row[3] !== null ? row[3].toString().trim() : '',
-            buyPrice: row[4] !== undefined && row[4] !== null ? row[4].toString().trim() : '',
-            currentPrice: row[41] !== undefined && row[41] !== null ? row[41].toString().trim() : '',
-            profit: row[27] !== undefined && row[27] !== null ? row[27].toString().trim() : '',
-            status: row[42] !== undefined && row[42] !== null ? row[42].toString().trim() : '',
-            reason: row[37] !== undefined && row[37] !== null ? row[37].toString().trim() : '',
-            fundamentalView: row[38] !== undefined && row[38] !== null ? row[38].toString().trim() : '',
-            exitReason: row[30] !== undefined && row[30] !== null ? row[30].toString().trim() : '',
-            exitDate: row[28] !== undefined && row[28] !== null ? row[28].toString().trim() : ''
+      // --- 12a3. Fetch WEEKLY-RECOMMENDATION tab (cached for 1 hour, updates weekly) ---
+      const nowWeeklyTime = Date.now();
+      if (cachedWeeklyRecommendation && (nowWeeklyTime - lastWeeklyFetchTime < WEEKLY_CACHE_TTL)) {
+        weeklyRecommendation.push(...cachedWeeklyRecommendation);
+        console.log(`Using cached weeklyRecommendation (${cachedWeeklyRecommendation.length} items, refreshed hourly).`);
+      } else {
+        try {
+          const weeklyRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: INDICES_SHEET_ID,
+            range: "'WEEKLY-RECOMMENDATION'!A:AZ",
           });
+          const weeklyRows = weeklyRes.data.values || [];
+          const fetchedItems = [];
+          for (let i = 0; i < weeklyRows.length; i++) {
+            const row = weeklyRows[i];
+            if (!row || row.length < 2) continue;
+            const rawId = (row[1] || '').toString().trim();
+            if (!rawId) continue;
+            const upperId = rawId.toUpperCase();
+            if (
+              upperId === 'ID' ||
+              upperId === 'SYMBOL' ||
+              upperId === 'RANK' ||
+              rawId.startsWith('──') ||
+              upperId.includes('SECTOR') ||
+              upperId.includes('DISCLAIMER')
+            ) {
+              continue;
+            }
+
+            fetchedItems.push({
+              date: row[0] !== undefined && row[0] !== null ? row[0].toString().trim() : '',
+              id: rawId,
+              entryDate: row[3] !== undefined && row[3] !== null ? row[3].toString().trim() : '',
+              buyPrice: row[4] !== undefined && row[4] !== null ? row[4].toString().trim() : '',
+              targetPrice: row[23] !== undefined && row[23] !== null ? row[23].toString().trim() : '',
+              currentPrice: row[41] !== undefined && row[41] !== null ? row[41].toString().trim() : '',
+              profit: row[33] !== undefined && row[33] !== null && row[33].toString().trim() !== ''
+                ? row[33].toString().trim()
+                : (row[27] !== undefined && row[27] !== null ? row[27].toString().trim() : ''),
+              status: row[42] !== undefined && row[42] !== null ? row[42].toString().trim() : '',
+              reason: row[37] !== undefined && row[37] !== null ? row[37].toString().trim() : '',
+              fundamentalView: row[38] !== undefined && row[38] !== null ? row[38].toString().trim() : '',
+              exitReason: row[31] !== undefined && row[31] !== null && row[31].toString().trim() !== ''
+                ? row[31].toString().trim()
+                : (row[30] !== undefined && row[30] !== null ? row[30].toString().trim() : ''),
+              exitDate: row[28] !== undefined && row[28] !== null ? row[28].toString().trim() : '',
+              exitPrice: row[29] !== undefined && row[29] !== null ? row[29].toString().trim() : '',
+              holdingWeeks: row[32] !== undefined && row[32] !== null ? row[32].toString().trim() : ''
+            });
+          }
+          if (fetchedItems.length > 0) {
+            cachedWeeklyRecommendation = fetchedItems;
+            lastWeeklyFetchTime = nowWeeklyTime;
+          }
+          weeklyRecommendation.push(...(cachedWeeklyRecommendation || fetchedItems));
+          console.log(`Fetched ${weeklyRecommendation.length} items for weeklyRecommendation from WEEKLY-RECOMMENDATION.`);
+        } catch (weeklyErr) {
+          console.warn('Could not fetch WEEKLY-RECOMMENDATION:', weeklyErr.message);
+          if (cachedWeeklyRecommendation) {
+            weeklyRecommendation.push(...cachedWeeklyRecommendation);
+          }
         }
-        console.log(`Fetched ${weeklyRecommendation.length} items for weeklyRecommendation from WEEKLY-RECOMMENDATION.`);
-      } catch (weeklyErr) {
-        console.warn('Could not fetch WEEKLY-RECOMMENDATION:', weeklyErr.message);
       }
 
       // --- 12b. Fetch Summaries tab (Independent) ---
@@ -1620,14 +1651,14 @@ async function fetchData() {
           historicalBoTodayMap[sym].sort((a, b) => a.timeMinutes - b.timeMinutes);
         });
 
-        // 1. Old Intraday Breakout (Last 2 Trading Days)
+        // 1. Intraday Breakout (All Recent Trading Days - up to 30 days)
         const allBreakoutDates = [...new Set(breakoutData.map(r => r['Date']).filter(Boolean))];
         const sortedBreakoutDates = allBreakoutDates.sort((a, b) => new Date(b) - new Date(a));
-        const lastTwoDates = sortedBreakoutDates.slice(0, 2);
+        const recentDates = sortedBreakoutDates.slice(0, 30);
 
         const seenOld = new Set();
         intradayBreakout = breakoutData
-          .filter(row => row['Date'] && lastTwoDates.includes(row['Date']))
+          .filter(row => row['Date'] && recentDates.includes(row['Date']))
           .filter(row => {
             const key = `${row['Symbol']}_${row['Time']}_${row['Date']}`;
             if (seenOld.has(key)) return false;
@@ -2105,11 +2136,19 @@ app.get('/api/fetch-data', async (req, res) => {
     }
 
     const data = await fetchData();
-    cachedData = data;
-    lastFetchTime = now;
-    console.log(`[API] Returning data to frontend. Golden Alerts: ${data.goldenAlerts?.length || 0}`);
+    if (data && data.stockData && data.stockData.length > 0) {
+      cachedData = data;
+      lastFetchTime = now;
+    } else if (cachedData) {
+      console.log('Fetch returned empty/error; returning previous valid cachedData');
+      return res.json(cachedData);
+    } else if (data) {
+      cachedData = data;
+      lastFetchTime = now;
+    }
+    console.log(`[API] Returning data to frontend. Golden Alerts: ${data?.goldenAlerts?.length || 0}`);
 
-    res.json(data);
+    res.json(data || cachedData || {});
   } catch (error) {
     console.error('Error fetching data:', error);
     res.status(500).json({ error: 'Failed to fetch data', message: error.message });

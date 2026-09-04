@@ -85,8 +85,8 @@ const screenerOptions = [
     },
     {
         path: "/screeners/recommendations",
-        label: "RECOMMENDATIONS",
-        description: "Dynamic tracking of target levels, buy prices, stoploss, and exit signals.",
+        label: "SHORT TERM TRADES",
+        description: "Holding 1–4 Weeks. Short term swing trades tracking buy prices, targets, stoploss, and exit signals.",
         icon: Crosshair,
         color: "text-amber-400",
         bgColor: "bg-amber-400/10",
@@ -95,8 +95,8 @@ const screenerOptions = [
     },
     {
         path: "/screeners/weekly-recommendations",
-        label: "WEEKLY RECOMMENDATIONS",
-        description: "Weekly setups tracking entry levels, current prices, target returns, technical summaries, and fundamental outlooks.",
+        label: "POSITIONAL TRADES",
+        description: "Positional setups tracking entry levels, current prices, target returns, technical summaries, and fundamental outlooks.",
         icon: Calendar,
         color: "text-cyan-400",
         bgColor: "bg-cyan-400/10",

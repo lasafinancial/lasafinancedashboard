@@ -203,7 +203,7 @@ export function IntradayBreakout() {
 
                     {/* Date Selector Tabs & Daily Summary */}
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5">
-                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                        <div className="flex flex-wrap items-center gap-2 py-1">
                             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mr-1">
                                 <Calendar className="w-3.5 h-3.5 text-primary" />
                                 Date:
@@ -213,25 +213,25 @@ export function IntradayBreakout() {
                             {latestDate && (
                                 <button
                                     onClick={() => setSelectedDate("LATEST")}
-                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                                        selectedDate === "LATEST"
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                        selectedDate === "LATEST" || selectedDate === latestDate
                                             ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-black"
                                             : "bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10"
                                     }`}
                                 >
                                     <span>Today ({latestDate})</span>
-                                    <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${selectedDate === 'LATEST' ? 'bg-black/30 text-white' : 'bg-white/10 text-white/60'}`}>
+                                    <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${selectedDate === 'LATEST' || selectedDate === latestDate ? 'bg-black/30 text-white' : 'bg-white/10 text-white/60'}`}>
                                         {dateCounts[latestDate] || 0} entries
                                     </span>
                                 </button>
                             )}
 
-                            {/* Other Past Dates */}
-                            {availableDates.slice(1, 4).map(dateStr => (
+                            {/* Quick Past Dates */}
+                            {availableDates.slice(1, 3).map(dateStr => (
                                 <button
                                     key={dateStr}
                                     onClick={() => setSelectedDate(dateStr)}
-                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
                                         selectedDate === dateStr
                                             ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-black"
                                             : "bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10"
@@ -247,7 +247,7 @@ export function IntradayBreakout() {
                             {/* All Dates Option */}
                             <button
                                 onClick={() => setSelectedDate("ALL")}
-                                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
                                     selectedDate === "ALL"
                                         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-black"
                                         : "bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10"
@@ -258,6 +258,35 @@ export function IntradayBreakout() {
                                     {stocks?.length || 0}
                                 </span>
                             </button>
+
+                            {/* Interactive Date Dropdown / Calendar Selector */}
+                            <div className="flex items-center gap-1.5 ml-1">
+                                <select
+                                    value={selectedDate === "LATEST" ? latestDate : selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    className="px-3 py-1.5 bg-white/5 border border-white/15 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer backdrop-blur-md"
+                                >
+                                    <option value="ALL" className="bg-[#0f172a] text-white">Select Any Date...</option>
+                                    {availableDates.map(d => (
+                                        <option key={d} value={d} className="bg-[#0f172a] text-white">
+                                            {d} ({dateCounts[d] || 0} calls)
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {/* Native Datepicker Input */}
+                                <input
+                                    type="date"
+                                    value={selectedDate === "LATEST" ? latestDate : selectedDate === "ALL" ? "" : selectedDate}
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            setSelectedDate(e.target.value);
+                                        }
+                                    }}
+                                    className="px-2.5 py-1.5 bg-white/5 border border-white/15 rounded-xl text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer backdrop-blur-md [color-scheme:dark]"
+                                    title="Pick any date from calendar"
+                                />
+                            </div>
                         </div>
 
                         {/* Day Stats Badge */}

@@ -11,6 +11,7 @@ import SentimentTrendChart from "@/components/charts/SentimentTrendChart";
 import MarketPositionStructure from "@/components/charts/MarketPositionStructure";
 import SectorCard from "@/components/cards/SectorCard";
 import IndicesPerformance from "@/components/cards/IndicesPerformance";
+import { LiveCallsGrid } from "@/components/cards/LiveCallsGrid";
 import Walkthrough from "@/pages/Walkthrough";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
@@ -169,7 +170,7 @@ const Dashboard = () => {
         <Spotlight className="-top-40 left-0 opacity-50" />
 
         {/* Header Section */}
-        <div className="relative z-[100] mb-16 animate-fade-in px-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+        <div className="relative z-[100] mb-8 sm:mb-12 animate-fade-in px-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider animate-fade-in">
               <Sparkles className="w-3 h-3" />
@@ -228,6 +229,9 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Live Calls (Long Term, Short Term, Intraday, Futures & Options) */}
+        <LiveCallsGrid />
 
         {/* Market Indicators Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">

@@ -150,6 +150,8 @@ export interface ExitTargetScreenerItem {
   exitReason?: string;
   exitDate: string;
   stoploss: string;
+  holdingDays?: string;
+  exitPrice?: string;
 }
 
 export interface WeeklyRecommendationItem {
@@ -164,6 +166,9 @@ export interface WeeklyRecommendationItem {
   fundamentalView: string;
   exitReason: string;
   exitDate: string;
+  holdingWeeks?: string;
+  exitPrice?: string;
+  targetPrice?: string;
 }
 
 export interface GoogleSheetsData {

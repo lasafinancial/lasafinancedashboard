@@ -241,8 +241,8 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">RECOMMENDATIONS</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Target & Stoploss Tracker</span>
+                          <span className="text-sm font-semibold">SHORT TERM TRADES</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Holding 1–4 Weeks</span>
                         </div>
                       </Link>
                       <Link
@@ -251,8 +251,8 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">WEEKLY RECOMMENDATIONS</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Weekly Setup Tracker</span>
+                          <span className="text-sm font-semibold">POSITIONAL TRADES</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Holding 2–6 Months</span>
                         </div>
                       </Link>
                       {user?.email === 'lasafinancial@gmail.com' ? (
@@ -404,16 +404,23 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
             </DropdownMenu>
           </div>
 
-          {/* Mobile Menu */}
-          <div className="md:hidden flex items-center gap-2">
-            <InstallPWA />
+          {/* Mobile Right Actions (Top Row) */}
+          <div className="md:hidden flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Live Indicator Mobile */}
+            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/10 border border-success/20">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
+              </span>
+              <span className="text-[10px] font-medium text-success uppercase tracking-wider">Live</span>
+            </div>
 
             {/* Notification Toggle - Mobile Header */}
             {isSupported && (
               <button
                 onClick={toggleNotifications}
                 disabled={isLoading}
-                className={`relative p-2 rounded-lg transition-all duration-200 ${isEnabled
+                className={`relative p-1.5 rounded-lg transition-all duration-200 ${isEnabled
                   ? 'bg-primary/10 border border-primary/20 text-primary'
                   : 'bg-white/5 border border-white/10 text-muted-foreground'
                   }`}
@@ -435,35 +442,10 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
               </button>
             )}
 
-            {/* Mobile Quick Links */}
-            <div className="flex items-center gap-1 mr-1">
-              <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname === "/" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
-                <BarChart3 className="h-5 w-5" />
-              </Link>
-              <Link to="/stocks" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname === "/stocks" ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
-                <Search className="h-5 w-5" />
-              </Link>
-              <Link to="/screeners" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname.startsWith("/screeners") ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
-                <Filter className="h-5 w-5" />
-              </Link>
-              <Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-xl transition-colors ${location.pathname === "/pricing" ? "bg-amber-500/20 text-amber-400" : "text-amber-400/90 hover:text-amber-400"}`} title="Packages & Pricing">
-                <Crown className="h-5 w-5" />
-              </Link>
-            </div>
-
-            {/* Live Indicator Mobile */}
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-success/10 border border-success/20">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
-              </span>
-              <span className="text-[10px] font-medium text-success uppercase tracking-wider">Live</span>
-            </div>
-
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="hover:bg-white/5">
-                  <Menu className="h-6 w-6" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5">
+                  <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-6 pt-10 border-l border-white/10 bg-[#060606] overflow-y-auto">
@@ -542,8 +524,8 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
 
                               <Link to="/screeners/obv-accumulation" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">OBV Accumulation Scan</Link>
                               <Link to="/screeners/nifty-analysis" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Optics</Link>
-                              <Link to="/screeners/recommendations" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">RECOMMENDATIONS</Link>
-                              <Link to="/screeners/weekly-recommendations" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">WEEKLY RECOMMENDATIONS</Link>
+                              <Link to="/screeners/recommendations" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">SHORT TERM TRADES</Link>
+                              <Link to="/screeners/weekly-recommendations" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">POSITIONAL TRADES</Link>
                               {user?.email === 'lasafinancial@gmail.com' ? (
                                 <Link to="/multibagger" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Dev-MB</Link>
                               ) : (
@@ -645,6 +627,58 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
               </SheetContent>
             </Sheet>
           </div>
+        </div>
+
+        {/* Mobile Quick Action Bar - Shifted just below header LASA RESEARCH SERVICES */}
+        <div className="md:hidden flex items-center justify-between py-1.5 px-0.5 border-t border-border/30 gap-1 w-full overflow-x-hidden">
+          <Link
+            to="/"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`flex-1 flex flex-col items-center justify-center py-1 px-0.5 rounded-lg transition-colors ${location.pathname === "/" ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span className="text-[9px] font-medium mt-0.5 leading-tight">Dashboard</span>
+          </Link>
+          <Link
+            to="/stocks"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`flex-1 flex flex-col items-center justify-center py-1 px-0.5 rounded-lg transition-colors ${location.pathname === "/stocks" ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <Search className="h-4 w-4" />
+            <span className="text-[9px] font-medium mt-0.5 leading-tight">Stocks</span>
+          </Link>
+          <Link
+            to="/nifty50"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`flex-1 flex flex-col items-center justify-center py-1 px-0.5 rounded-lg transition-colors ${location.pathname === "/nifty50" ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span className="text-[9px] font-medium mt-0.5 leading-tight">NIFTY</span>
+          </Link>
+          <Link
+            to="/screeners"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`flex-1 flex flex-col items-center justify-center py-1 px-0.5 rounded-lg transition-colors ${location.pathname.startsWith("/screeners") ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <Filter className="h-4 w-4" />
+            <span className="text-[9px] font-medium mt-0.5 leading-tight">Screeners</span>
+          </Link>
+          <Link
+            to="/daily-news"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`flex-1 flex flex-col items-center justify-center py-1 px-0.5 rounded-lg transition-colors ${location.pathname === "/daily-news" ? "bg-primary/15 text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <Newspaper className="h-4 w-4" />
+            <span className="text-[9px] font-medium mt-0.5 leading-tight">News</span>
+          </Link>
+          <Link
+            to="/pricing"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className={`flex-1 flex flex-col items-center justify-center py-1 px-0.5 rounded-lg transition-colors ${location.pathname === "/pricing" ? "bg-amber-500/20 text-amber-400 font-semibold" : "text-amber-400/80 hover:text-amber-400"}`}
+          >
+            <Crown className="h-4 w-4" />
+            <span className="text-[9px] font-medium mt-0.5 leading-tight">Packages</span>
+          </Link>
         </div>
       </div>
     </nav>

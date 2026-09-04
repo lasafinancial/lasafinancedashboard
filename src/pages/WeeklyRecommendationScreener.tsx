@@ -161,7 +161,7 @@ export function WeeklyRecommendationScreener() {
 
     if (isClosed) {
       return {
-        label: item.exitReason ? `Exited: ${item.exitReason}` : `Closed Trade${item.exitDate ? ` (${item.exitDate})` : ""}`,
+        label: item.exitReason ? `Closing: ${item.exitReason}` : `Closing Trade${item.exitDate ? ` (${item.exitDate})` : ""}`,
         badgeClass: "border-rose-500/30 bg-rose-500/10 text-rose-400",
         dotClass: "bg-rose-400",
         icon: <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
@@ -200,6 +200,101 @@ export function WeeklyRecommendationScreener() {
     );
   };
 
+  const renderFormattedPoints = (text: string | undefined, theme: "cyan" | "amber" = "cyan") => {
+    if (!text || text.trim() === "") return null;
+    const str = text.trim();
+
+    // Match exact section headers like "1. SALES/REVENUE:", "MOMENTUM:", "2. NET PROFIT:"
+    const headerRegex = /(?:^|[\.\s])(?:([1-9])[\.\)]\s*)?([A-Z][A-Z0-9\s\/_]{2,25}):/g;
+    const matches: Array<{ index: number; header: string }> = [];
+    let m: RegExpExecArray | null;
+
+    while ((m = headerRegex.exec(str)) !== null) {
+      const rawHeader = m[2].trim();
+      if (/^[A-Z][A-Z\s\/_]+$/.test(rawHeader)) {
+        matches.push({
+          index: m.index + m[0].indexOf(m[1] ? m[1] : m[2]),
+          header: rawHeader
+        });
+      }
+    }
+
+    const isCyan = theme === "cyan";
+    const numBadgeClass = isCyan
+      ? "text-cyan-300 bg-cyan-500/10 border-cyan-500/30"
+      : "text-amber-400 bg-amber-400/10 border-amber-400/20";
+    const headerClass = isCyan ? "text-cyan-300" : "text-amber-300";
+    const cardBorderHover = isCyan ? "hover:border-cyan-400/30" : "hover:border-amber-400/30";
+
+    if (matches.length === 0) {
+      if (str.includes("\n")) {
+        const lines = str.split("\n").map(l => l.trim().replace(/^[•\-\*]\s*/, "")).filter(Boolean);
+        return (
+          <div className="grid grid-cols-1 gap-2">
+            {lines.map((line, idx) => (
+              <div key={idx} className={`p-2.5 rounded-lg bg-black/40 border border-white/5 ${cardBorderHover} transition-colors`}>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className={`font-mono text-[9px] font-black px-1.5 py-0.5 rounded border ${numBadgeClass}`}>
+                    {idx + 1}
+                  </span>
+                </div>
+                <p className="text-white/80 text-[11px] leading-relaxed font-sans">{line}</p>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return (
+        <p className="text-white/80 text-[11px] leading-relaxed whitespace-pre-wrap font-sans">
+          {str}
+        </p>
+      );
+    }
+
+    const intro = str.slice(0, matches[0].index).trim();
+    const items: Array<{ header: string; body: string }> = [];
+
+    for (let i = 0; i < matches.length; i++) {
+      const start = matches[i].index;
+      const end = i + 1 < matches.length ? matches[i + 1].index : str.length;
+      const chunk = str.slice(start, end).trim();
+      const colonIdx = chunk.indexOf(":");
+      const body = colonIdx !== -1 ? chunk.slice(colonIdx + 1).trim() : chunk;
+
+      items.push({
+        header: matches[i].header,
+        body
+      });
+    }
+
+    return (
+      <div className="space-y-2.5">
+        {intro.length > 0 && (
+          <p className="text-white/85 text-[11px] leading-relaxed font-sans pb-1.5 border-b border-white/5">
+            {intro}
+          </p>
+        )}
+        <div className="grid grid-cols-1 gap-2">
+          {items.map((item, idx) => (
+            <div key={idx} className={`p-2.5 rounded-lg bg-black/40 border border-white/5 ${cardBorderHover} transition-colors`}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className={`font-mono text-[9px] font-black px-1.5 py-0.5 rounded border ${numBadgeClass}`}>
+                  {idx + 1}
+                </span>
+                <span className={`font-bold text-[10.5px] tracking-wide uppercase ${headerClass}`}>
+                  {item.header}
+                </span>
+              </div>
+              <p className="text-white/80 text-[11px] leading-relaxed font-sans">
+                {item.body}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#020617] text-foreground selection:bg-primary/30 font-sans pb-16">
       {/* Background Glow */}
@@ -210,25 +305,18 @@ export function WeeklyRecommendationScreener() {
 
       <div className="relative container mx-auto px-4 py-8 max-w-4xl space-y-6">
 
-        {/* Top Disclaimer */}
-        <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/10 text-center">
-          <p className="text-[11px] md:text-xs text-muted-foreground/80 leading-relaxed font-medium">
-            Weekly Recommendations are scanned and tracked every Friday post-market. Target objective is +50% swing expansion.
-          </p>
-        </div>
-
         {/* Header Title Section */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-black uppercase tracking-widest mb-1.5">
               <Calendar className="w-3.5 h-3.5" />
-              Weekly Momentum Model
+              Positional Momentum Model
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase">
-              WEEKLY RECOMMENDATION <span className="gradient-text italic font-bold">FEED</span>
+              POSITIONAL <span className="gradient-text italic font-bold">TRADES</span>
             </h1>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5">
-              7-Pillar quantitative momentum setups evaluated on Friday weekly candle closes.
+            <p className="text-xs text-muted-foreground font-semibold mt-1">
+              Holding 2–6 Months
             </p>
           </div>
 
@@ -257,48 +345,48 @@ export function WeeklyRecommendationScreener() {
           </div>
         </div>
 
-        {/* Category Tabs (All, Open, Close) */}
-        <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto no-scrollbar">
+        {/* Category Tabs (All, Ongoing, Exited) - Fit on screen without scrollbar */}
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2 border-b border-white/10 pb-3 w-full">
           <button
             onClick={() => setActiveTab("ALL")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`w-full justify-center px-2 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 sm:gap-2 ${
               activeTab === "ALL"
                 ? "bg-white/10 text-white border border-white/20 shadow-lg shadow-white/5 font-black"
                 : "bg-white/[0.02] text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
             }`}
           >
-            All Weekly Setups
-            <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${activeTab === 'ALL' ? 'bg-cyan-400/20 text-cyan-300' : 'bg-white/5 text-white/40'}`}>
+            <span className="truncate">All Trades</span>
+            <span className={`px-1.5 py-0.2 rounded-md text-[10px] shrink-0 ${activeTab === 'ALL' ? 'bg-cyan-400/20 text-cyan-300' : 'bg-white/5 text-white/40'}`}>
               {tabCounts.all}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab("OPEN")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`w-full justify-center px-2 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 sm:gap-2 ${
               activeTab === "OPEN"
                 ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-lg shadow-cyan-500/10 font-black"
                 : "bg-white/[0.02] text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
             }`}
           >
-            <div className="w-2 h-2 rounded-full bg-cyan-400" />
-            Ongoing (Open)
-            <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${activeTab === 'OPEN' ? 'bg-cyan-400/20 text-cyan-200 font-bold' : 'bg-white/5 text-white/40'}`}>
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-cyan-400 shrink-0" />
+            <span className="truncate">Ongoing</span>
+            <span className={`px-1.5 py-0.2 rounded-md text-[10px] shrink-0 ${activeTab === 'OPEN' ? 'bg-cyan-400/20 text-cyan-200 font-bold' : 'bg-white/5 text-white/40'}`}>
               {tabCounts.open}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab("CLOSE")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`w-full justify-center px-2 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 sm:gap-2 ${
               activeTab === "CLOSE"
                 ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-lg shadow-rose-500/10 font-black"
                 : "bg-white/[0.02] text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
             }`}
           >
-            <div className="w-2 h-2 rounded-full bg-rose-400" />
-            Closed & Exited
-            <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${activeTab === 'CLOSE' ? 'bg-rose-400/20 text-rose-200 font-bold' : 'bg-white/5 text-white/40'}`}>
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-400 shrink-0" />
+            <span className="truncate">Closing</span>
+            <span className={`px-1.5 py-0.2 rounded-md text-[10px] shrink-0 ${activeTab === 'CLOSE' ? 'bg-rose-400/20 text-rose-200 font-bold' : 'bg-white/5 text-white/40'}`}>
               {tabCounts.close}
             </span>
           </button>
@@ -354,23 +442,26 @@ export function WeeklyRecommendationScreener() {
             <div className="flex flex-col items-center justify-center py-20 bg-white/[0.01] border border-white/10 rounded-2xl gap-3">
               <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
               <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">
-                Loading Weekly Setups...
+                Loading Positional Trades...
               </p>
             </div>
           ) : processedData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white/[0.01] border border-white/10 rounded-2xl text-center gap-2">
               <AlertCircle className="w-10 h-10 text-muted-foreground/30" />
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">No Weekly Setups Found</h3>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">No Positional Trades Found</h3>
               <p className="text-xs text-muted-foreground">Try adjusting your category filter or search keyword.</p>
             </div>
           ) : (
             <PremiumProtector requiredTier="pro" blurLevel="md">
               {(isFree ? processedData.slice(0, 8) : processedData).map((item, idx) => {
                 const statusMeta = getStatusDisplay(item);
+                const isExited = (item.status || "").trim().toUpperCase() === "CLOSE" || 
+                                 (item.status || "").trim().toUpperCase() === "CLOSED" || 
+                                 (item.status || "").trim().toUpperCase().includes("EXIT");
                 const companyName = stockNameMap.get(item.id.toUpperCase()) || item.id;
                 const initials = item.id.slice(0, 2).toUpperCase();
                 const buyNum = parseNumber(item.buyPrice);
-                const targetNum = buyNum > 0 ? (buyNum * 1.5).toFixed(1) : "—";
+                const targetNum = item.targetPrice ? item.targetPrice : (buyNum > 0 ? (buyNum * 1.5).toFixed(1) : "—");
 
                 return (
                   <div
@@ -404,9 +495,6 @@ export function WeeklyRecommendationScreener() {
                             <h3 className="text-base md:text-lg font-black text-white tracking-tight group-hover:text-cyan-300 transition-colors truncate">
                               {item.id}
                             </h3>
-                            <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold text-cyan-300">
-                              Weekly 50%
-                            </span>
                           </div>
                           <p className="text-xs text-muted-foreground truncate max-w-[220px] md:max-w-md font-medium">
                             {companyName}
@@ -421,37 +509,53 @@ export function WeeklyRecommendationScreener() {
                     </div>
 
                     {/* Price Key Statistics Bar */}
-                    <div className="grid grid-cols-3 gap-2 py-2.5 px-3 rounded-xl bg-white/[0.02] border border-white/5 mb-3 text-xs">
+                    <div className="grid grid-cols-4 gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.02] border border-white/5 mb-3 text-xs">
                       <div>
-                        <div className="text-[10px] text-muted-foreground font-semibold uppercase">Buy Price</div>
+                        <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">Buy Price</div>
                         <div className="font-mono font-bold text-blue-300">
                           {item.buyPrice ? `₹${item.buyPrice}` : "—"}
                         </div>
                       </div>
 
                       <div>
-                        <div className="text-[10px] text-muted-foreground font-semibold uppercase">Current Price</div>
-                        <div className="font-mono font-bold text-cyan-300">
-                          {item.currentPrice ? `₹${item.currentPrice}` : "—"}
+                        <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">
+                          {isExited ? "Closing Price" : "Current"}
+                        </div>
+                        <div className={`font-mono font-bold ${isExited ? "text-rose-300" : "text-cyan-300"}`}>
+                          {isExited
+                            ? (item.exitPrice || item.currentPrice ? `₹${item.exitPrice || item.currentPrice}` : "—")
+                            : (item.currentPrice ? `₹${item.currentPrice}` : "—")}
                         </div>
                       </div>
 
-                      <div className="text-right">
-                        <div className="text-[10px] text-muted-foreground font-semibold uppercase">Target (+50%)</div>
+                      <div>
+                        <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">Target</div>
                         <div className="font-mono font-bold text-emerald-400">
                           {targetNum !== "—" ? `₹${targetNum}` : "—"}
                         </div>
                       </div>
+
+                      <div className="text-right">
+                        <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">Holding</div>
+                        <div className="font-mono font-bold text-amber-300">
+                          {item.holdingWeeks ? `${item.holdingWeeks}w` : "—"}
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Footer Row: LASA Branding & Entry Date */}
+                    {/* Footer Row: LASA Branding & Entry Date & Holding Period */}
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground/80 pt-2 border-t border-white/5">
                       <div className="flex items-center gap-1.5 font-medium text-white/70">
                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-400/80" />
                         <span>LASA Research (SEBI RA)</span>
                       </div>
-                      <div className="font-mono text-[11px]">
-                        Entry Date: {item.entryDate || item.date || "—"}
+                      <div className="flex items-center gap-2 font-mono text-[11px]">
+                        {item.holdingWeeks && (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold text-[10px]">
+                            {item.holdingWeeks} Weeks
+                          </span>
+                        )}
+                        <span>{isExited && item.exitDate ? `Closing: ${item.exitDate}` : `Entry: ${item.entryDate || item.date || "—"}`}</span>
                       </div>
                     </div>
                   </div>
@@ -465,7 +569,7 @@ export function WeeklyRecommendationScreener() {
         <div className="flex flex-wrap items-center justify-between gap-4 px-2 pt-4 border-t border-white/5 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Source: WEEKLY-RECOMMENDATION Sheet
+            Source: Positional Trades Engine
           </div>
           <div>
             Showing {processedData.length} records
@@ -475,95 +579,132 @@ export function WeeklyRecommendationScreener() {
 
       {/* Stock Report Detail Modal */}
       <Dialog open={!!selectedStock} onOpenChange={(open) => !open && setSelectedStock(null)}>
-        <DialogContent className="bg-[#0b0f19]/98 text-white border border-white/15 max-w-xl rounded-2xl p-6 shadow-2xl backdrop-blur-2xl max-h-[90vh] overflow-y-auto">
-          {selectedStock && (
-            <div className="space-y-5">
-              {/* Modal Header */}
-              <DialogHeader className="space-y-1 text-left border-b border-white/10 pb-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center font-black text-cyan-300 text-base">
-                      {selectedStock.id.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <DialogTitle className="text-xl font-black text-white tracking-tight">
-                          {selectedStock.id}
-                        </DialogTitle>
-                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px] font-black uppercase px-2">
-                          BUY
-                        </Badge>
+        <DialogContent className="bg-[#0b0f19]/98 text-white border border-white/15 w-[94vw] sm:max-w-2xl md:max-w-3xl lg:max-w-4xl rounded-2xl p-4 sm:p-6 shadow-2xl backdrop-blur-2xl max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+          {selectedStock && (() => {
+            const isExitedModal = (selectedStock.status || "").trim().toUpperCase() === "CLOSE" || 
+                                 (selectedStock.status || "").trim().toUpperCase() === "CLOSED" || 
+                                 (selectedStock.status || "").trim().toUpperCase().includes("EXIT");
+            return (
+              <div className="space-y-5">
+                {/* Modal Header */}
+                <DialogHeader className="space-y-1 text-left border-b border-white/10 pb-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center font-black text-cyan-300 text-base shrink-0">
+                        {selectedStock.id.slice(0, 2).toUpperCase()}
                       </div>
-                      <DialogDescription className="text-xs text-muted-foreground font-medium">
-                        {stockNameMap.get(selectedStock.id.toUpperCase()) || selectedStock.id}
-                      </DialogDescription>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <DialogTitle className="text-xl font-black text-white tracking-tight">
+                            {selectedStock.id}
+                          </DialogTitle>
+                          <Badge className={isExitedModal 
+                            ? "bg-rose-500/20 text-rose-300 border-rose-500/40 text-[10px] font-black uppercase px-2 py-0.5" 
+                            : "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-[10px] font-black uppercase px-2 py-0.5"}>
+                            {isExitedModal ? "CLOSED" : "BUY • ONGOING"}
+                          </Badge>
+                        </div>
+                        <DialogDescription className="text-xs text-muted-foreground font-medium">
+                          {stockNameMap.get(selectedStock.id.toUpperCase()) || selectedStock.id}
+                        </DialogDescription>
+                      </div>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {/* 4 Spacious Summary Metric Tiles */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 rounded-xl bg-white/[0.03] border border-white/10 text-center flex flex-col items-center justify-center">
+                    <div className="text-[11px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1 whitespace-nowrap">
+                      Buy Price
+                    </div>
+                    <div className="font-mono font-bold text-sm sm:text-base text-blue-300 whitespace-nowrap">
+                      {selectedStock.buyPrice ? `₹${selectedStock.buyPrice}` : "—"}
+                    </div>
+                  </div>
+
+                  <div className="p-3 sm:p-4 rounded-xl bg-white/[0.03] border border-white/10 text-center flex flex-col items-center justify-center">
+                    <div className="text-[11px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1 whitespace-nowrap">
+                      {isExitedModal ? "Closing Price" : "Current Price"}
+                    </div>
+                    <div className={`font-mono font-bold text-sm sm:text-base whitespace-nowrap ${isExitedModal ? "text-rose-300" : "text-cyan-300"}`}>
+                      {isExitedModal
+                        ? (selectedStock.exitPrice || selectedStock.currentPrice ? `₹${selectedStock.exitPrice || selectedStock.currentPrice}` : "—")
+                        : (selectedStock.currentPrice ? `₹${selectedStock.currentPrice}` : "—")}
+                    </div>
+                  </div>
+
+                  <div className="p-3 sm:p-4 rounded-xl bg-white/[0.03] border border-white/10 text-center flex flex-col items-center justify-center">
+                    <div className="text-[11px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1 whitespace-nowrap">
+                      Target Price
+                    </div>
+                    <div className="font-mono font-bold text-sm sm:text-base text-emerald-400 whitespace-nowrap">
+                      {selectedStock.targetPrice ? `₹${selectedStock.targetPrice}` : (parseNumber(selectedStock.buyPrice) > 0 ? `₹${(parseNumber(selectedStock.buyPrice) * 1.5).toFixed(1)}` : "—")}
+                    </div>
+                  </div>
+
+                  <div className="p-3 sm:p-4 rounded-xl bg-white/[0.03] border border-white/10 text-center flex flex-col items-center justify-center">
+                    <div className="text-[11px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1 whitespace-nowrap">
+                      Holding Period
+                    </div>
+                    <div className="font-mono font-bold text-sm sm:text-base text-amber-300 whitespace-nowrap">
+                      {selectedStock.holdingWeeks ? `${selectedStock.holdingWeeks} Weeks` : "—"}
                     </div>
                   </div>
                 </div>
-              </DialogHeader>
 
-              {/* 4 Summary Metric Boxes */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-center">
-                  <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">Buy Price</div>
-                  <div className="font-mono font-bold text-sm text-blue-300">
-                    {selectedStock.buyPrice ? `₹${selectedStock.buyPrice}` : "—"}
+                {/* Status & Return Highlight */}
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/10">
+                  <div className="space-y-0.5">
+                    <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                      Positional Momentum Trade Framework
+                    </div>
+                    <div className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{isExitedModal ? "Trade Closed / Completed" : "Momentum Swing Expansion"}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 sm:gap-5">
+                    <div className="text-right space-y-0.5">
+                      <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Status</div>
+                      <div className={`text-xs font-bold font-mono ${isExitedModal ? "text-rose-400" : "text-emerald-400"}`}>
+                        {selectedStock.status || (isExitedModal ? "CLOSED" : "OPEN")}
+                      </div>
+                    </div>
+
+                    <div className="text-right space-y-0.5 border-l border-white/10 pl-3 sm:pl-5">
+                      <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Total Return</div>
+                      <div className="text-xs font-bold font-mono">
+                        {(() => {
+                          const p = parseNumber(selectedStock.profit);
+                          if (p > 0) return <span className="text-emerald-400">+{p.toFixed(1)}%</span>;
+                          if (p < 0) return <span className="text-rose-400">{p.toFixed(1)}%</span>;
+                          return <span className="text-white/60">{selectedStock.profit || "—"}</span>;
+                        })()}
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-center">
-                  <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">Target (+50%)</div>
-                  <div className="font-mono font-bold text-sm text-emerald-400">
-                    {parseNumber(selectedStock.buyPrice) > 0 ? `₹${(parseNumber(selectedStock.buyPrice) * 1.5).toFixed(1)}` : "—"}
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-center">
-                  <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">Current Price</div>
-                  <div className="font-mono font-bold text-sm text-cyan-300">
-                    {selectedStock.currentPrice ? `₹${selectedStock.currentPrice}` : "—"}
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-center">
-                  <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">Status</div>
-                  <div className="font-bold text-xs text-white">
-                    {selectedStock.status || "OPEN"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Status & Return Highlight */}
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-white/[0.02] border border-white/10">
-                <div className="space-y-0.5">
-                  <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Strategy Model</div>
-                  <div className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Weekly 50% Momentum Framework</span>
-                  </div>
-                </div>
-
-                <div className="text-right space-y-0.5">
-                  <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Total Return</div>
-                  <div className="text-xs font-bold font-mono">
-                    {(() => {
-                      const p = parseNumber(selectedStock.profit);
-                      if (p > 0) return <span className="text-emerald-400">+{p.toFixed(1)}%</span>;
-                      if (p < 0) return <span className="text-rose-400">{p.toFixed(1)}%</span>;
-                      return <span className="text-white/60">{selectedStock.profit || "—"}</span>;
-                    })()}
-                  </div>
-                </div>
-              </div>
 
               {/* Technical & Fundamental Analysis Breakdown */}
               <div className="space-y-4 pt-1">
                 {/* 1. Trade Setup & Horizon Overview */}
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10">
+                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-muted-foreground uppercase tracking-wider">Trading Horizon</span>
-                    <span className="font-bold text-cyan-300 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20">6 Months to 1 Year</span>
+                    <span className="font-bold text-cyan-300 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20">Positional (2 – 6 Months)</span>
                   </div>
+                  <div className="flex items-center justify-between text-xs border-t border-white/5 pt-2">
+                    <span className="font-bold text-muted-foreground uppercase tracking-wider">Holding Period</span>
+                    <span className="font-mono font-bold text-amber-300">{selectedStock.holdingWeeks ? `${selectedStock.holdingWeeks} Weeks` : "—"}</span>
+                  </div>
+                  {selectedStock.exitDate && (
+                    <div className="flex items-center justify-between text-xs border-t border-white/5 pt-2">
+                      <span className="font-bold text-muted-foreground uppercase tracking-wider">Closing Date</span>
+                      <span className="font-mono font-bold text-rose-300">{selectedStock.exitDate}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* 2. Technical Analysis Breakdown */}
@@ -575,26 +716,21 @@ export function WeeklyRecommendationScreener() {
 
                   <div className="space-y-2.5 text-xs text-white/90">
                     {/* 7 Pillars Confirmation Summary */}
-                    <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
+                    <div className="p-2.5 rounded-lg bg-black/30 border border-white/5">
                       <div className="font-bold text-cyan-300 text-[11px] flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                         7-Pillar Quantitative Momentum Alignment
                       </div>
-                      <p className="text-white/70 text-[11px] leading-relaxed">
-                        Weekly RSI sits within the high-expansion sweet-spot (50–60), EMA 9 is trading above EMA 63 with a fresh crossover (&le;5w), and weekly OBV is within 5% of its 26-week institutional high.
-                      </p>
                     </div>
 
                     {/* Algorithmic Technical Summary from Sheet */}
                     {selectedStock.reason && (
-                      <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
-                        <div className="font-bold text-cyan-300 text-[11px] flex items-center gap-1.5">
+                      <div className="p-3 rounded-xl bg-black/40 border border-white/10 space-y-2">
+                        <div className="font-bold text-cyan-300 text-xs flex items-center gap-1.5">
                           <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                           Technical Summary &amp; Indicators Rationale
                         </div>
-                        <p className="text-white/80 text-[11px] leading-relaxed whitespace-pre-wrap font-sans">
-                          {selectedStock.reason}
-                        </p>
+                        {renderFormattedPoints(selectedStock.reason, "cyan")}
                       </div>
                     )}
                   </div>
@@ -627,11 +763,12 @@ export function WeeklyRecommendationScreener() {
 
                         {/* Sheet Fundamental View */}
                         {selectedStock.fundamentalView ? (
-                          <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
-                            <div className="font-bold text-amber-300 text-[11px]">Research Analyst Fundamental View</div>
-                            <p className="text-white/80 text-[11px] leading-relaxed whitespace-pre-wrap font-sans">
-                              {selectedStock.fundamentalView}
-                            </p>
+                          <div className="p-3 rounded-xl bg-black/40 border border-white/10 space-y-2">
+                            <div className="font-bold text-amber-300 text-xs flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                              Research Analyst Fundamental View
+                            </div>
+                            {renderFormattedPoints(selectedStock.fundamentalView, "amber")}
                           </div>
                         ) : (
                           <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
@@ -646,21 +783,21 @@ export function WeeklyRecommendationScreener() {
                   })()}
                 </div>
 
-                {/* 4. Exit Details (if Closed) */}
+                {/* 4. Closing Details (if Closed) */}
                 {(selectedStock.exitReason || selectedStock.exitDate) && (
                   <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 space-y-1.5 text-xs">
                     <div className="font-bold text-rose-400 flex items-center gap-1.5 text-xs uppercase tracking-wide">
                       <ShieldAlert className="w-3.5 h-3.5" />
-                      Exit Trigger Information
+                      Closing Information
                     </div>
                     {selectedStock.exitReason && (
                       <div className="text-white/80">
-                        <span className="font-semibold text-rose-300">Exit Type / Reason:</span> {selectedStock.exitReason}
+                        <span className="font-semibold text-rose-300">Closing Reason:</span> {selectedStock.exitReason}
                       </div>
                     )}
                     {selectedStock.exitDate && (
                       <div className="text-white/70 font-mono text-[11px]">
-                        <span className="font-semibold text-rose-300">Exit Date:</span> {selectedStock.exitDate}
+                        <span className="font-semibold text-rose-300">Closing Date:</span> {selectedStock.exitDate}
                       </div>
                     )}
                   </div>
@@ -682,8 +819,9 @@ export function WeeklyRecommendationScreener() {
                 LASA Research Services · SEBI Registered Research Analyst INH0000XXXXX · Investments in securities are subject to market risks.
               </div>
             </div>
-          )}
-        </DialogContent>
+          );
+        })()}
+      </DialogContent>
       </Dialog>
 
       {/* Strategy Explanation & Why Friday Modal */}
@@ -696,7 +834,7 @@ export function WeeklyRecommendationScreener() {
               </div>
               <div>
                 <DialogTitle className="text-lg font-black tracking-tight text-white uppercase">
-                  Weekly Recommendation Strategy &amp; Rules
+                  Positional Trade Strategy &amp; Rules
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
                   7-Pillar Quantitative Momentum &amp; Swing Framework
@@ -709,10 +847,10 @@ export function WeeklyRecommendationScreener() {
             <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/20 space-y-2">
               <h4 className="font-bold text-cyan-300 flex items-center gap-2 text-sm">
                 <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-                Why We Check Data on Friday Close
+                Why We Evaluate Structural Closes
               </h4>
               <p className="text-white/80 leading-relaxed">
-                This strategy operates strictly on <strong>Weekly Candles</strong>. Technical indicators are finalized once the Friday 3:30 PM IST candle is completed.
+                This strategy operates on confirmed candle closes to eliminate mid-session noise. Technical indicators are finalized once structural momentum triggers are confirmed.
               </p>
             </div>
 
@@ -725,7 +863,7 @@ export function WeeklyRecommendationScreener() {
                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
                   <div className="flex items-center gap-2 font-bold text-cyan-300">
                     <TrendingUp className="w-3.5 h-3.5" />
-                    1. Momentum (Weekly RSI: 50 – 60)
+                    1. Momentum (RSI: 50 – 60)
                   </div>
                   <p className="text-white/70 text-[11px]">
                     Filters for the sweet-spot expansion band.
@@ -756,17 +894,17 @@ export function WeeklyRecommendationScreener() {
                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
                   <div className="flex items-center gap-2 font-bold text-cyan-300">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    5. 4-Week Expansion Confirmation
+                    5. Expansion Confirmation
                   </div>
                   <p className="text-white/70 text-[11px]">
-                    Evaluates 4-week price &amp; volume deltas to verify sustained volume growth supporting the price increase.
+                    Evaluates price &amp; volume deltas to verify sustained volume growth supporting the price increase.
                   </p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
                   <div className="flex items-center gap-2 font-bold text-emerald-400">
                     <TrendingUp className="w-3.5 h-3.5" />
-                    6. Profit Target (+50% Objective)
+                    6. Target Objective (Swing Expansion)
                   </div>
                 </div>
               </div>
