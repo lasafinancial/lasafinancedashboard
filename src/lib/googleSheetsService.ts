@@ -249,6 +249,7 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
       const arraysToProtect: (keyof GoogleSheetsData)[] = [
         'intradayReversal',
         'intradayDev',
+        'intradayBreakout',
         'intradayBreakoutScanner',
         'goldenAlerts',
         'nearResistance',

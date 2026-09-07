@@ -175,6 +175,9 @@ function rowsToObjects(rows) {
   });
 }
 
+let lastKnownIntradayBreakout = [];
+let lastKnownIntradayBreakoutScanner = [];
+
 async function fetchData() {
   const getNum = (val) => {
     if (val === undefined || val === null || val === '') return 0;
@@ -1580,6 +1583,19 @@ async function fetchData() {
       }
     } catch (err) {
       console.warn('Could not fetch intraday breakout data:', err.message);
+    }
+
+    if (intradayBreakout && intradayBreakout.length > 0) {
+      lastKnownIntradayBreakout = intradayBreakout;
+    } else if (lastKnownIntradayBreakout && lastKnownIntradayBreakout.length > 0) {
+      console.warn('[INTRADAY-BREAKOUT] Fetch returned empty or failed. Falling back to last known breakout cache.');
+      intradayBreakout = lastKnownIntradayBreakout;
+    }
+
+    if (intradayBreakoutScanner && intradayBreakoutScanner.length > 0) {
+      lastKnownIntradayBreakoutScanner = intradayBreakoutScanner;
+    } else if (lastKnownIntradayBreakoutScanner && lastKnownIntradayBreakoutScanner.length > 0) {
+      intradayBreakoutScanner = lastKnownIntradayBreakoutScanner;
     }
     // --- End Intraday Breakout Screener & Scanner ---
 
