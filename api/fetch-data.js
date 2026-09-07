@@ -177,6 +177,8 @@ function rowsToObjects(rows) {
 
 let lastKnownIntradayBreakout = [];
 let lastKnownIntradayBreakoutScanner = [];
+let lastKnownWeek52High = [];
+let lastKnownWeek52Low = [];
 
 async function fetchData() {
   const getNum = (val) => {
@@ -603,6 +605,8 @@ async function fetchData() {
   let intradayDev = [];
   let intradayDevChanges = [];
   let playbackSnapshots = [];
+  let week52High = [];
+  let week52Low = [];
   let historicalBoTodayMap = {};
   let firstAppearanceMap = {};
   let niftyAnalysis = { history: [] };
@@ -725,6 +729,77 @@ async function fetchData() {
         
       }
     });
+
+    // --- Process 52 Week High and 52 Week Low Screeners ---
+    week52High = [];
+    week52Low = [];
+    const w52IdIdx = colToIdx('C');
+    const w52PriceIdx = colToIdx('E');
+    const w52SupIdx = colToIdx('DH');
+    const w52ResIdx = colToIdx('DI');
+    const w52HighIdx = colToIdx('FS');
+    const w52NearHighIdx = colToIdx('FT');
+    const w52LowIdx = colToIdx('FU');
+    const w52NearLowIdx = colToIdx('FV');
+    const w52SectorIdx = colToIdx('B');
+    const w52GroupIdx = colToIdx('S');
+    const w52ChangeIdx = colToIdx('G');
+
+    if (currentRows && currentRows.length > 1) {
+      currentRows.slice(1).forEach(row => {
+        const id = (row[w52IdIdx] || '').toString().trim();
+        if (!id) return;
+        const nearHigh = (row[w52NearHighIdx] || '').toString().trim().toUpperCase();
+        const nearLow = (row[w52NearLowIdx] || '').toString().trim().toUpperCase();
+        const currentPrice = getNum(row[w52PriceIdx]);
+        const support = getNum(row[w52SupIdx]);
+        const resistance = getNum(row[w52ResIdx]);
+        const high52 = getNum(row[w52HighIdx]);
+        const low52 = getNum(row[w52LowIdx]);
+        const sector = (row[w52SectorIdx] || '').toString().trim();
+        const group = (row[w52GroupIdx] || '').toString().trim();
+        const changePercent = parseFloat((row[w52ChangeIdx] || '0').toString().replace('%', '').replace(/,/g, '')) || 0;
+
+        if (nearHigh === 'Y') {
+          week52High.push({
+            id,
+            currentPrice,
+            high52,
+            resistance,
+            support,
+            sector,
+            group,
+            changePercent
+          });
+        }
+
+        if (nearLow === 'Y') {
+          week52Low.push({
+            id,
+            currentPrice,
+            low52,
+            resistance,
+            support,
+            sector,
+            group,
+            changePercent
+          });
+        }
+      });
+      console.log(`[52-WEEK] Ingested ${week52High.length} Near 52W High stocks and ${week52Low.length} Near 52W Low stocks.`);
+    }
+
+    if (week52High.length > 0) {
+      lastKnownWeek52High = week52High;
+    } else if (lastKnownWeek52High.length > 0) {
+      week52High = lastKnownWeek52High;
+    }
+
+    if (week52Low.length > 0) {
+      lastKnownWeek52Low = week52Low;
+    } else if (lastKnownWeek52Low.length > 0) {
+      week52Low = lastKnownWeek52Low;
+    }
 
     const moodStocks = currentData.slice(0, 470).filter(row => {
       const group = (row['GROUP'] || '').toString().toUpperCase();
@@ -2126,6 +2201,8 @@ async function fetchData() {
     summaries,
     exitTargetScreener,
     weeklyRecommendation,
+    week52High,
+    week52Low,
     lastUpdated: new Date().toISOString()
   };
 }

@@ -6,7 +6,9 @@ import {
   getCachedData,
   TopMoversData,
   MarketPositionData,
-  GoogleSheetsData
+  GoogleSheetsData,
+  Week52HighStock,
+  Week52LowStock
 } from '../lib/googleSheetsService';
 
 import staticStockData from '../data/processed/stock_data.json';
@@ -41,6 +43,8 @@ export function useLiveData() {
   const [summaries, setSummaries] = useState<any[]>(cached ? cached.summaries || [] : []);
   const [exitTargetScreener, setExitTargetScreener] = useState<any[]>(cached ? cached.exitTargetScreener || [] : []);
   const [weeklyRecommendation, setWeeklyRecommendation] = useState<any[]>(cached ? cached.weeklyRecommendation || [] : []);
+  const [week52High, setWeek52High] = useState<Week52HighStock[]>(cached ? (cached.week52High || []) : []);
+  const [week52Low, setWeek52Low] = useState<Week52LowStock[]>(cached ? (cached.week52Low || []) : []);
   const [isLoading, setIsLoading] = useState(!cached);
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
 
@@ -69,6 +73,8 @@ export function useLiveData() {
       setSummaries(data.summaries || []);
       setExitTargetScreener(data.exitTargetScreener || []);
       setWeeklyRecommendation(data.weeklyRecommendation || []);
+      setWeek52High(data.week52High || []);
+      setWeek52Low(data.week52Low || []);
       setLastUpdate(new Date().toLocaleTimeString());
       setIsLoading(false);
     });
@@ -106,6 +112,8 @@ export function useLiveData() {
     summaries,
     exitTargetScreener,
     weeklyRecommendation,
+    week52High,
+    week52Low,
     isLoading,
     lastUpdate,
     refresh: refreshAllData

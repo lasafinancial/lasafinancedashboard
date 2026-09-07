@@ -171,6 +171,28 @@ export interface WeeklyRecommendationItem {
   targetPrice?: string;
 }
 
+export interface Week52HighStock {
+  id: string;
+  currentPrice: number;
+  high52: number;
+  resistance: number;
+  support: number;
+  sector?: string;
+  group?: string;
+  changePercent?: number;
+}
+
+export interface Week52LowStock {
+  id: string;
+  currentPrice: number;
+  low52: number;
+  resistance: number;
+  support: number;
+  sector?: string;
+  group?: string;
+  changePercent?: number;
+}
+
 export interface GoogleSheetsData {
   marketMood: MarketMood;
   marketStrength: MarketStrengthItem[];
@@ -194,6 +216,8 @@ export interface GoogleSheetsData {
   summaries?: StockSummaryItem[];
   exitTargetScreener?: ExitTargetScreenerItem[];
   weeklyRecommendation?: WeeklyRecommendationItem[];
+  week52High?: Week52HighStock[];
+  week52Low?: Week52LowStock[];
   lastUpdated: string;
 }
 
@@ -260,7 +284,9 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
         'summaries',
         'playbackSnapshots',
         'exitTargetScreener',
-        'weeklyRecommendation'
+        'weeklyRecommendation',
+        'week52High',
+        'week52Low'
       ];
 
       arraysToProtect.forEach(key => {
@@ -344,4 +370,14 @@ export async function getTopMovers(): Promise<TopMoversData | null> {
 export async function getNearResistance(): Promise<NearResistanceStock[]> {
   const data = await refreshAllData();
   return data?.nearResistance || [];
+}
+
+export async function getWeek52High(): Promise<Week52HighStock[]> {
+  const data = await refreshAllData();
+  return data?.week52High || [];
+}
+
+export async function getWeek52Low(): Promise<Week52LowStock[]> {
+  const data = await refreshAllData();
+  return data?.week52Low || [];
 }

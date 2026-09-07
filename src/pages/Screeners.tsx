@@ -1,5 +1,4 @@
-// Enhanced Screeners Page
-import { Filter, ChevronDown, TrendingUp, ArrowUpRight, Search, Zap, Crosshair, BarChart2, Rocket, Activity, Calendar } from "lucide-react";
+import { Filter, ChevronDown, TrendingUp, TrendingDown, ArrowUpRight, Search, Zap, Crosshair, BarChart2, Rocket, Activity, Calendar } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { Link, useNavigate } from "react-router-dom";
@@ -102,6 +101,26 @@ const screenerOptions = [
         bgColor: "bg-cyan-400/10",
         borderColor: "group-hover:border-cyan-400/50",
         gradient: "from-cyan-400/20 to-transparent"
+    },
+    {
+        path: "/screeners/52-week-high",
+        label: "52 Week High",
+        description: "Stocks currently trading within 5% of their 52-week high with structural support and resistance levels.",
+        icon: TrendingUp,
+        color: "text-emerald-400",
+        bgColor: "bg-emerald-400/10",
+        borderColor: "group-hover:border-emerald-400/50",
+        gradient: "from-emerald-400/20 to-transparent"
+    },
+    {
+        path: "/screeners/52-week-low",
+        label: "52 Week Low",
+        description: "Stocks currently trading within 5% of their 52-week low with structural support and resistance levels.",
+        icon: TrendingDown,
+        color: "text-rose-400",
+        bgColor: "bg-rose-400/10",
+        borderColor: "group-hover:border-rose-400/50",
+        gradient: "from-rose-400/20 to-transparent"
     }
     // Multibagger Hidden per boss request
     /* {
