@@ -12,77 +12,6 @@ import {
 
 const screenerOptions = [
     {
-        path: "/screeners/intraday-dev",
-        label: "Breakout Board",
-        description: "Intraday status-based signals with real-time probability tracking and multi-tier analysis.",
-        icon: BarChart2,
-        color: "text-primary",
-        bgColor: "bg-primary/10",
-        borderColor: "group-hover:border-primary/50",
-        gradient: "from-primary/20 to-transparent"
-    },
-    ...(FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER ? [{
-        path: "/screeners/near-resistance",
-        label: "Near Resistance",
-        description: "An algorithmic filter that highlights stocks approaching predefined algorithmic resistance levels in real time.",
-        icon: TrendingUp,
-        color: "text-emerald-400",
-        bgColor: "bg-emerald-400/10",
-        borderColor: "group-hover:border-emerald-400/50",
-        gradient: "from-emerald-400/20 to-transparent"
-    }] : []),
-    ...(FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER ? [{
-        path: "/screeners/support-reversal",
-        label: "Support Reversal",
-        description: "An algorithmic filter that highlights stocks approaching predefined algorithmic support levels in real time.",
-        icon: Zap,
-        color: "text-blue-400",
-        bgColor: "bg-blue-400/10",
-        borderColor: "group-hover:border-blue-400/50",
-        gradient: "from-blue-400/20 to-transparent"
-    }] : []),
-    ...(FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER ? [{
-        path: "/screeners/reaction-zone",
-        label: "Reaction Zone",
-        description: "An algorithmic filter that highlights stocks approaching any (Model, Pattern or Balance) of the predefined algorithmic levels in real time.",
-        icon: Crosshair,
-        color: "text-purple-400",
-        bgColor: "bg-purple-400/10",
-        borderColor: "group-hover:border-purple-400/50",
-        gradient: "from-purple-400/20 to-transparent"
-    }] : []),
-    {
-        path: "/screeners/intraday-breakout",
-        label: "Intraday Volume Breakout",
-        description: "High-intensity momentum breakouts with volume confirmation captured during the last two trading days.",
-        icon: Rocket,
-        color: "text-orange-400",
-        bgColor: "bg-orange-400/10",
-        borderColor: "group-hover:border-orange-400/50",
-        gradient: "from-orange-400/20 to-transparent"
-    },
-    {
-        path: "/screeners/intraday-reversal",
-        label: "Intraday Reversal",
-        description: "Live pullback-to-reversal detection using Heikin-Ashi analysis. Catches stocks reversing after an intraday breakout.",
-        icon: Activity,
-        color: "text-violet-400",
-        bgColor: "bg-violet-400/10",
-        borderColor: "group-hover:border-violet-400/50",
-        gradient: "from-violet-400/20 to-transparent"
-    },
-
-    {
-        path: "/screeners/obv-accumulation",
-        label: "OBV Accumulation Scan",
-        description: "Stocks whose On-Balance Volume shows daily breakout and weekly accumulation conditions.",
-        icon: BarChart2,
-        color: "text-emerald-400",
-        bgColor: "bg-emerald-400/10",
-        borderColor: "group-hover:border-emerald-400/50",
-        gradient: "from-emerald-400/20 to-transparent"
-    },
-    {
         path: "/screeners/recommendations",
         label: "SHORT TERM TRADES",
         description: "Holding 1–4 Weeks. Short term swing trades tracking buy prices, targets, stoploss, and exit signals.",
@@ -90,17 +19,19 @@ const screenerOptions = [
         color: "text-amber-400",
         bgColor: "bg-amber-400/10",
         borderColor: "group-hover:border-amber-400/50",
-        gradient: "from-amber-400/20 to-transparent"
+        gradient: "from-amber-400/20 to-transparent",
+        isPaid: true
     },
     {
         path: "/screeners/weekly-recommendations",
         label: "POSITIONAL TRADES",
-        description: "Positional setups tracking entry levels, current prices, target returns, technical summaries, and fundamental outlooks.",
+        description: "Holding 2–6 Months. Positional setups tracking entry levels, current prices, target returns, and technical summaries.",
         icon: Calendar,
         color: "text-cyan-400",
         bgColor: "bg-cyan-400/10",
         borderColor: "group-hover:border-cyan-400/50",
-        gradient: "from-cyan-400/20 to-transparent"
+        gradient: "from-cyan-400/20 to-transparent",
+        isPaid: true
     },
     {
         path: "/screeners/52-week-high",
@@ -110,7 +41,8 @@ const screenerOptions = [
         color: "text-emerald-400",
         bgColor: "bg-emerald-400/10",
         borderColor: "group-hover:border-emerald-400/50",
-        gradient: "from-emerald-400/20 to-transparent"
+        gradient: "from-emerald-400/20 to-transparent",
+        isPaid: false
     },
     {
         path: "/screeners/52-week-low",
@@ -120,19 +52,119 @@ const screenerOptions = [
         color: "text-rose-400",
         bgColor: "bg-rose-400/10",
         borderColor: "group-hover:border-rose-400/50",
-        gradient: "from-rose-400/20 to-transparent"
-    }
-    // Multibagger Hidden per boss request
-    /* {
-        path: "/multibagger",
-        label: "Multibagger",
-        description: "High growth potential stocks for long-term investing",
+        gradient: "from-rose-400/20 to-transparent",
+        isPaid: false
+    },
+    {
+        path: "/screeners/intraday-breakout",
+        label: "Intraday Volume Breakout",
+        description: "High-intensity momentum breakouts with volume confirmation captured during recent trading days.",
         icon: Rocket,
         color: "text-orange-400",
         bgColor: "bg-orange-400/10",
         borderColor: "group-hover:border-orange-400/50",
-        gradient: "from-orange-400/20 to-transparent"
-    } */
+        gradient: "from-orange-400/20 to-transparent",
+        isPaid: false
+    },
+    {
+        path: "/screeners/intraday-reversal",
+        label: "Intraday Reversal",
+        description: "Live pullback-to-reversal detection using Heikin-Ashi analysis. Catches stocks reversing after an intraday breakout.",
+        icon: Activity,
+        color: "text-violet-400",
+        bgColor: "bg-violet-400/10",
+        borderColor: "group-hover:border-violet-400/50",
+        gradient: "from-violet-400/20 to-transparent",
+        isPaid: false
+    },
+    {
+        path: "/screeners/obv-accumulation",
+        label: "OBV Accumulation Scan",
+        description: "Stocks whose On-Balance Volume shows daily breakout and weekly accumulation conditions.",
+        icon: BarChart2,
+        color: "text-teal-400",
+        bgColor: "bg-teal-400/10",
+        borderColor: "group-hover:border-teal-400/50",
+        gradient: "from-teal-400/20 to-transparent",
+        isPaid: false
+    },
+    {
+        path: "/screeners/nifty-analysis",
+        label: "Optics",
+        description: "Nifty options analytics, derivatives sentiment, and institutional positioning structure.",
+        icon: Search,
+        color: "text-sky-400",
+        bgColor: "bg-sky-400/10",
+        borderColor: "group-hover:border-sky-400/50",
+        gradient: "from-sky-400/20 to-transparent",
+        isPaid: false
+    },
+    {
+        path: "/screeners/intraday-breakout-scanner",
+        label: "ML Setup",
+        description: "Intraday volume breakout algorithmic scanner with quantitative momentum signals.",
+        icon: Zap,
+        color: "text-yellow-400",
+        bgColor: "bg-yellow-400/10",
+        borderColor: "group-hover:border-yellow-400/50",
+        gradient: "from-yellow-400/20 to-transparent",
+        isPaid: false
+    },
+    {
+        path: "/screeners/breakout-v1",
+        label: "Breakout Board v1",
+        description: "Tabular overview of daily OHLC and key breakout indicator levels across the universe.",
+        icon: Activity,
+        color: "text-indigo-400",
+        bgColor: "bg-indigo-400/10",
+        borderColor: "group-hover:border-indigo-400/50",
+        gradient: "from-indigo-400/20 to-transparent",
+        isPaid: false
+    },
+    {
+        path: "/screeners/intraday-dev",
+        label: "Breakout Board",
+        description: "Intraday status-based signals with real-time probability tracking and multi-tier analysis.",
+        icon: BarChart2,
+        color: "text-primary",
+        bgColor: "bg-primary/10",
+        borderColor: "group-hover:border-primary/50",
+        gradient: "from-primary/20 to-transparent",
+        isPaid: false
+    },
+    ...(FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER ? [{
+        path: "/screeners/near-resistance",
+        label: "Near Resistance",
+        description: "An algorithmic filter that highlights stocks approaching predefined algorithmic resistance levels in real time.",
+        icon: TrendingUp,
+        color: "text-emerald-400",
+        bgColor: "bg-emerald-400/10",
+        borderColor: "group-hover:border-emerald-400/50",
+        gradient: "from-emerald-400/20 to-transparent",
+        isPaid: false
+    }] : []),
+    ...(FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER ? [{
+        path: "/screeners/support-reversal",
+        label: "Support Reversal",
+        description: "An algorithmic filter that highlights stocks approaching predefined algorithmic support levels in real time.",
+        icon: Zap,
+        color: "text-blue-400",
+        bgColor: "bg-blue-400/10",
+        borderColor: "group-hover:border-blue-400/50",
+        gradient: "from-blue-400/20 to-transparent",
+        isPaid: false
+    }] : []),
+    ...(FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER ? [{
+        path: "/screeners/reaction-zone",
+        label: "Reaction Zone",
+        description: "An algorithmic filter that highlights stocks approaching any predefined algorithmic levels in real time.",
+        icon: Crosshair,
+        color: "text-purple-400",
+        bgColor: "bg-purple-400/10",
+        borderColor: "group-hover:border-purple-400/50",
+        gradient: "from-purple-400/20 to-transparent",
+        isPaid: false
+    }] : [])
 ];
 
 export function Screeners() {
@@ -146,64 +178,72 @@ export function Screeners() {
                 <div className="absolute bottom-1/3 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
             </div>
 
-            <div className="relative container mx-auto px-4 py-8 pb-20">
+            <div className="relative container mx-auto px-4 py-4 sm:py-6 pb-20">
                 {/* Screener Top Disclaimer */}
-                <div className="mb-6 p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                <div className="mb-4 p-2.5 sm:p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
                     <p className="text-[11px] md:text-xs text-muted-foreground/80 leading-relaxed font-medium capitalize">
                         Stocks shown are filtered based on the selected analytical criteria and do not constitute buy or sell recommendations. No ranking or prioritization is implied.
                     </p>
                 </div>
                 {/* Header */}
-                <div className="mb-12 space-y-6 text-center md:text-left">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black uppercase tracking-[0.2em]">
-                        <Search className="w-3.5 h-3.5" />
+                <div className="mb-6 sm:mb-8 space-y-3 sm:space-y-4 text-center md:text-left">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-black uppercase tracking-[0.2em]">
+                        <Search className="w-3 h-3" />
                         Explore Opportunities
                     </div>
 
-                    <div className="space-y-2">
-                        <h1 className="text-4xl md:text-7xl font-black tracking-tighter leading-none">
+                    <div className="space-y-1 sm:space-y-2">
+                        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter leading-none">
                             STOCK <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-400">SCREENERS</span>
                         </h1>
-                        <p className="text-muted-foreground text-lg max-w-2xl">
+                        <p className="text-muted-foreground text-sm sm:text-base max-w-2xl">
                             Advanced algorithmic filters to identify high-probability trading setups in real-time.
                         </p>
                     </div>
                 </div>
 
-                {/* Screener Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Screener Cards Grid - Compact Layout */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4">
                     {screenerOptions.map((option) => {
                         const Icon = option.icon;
-                        const isPremiumScreener = option.label === "Reaction Zone" || option.label === "Intraday Volume Breakout";
 
                         const CardContent = (
                             <Link key={option.path} to={option.path} className="group h-full block">
-                                <GlassCard className={`relative p-6 h-full flex flex-col justify-between overflow-hidden transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-2xl border-white/5 ${option.borderColor}`}>
+                                <GlassCard className={`relative p-3.5 sm:p-4 h-full flex flex-col justify-between overflow-hidden transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-xl border-white/10 rounded-2xl ${option.borderColor}`}>
 
                                     {/* Hover Gradient Background */}
                                     <div className={`absolute inset-0 bg-gradient-to-br ${option.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
 
                                     <div className="relative z-10">
-                                        <div className="flex items-start justify-between mb-6">
-                                            <div className={`p-4 rounded-2xl ${option.bgColor} ${option.color} ring-1 ring-white/10 group-hover:scale-110 transition-transform duration-300`}>
-                                                <Icon className="w-8 h-8" />
+                                        <div className="flex items-center justify-between mb-2.5 sm:mb-3">
+                                            <div className={`p-2 sm:p-2.5 rounded-xl ${option.bgColor} ${option.color} ring-1 ring-white/10 group-hover:scale-105 transition-transform duration-300`}>
+                                                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                                             </div>
-                                            <div className="p-2 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
-                                                <ArrowUpRight className={`w-5 h-5 text-muted-foreground group-hover:text-white transition-colors`} />
+                                            <div className="flex items-center gap-2">
+                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                                    option.isPaid
+                                                        ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
+                                                        : 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.15)]'
+                                                }`}>
+                                                    {option.isPaid ? 'Paid' : 'Free'}
+                                                </span>
+                                                <div className="p-1 rounded-full bg-white/5 group-hover:bg-white/10 transition-colors">
+                                                    <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-white transition-colors" />
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-3">
-                                            <h3 className={`text-xl font-bold uppercase tracking-tight ${option.color} drop-shadow-sm`}>
+                                        <div className="space-y-1">
+                                            <h3 className={`text-sm sm:text-base font-bold uppercase tracking-tight ${option.color} drop-shadow-sm`}>
                                                 {option.label}
                                             </h3>
-                                            <p className="text-sm text-muted-foreground/80 leading-relaxed group-hover:text-muted-foreground transition-colors">
+                                            <p className="text-xs text-muted-foreground/80 leading-relaxed line-clamp-2 group-hover:text-muted-foreground transition-colors">
                                                 {option.description}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="relative z-10 mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-xs font-medium text-muted-foreground/60 uppercase tracking-wider group-hover:text-muted-foreground transition-colors">
+                                    <div className="relative z-10 mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider group-hover:text-muted-foreground transition-colors">
                                         <span>View Screener</span>
                                         <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                                     </div>
@@ -212,7 +252,7 @@ export function Screeners() {
                         );
 
                         return (
-                            <PremiumProtector key={option.path} requiredTier="pro">
+                            <PremiumProtector key={option.path} requiredTier={option.isPaid ? "pro" : "free"}>
                                 {CardContent}
                             </PremiumProtector>
                         );
