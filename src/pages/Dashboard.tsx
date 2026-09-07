@@ -166,17 +166,17 @@ const Dashboard = () => {
         <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-secondary/10 rounded-full blur-[100px] animate-pulse delay-1000" />
       </div>
 
-      <div className="relative container mx-auto px-4 pt-12 pb-0 lg:pt-16 lg:pb-0">
+      <div className="relative container mx-auto px-4 pt-3 sm:pt-6 lg:pt-10 pb-0">
         <Spotlight className="-top-40 left-0 opacity-50" />
 
         {/* Header Section */}
-        <div className="relative z-[100] mb-8 sm:mb-12 animate-fade-in px-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-          <div className="space-y-3">
+        <div className="relative z-[100] mb-6 sm:mb-8 animate-fade-in px-1 sm:px-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 sm:gap-6">
+          <div className="space-y-2.5 sm:space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider animate-fade-in">
               <Sparkles className="w-3 h-3" />
               Decision Support Analytics Platform
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-none">
                 Market <span className="gradient-text italic pr-2">Overview</span>
               </h1>
@@ -199,23 +199,20 @@ const Dashboard = () => {
                 </button>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground max-w-2xl font-medium leading-relaxed">
-              Precision analytics and real-time indicators for professional market monitoring.
-            </p>
           </div>
-          <div className="flex flex-col items-end gap-3 relative z-[100]">
+          <div className="flex flex-row items-center gap-3 relative z-[100]">
             {/* Walkthrough Dropdown Trigger */}
             <div className="relative">
               <button
                 onClick={() => setIsWatchlistOpen(!isWatchlistOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-primary/20 bg-primary/10 hover:bg-primary/20 transition-colors text-primary font-medium shadow-[0_0_15px_rgba(var(--primary),0.3)] backdrop-blur-md"
+                className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl border border-primary/20 bg-primary/10 hover:bg-primary/20 transition-colors text-primary font-medium shadow-[0_0_15px_rgba(var(--primary),0.3)] backdrop-blur-md h-[46px]"
               >
                 <Rocket className="w-4 h-4" />
-                <span className="text-sm font-bold tracking-wider uppercase">Watchlist</span>
+                <span className="text-xs sm:text-sm font-bold tracking-wider uppercase">Watchlist</span>
                 <ChevronDown className={`w-4 h-4 opacity-70 transition-transform ${isWatchlistOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              <div className={`absolute top-[calc(100%+8px)] left-0 md:left-auto md:right-0 w-[95vw] md:w-[800px] lg:w-[1050px] xl:w-[1250px] max-w-[95vw] sm:max-w-[92vw] lg:max-w-[90vw] max-h-[80vh] overflow-y-auto overflow-x-hidden bg-[#0f172a]/95 backdrop-blur-xl border border-primary/20 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] transition-all duration-300 custom-scrollbar z-[250] ${isWatchlistOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
+              <div className={`absolute top-[calc(100%+8px)] left-0 md:left-auto md:right-0 w-[92vw] sm:w-[90vw] md:w-[800px] lg:w-[1050px] xl:w-[1250px] max-w-[92vw] sm:max-w-[90vw] max-h-[80vh] overflow-y-auto overflow-x-hidden bg-[#0f172a]/95 backdrop-blur-xl border border-primary/20 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] transition-all duration-300 custom-scrollbar z-[250] ${isWatchlistOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
                 }`}>
                 <div className="p-0">
                   <Walkthrough isInDropdown={true} onClose={() => setIsWatchlistOpen(false)} />
@@ -223,9 +220,9 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md relative z-10 text-center min-w-[150px]">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Latest Update</p>
-              <p className="text-sm font-mono font-medium text-foreground">{latestUpdateDate}</p>
+            <div className="px-3.5 sm:px-4 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md relative z-10 text-center h-[46px] flex flex-col justify-center min-w-[120px] sm:min-w-[140px]">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">Latest Update</p>
+              <p className="text-xs sm:text-sm font-mono font-medium text-foreground leading-tight mt-0.5">{latestUpdateDate}</p>
             </div>
           </div>
         </div>
