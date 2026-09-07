@@ -1604,12 +1604,112 @@ async function fetchData() {
     intradayBreakoutScanner = [];
     historicalBoTodayMap = {};
     firstAppearanceMap = {};
+    let intradaySummaryMap = {};
+    let devRows = [];
+
     try {
-      const breakoutRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: 'intraday-breakout-scanner!A:AC',
-      });
-      const breakoutRows = breakoutRes.data.values;
+      const [breakoutRes, summaryRes, devRes] = await Promise.all([
+        sheets.spreadsheets.values.get({
+          spreadsheetId: EOD_SHEET_ID,
+          range: 'intraday-breakout-scanner!A:AC',
+        }).catch(e => { console.warn('Could not fetch breakout:', e.message); return { data: { values: [] } }; }),
+        sheets.spreadsheets.values.get({
+          spreadsheetId: EOD_SHEET_ID,
+          range: "'intraday-summary'!A1:Z500",
+        }).catch(e => { console.warn('Could not fetch intraday-summary:', e.message); return { data: { values: [] } }; }),
+        sheets.spreadsheets.values.get({
+          spreadsheetId: EOD_SHEET_ID,
+          range: "'intraday-commentry'!A1:W5000",
+        }).catch(e => { console.warn('Could not fetch commentary:', e.message); return { data: { values: [] } }; })
+      ]);
+
+      const breakoutRows = (breakoutRes && breakoutRes.data && breakoutRes.data.values) || [];
+      const summaryRows = (summaryRes && summaryRes.data && summaryRes.data.values) || [];
+      devRows = (devRes && devRes.data && devRes.data.values) || [];
+
+      // Populate intradaySummaryMap for tier, target, balance, and levels
+      if (summaryRows && summaryRows.length > 1) {
+        summaryRows.slice(1).forEach(row => {
+          const symbol = (row[1] || '').toString().trim().toUpperCase(); // Column B
+          if (!symbol) return;
+          intradaySummaryMap[symbol] = {
+            stars: (row[0] || '').toString().trim(),      // Column A
+            tier: (row[3] || 'DEVELOPING').toString().trim().toUpperCase(), // Column D
+            target: (row[9] || '').toString().trim(),     // Column J
+            targetPrice: parseFloat((row[10] || '0').toString().replace(/[^0-9.]/g, '')) || 0, // Column K
+            resistance: parseFloat((row[12] || '0').toString().replace(/[^0-9.]/g, '')) || 0, // Column M
+            ema9: getNum(row[7]),  // Column H
+            ema63: getNum(row[8]), // Column I
+            changePercent: parseFloat((row[5] || '0').toString().replace('%', '').replace(/,/g, '')) || 0, // Column F
+            targetStr: (row[9] || '').toString().trim(), // Column J
+            emaCrossover: (row[8] || '').toString().trim(), // Column I
+            reasons: (row[15] || '').toString().trim(),      // Column P
+            valV: (row[21] || '').toString().trim(),         // Column V
+            valW: (row[22] || '').toString().trim()          // Column W
+          };
+        });
+        console.log(`[INTRADAY-SUMMARY] Loaded ${Object.keys(intradaySummaryMap).length} symbols from summary sheet.`);
+      }
+
+      // Process Commentary Sheet for cross-enrichment and breakout triggers
+      const commentaryLatestBySym = {};
+      const commentaryTriggers = [];
+
+      if (devRows && devRows.length > 1) {
+        devRows.slice(1).forEach(r => {
+          const sym = (r[0] || '').toString().trim().toUpperCase();
+          if (!sym || sym === 'N/A' || sym === 'SYMBOL' || sym === 'DATE') return;
+          const time = (r[1] || '').toString().trim();
+          const open = getNum(r[2]);
+          const close = getNum(r[5]);
+          const volMul = getNum(r[8]); // Column I: RR_Vol
+          const state = (r[12] || '').toString().trim().toUpperCase(); // Column M: State
+          const event = (r[13] || '').toString().trim().toUpperCase(); // Column N: Event
+          const reason = (r[14] || '').toString().trim(); // Column O: Reason
+          const targetStr = (r[17] || '').toString().trim(); // Column R: Target
+          const resStr = (r[19] || '').toString().trim(); // Column T: Resistance
+          const boToday = getNum(r[20]); // Column U: BO_Today
+
+          let model = '';
+          let pattern = '';
+          if (targetStr.includes('MODEL=')) {
+            const match = targetStr.match(/MODEL=₹?([\d.,]+)/);
+            if (match) model = match[1].replace(/,/g, '');
+          }
+          if (targetStr.includes('PATTERN=')) {
+            const match = targetStr.match(/PATTERN=₹?([\d.,]+)/);
+            if (match) pattern = match[1].replace(/,/g, '');
+          }
+
+          const item = {
+            sym,
+            time,
+            open,
+            close,
+            volMul,
+            state,
+            event,
+            reason,
+            model,
+            pattern,
+            resistance: resStr,
+            boToday,
+            targetStr
+          };
+
+          commentaryLatestBySym[sym] = item;
+
+          // Breakout criteria from commentary:
+          // 1. Explicit breakout event: ENTERED or RECOVERED
+          // 2. High conviction / volume: volMul >= 2.0 and state STRONG
+          // 3. Or boToday === 1
+          if (event === 'ENTERED' || event === 'RECOVERED' || (volMul >= 2 && state === 'STRONG') || boToday === 1) {
+            commentaryTriggers.push(item);
+          }
+        });
+        console.log(`[INTRADAY-COMMENTARY] Loaded ${Object.keys(commentaryLatestBySym).length} symbols, found ${commentaryTriggers.length} breakout triggers.`);
+      }
+
       if (breakoutRows && breakoutRows.length > 1) {
         const breakoutData = rowsToObjects(breakoutRows);
         const breakoutHeaders = breakoutRows[0];
@@ -1617,7 +1717,7 @@ async function fetchData() {
         const boColIdx = boIdx !== -1 ? boIdx : 28;
 
         const dates = [...new Set(breakoutRows.slice(1).map(r => r[1]).filter(Boolean))].sort((a, b) => new Date(b) - new Date(a));
-        const latestDate = dates[0];
+        const latestDate = dates[0] || new Date().toISOString().split('T')[0];
 
         breakoutRows.slice(1).forEach(r => {
           const sym = (r[0] || '').toString().trim().toUpperCase();
@@ -1647,6 +1747,20 @@ async function fetchData() {
           });
         });
 
+        // Also track first appearance from commentary triggers
+        commentaryTriggers.forEach(c => {
+          let h = 0, m = 0;
+          try {
+            const parts = c.time.split(':');
+            h = parseInt(parts[0], 10) || 0;
+            m = parseInt(parts[1], 10) || 0;
+          } catch (e) {}
+          const timeMinutes = h * 60 + m;
+          if (firstAppearanceMap[c.sym] === undefined || timeMinutes < firstAppearanceMap[c.sym]) {
+            firstAppearanceMap[c.sym] = timeMinutes;
+          }
+        });
+
         Object.keys(historicalBoTodayMap).forEach(sym => {
           historicalBoTodayMap[sym].sort((a, b) => a.timeMinutes - b.timeMinutes);
         });
@@ -1671,28 +1785,68 @@ async function fetchData() {
               return (foundKey ? row[foundKey] : row[idx]) || '';
             };
 
+            const sym = (getVal('Symbol', 0) || 'N/A').toString().trim().toUpperCase();
+            const comm = commentaryLatestBySym[sym] || {};
+
             return {
-              symbol: getVal('Symbol', 0) || 'N/A',
+              symbol: sym,
               date: getVal('Date', 1) || 'N/A',
               time: getVal('Time', 2) || 'N/A',
               close: getNum(getVal('Close', 6)),
               Volume_multiplie: getNum(getVal('Volume_multiplie', 9)),
               'Price_%_Move': getNum(getVal('Price_%_Move', 10)),
-              BALANCE: getVal('BALANCE', 12) || 'N/A',
-              MODEL: getVal('MODEL', 13) || 'N/A',
-              PATTERN: getVal('PATTERN', 14) || 'N/A',
-              RESISTANCE: getVal('RESISTANCE', 16) || 'N/A'
+              BALANCE: getVal('BALANCE', 12) || (intradaySummaryMap[sym] && intradaySummaryMap[sym].tier) || 'N/A',
+              MODEL: getVal('MODEL', 13) || comm.model || 'N/A',
+              PATTERN: getVal('PATTERN', 14) || comm.pattern || 'N/A',
+              RESISTANCE: getVal('RESISTANCE', 16) || comm.resistance || 'N/A',
+              commentary: comm.reason || '',
+              state: comm.state || '',
+              event: comm.event || '',
+              source: 'breakout'
             };
-          })
-          .sort((a, b) => {
-            try {
-              const dateA = new Date(`${a.date} ${a.time}`);
-              const dateB = new Date(`${b.date} ${b.time}`);
-              return dateB - dateA;
-            } catch (e) {
-              return 0;
-            }
           });
+
+        // Add Commentary Breakout Triggers that aren't already present
+        let addedFromCommentary = 0;
+        commentaryTriggers.forEach(c => {
+          const key = `${c.sym}_${c.time}_${latestDate}`;
+          const keyWithSec = `${c.sym}_${c.time}:00_${latestDate}`;
+          if (!seenOld.has(key) && !seenOld.has(keyWithSec)) {
+            seenOld.add(key);
+            const priceMove = currentChangePercentMap.has(c.sym)
+              ? currentChangePercentMap.get(c.sym)
+              : (c.open > 0 ? ((c.close - c.open) / c.open) * 100 : 0);
+
+            intradayBreakout.push({
+              symbol: c.sym,
+              date: latestDate,
+              time: c.time,
+              close: c.close,
+              Volume_multiplie: c.volMul || 1,
+              'Price_%_Move': Number(priceMove.toFixed(2)),
+              BALANCE: (intradaySummaryMap[c.sym] && intradaySummaryMap[c.sym].tier) || '—',
+              MODEL: c.model || (currentAllStocksModelMap.get(c.sym)) || '—',
+              PATTERN: c.pattern || '—',
+              RESISTANCE: c.resistance || '—',
+              commentary: c.reason || '',
+              state: c.state || '',
+              event: c.event || '',
+              source: 'commentary'
+            });
+            addedFromCommentary++;
+          }
+        });
+        console.log(`[INTRADAY-BREAKOUT] Ingested ${intradayBreakout.length} total records (${addedFromCommentary} newly merged from commentary).`);
+
+        intradayBreakout.sort((a, b) => {
+          try {
+            const dateA = new Date(`${a.date} ${a.time}`);
+            const dateB = new Date(`${b.date} ${b.time}`);
+            return dateB - dateA;
+          } catch (e) {
+            return 0;
+          }
+        });
 
         // 2. New Intraday Breakout Scanner (All Data, raw/full)
         const seenNew = new Set();
@@ -1786,49 +1940,51 @@ async function fetchData() {
     // --- End Intraday Reversal Screener ---
 
     // --- Start Intraday Summary (Stars & Tiers) ---
-    let intradaySummaryMap = {};
-    try {
-      const summaryRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: "'intraday-summary'!A1:Z500",
-      });
-      const summaryRows = summaryRes.data.values;
-      if (summaryRows && summaryRows.length > 1) {
-        summaryRows.slice(1).forEach(row => {
-          const symbol = (row[1] || '').toString().trim().toUpperCase(); // Column B
-          if (!symbol) return;
-          intradaySummaryMap[symbol] = {
-            stars: (row[0] || '').toString().trim(),      // Column A
-            tier: (row[3] || 'DEVELOPING').toString().trim().toUpperCase(), // Column D
-            target: (row[9] || '').toString().trim(),     // Column J
-            targetPrice: parseFloat((row[10] || '0').toString().replace(/[^0-9.]/g, '')) || 0, // Column K
-            resistance: parseFloat((row[12] || '0').toString().replace(/[^0-9.]/g, '')) || 0, // Column M
-            ema9: getNum(row[7]),  // Column H
-            ema63: getNum(row[8]), // Column I
-            changePercent: parseFloat((row[5] || '0').toString().replace('%', '').replace(/,/g, '')) || 0, // Column F
-            targetStr: (row[9] || '').toString().trim(), // Column J
-            emaCrossover: (row[8] || '').toString().trim(), // Column I
-            reasons: (row[15] || '').toString().trim(),      // Column P
-            valV: (row[21] || '').toString().trim(),         // Column V
-            valW: (row[22] || '').toString().trim()          // Column W
-          };
+    if (Object.keys(intradaySummaryMap).length === 0) {
+      try {
+        const summaryRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: EOD_SHEET_ID,
+          range: "'intraday-summary'!A1:Z500",
         });
-        console.log(`[INTRADAY-SUMMARY] Loaded ${Object.keys(intradaySummaryMap).length} symbols from summary sheet.`);
-        console.log(`[INTRADAY-SUMMARY] Sample keys: ${Object.keys(intradaySummaryMap).slice(0, 5).join(', ')}`);
+        const summaryRows = summaryRes.data.values;
+        if (summaryRows && summaryRows.length > 1) {
+          summaryRows.slice(1).forEach(row => {
+            const symbol = (row[1] || '').toString().trim().toUpperCase(); // Column B
+            if (!symbol) return;
+            intradaySummaryMap[symbol] = {
+              stars: (row[0] || '').toString().trim(),      // Column A
+              tier: (row[3] || 'DEVELOPING').toString().trim().toUpperCase(), // Column D
+              target: (row[9] || '').toString().trim(),     // Column J
+              targetPrice: parseFloat((row[10] || '0').toString().replace(/[^0-9.]/g, '')) || 0, // Column K
+              resistance: parseFloat((row[12] || '0').toString().replace(/[^0-9.]/g, '')) || 0, // Column M
+              ema9: getNum(row[7]),  // Column H
+              ema63: getNum(row[8]), // Column I
+              changePercent: parseFloat((row[5] || '0').toString().replace('%', '').replace(/,/g, '')) || 0, // Column F
+              targetStr: (row[9] || '').toString().trim(), // Column J
+              emaCrossover: (row[8] || '').toString().trim(), // Column I
+              reasons: (row[15] || '').toString().trim(),      // Column P
+              valV: (row[21] || '').toString().trim(),         // Column V
+              valW: (row[22] || '').toString().trim()          // Column W
+            };
+          });
+          console.log(`[INTRADAY-SUMMARY] Loaded ${Object.keys(intradaySummaryMap).length} symbols from summary sheet.`);
+        }
+      } catch (err) {
+        console.warn('Could not fetch intraday-summary data:', err.message);
       }
-    } catch (err) {
-      console.warn('Could not fetch intraday-summary data:', err.message);
     }
 
     // --- Start Intraday Dev (Commentary) Screener ---
     intradayDev = [];
     try {
-      const devRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: EOD_SHEET_ID,
-        range: "'intraday-commentry'!A1:W5000",
-      });
-      const devRows = devRes.data.values;
-      console.log(`[INTRADAY-DEV] Fetched ${devRows ? devRows.length : 0} rows from "intraday commentery" sheet`);
+      if (!devRows || devRows.length === 0) {
+        const devRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: EOD_SHEET_ID,
+          range: "'intraday-commentry'!A1:W5000",
+        });
+        devRows = devRes.data.values || [];
+      }
+      console.log(`[INTRADAY-DEV] Using ${devRows ? devRows.length : 0} rows from "intraday commentery" sheet`);
       if (devRows && devRows.length > 1) {
         const rawDevData = rowsToObjects(devRows);
 
@@ -2124,6 +2280,7 @@ async function fetchData() {
 
 let cachedData = null;
 let lastFetchTime = 0;
+let isFetchingPromise = null;
 const CACHE_DURATION = 30 * 1000; // 30 seconds — keeps data near-live
 
 app.get('/api/fetch-data', async (req, res) => {
@@ -2135,22 +2292,36 @@ app.get('/api/fetch-data', async (req, res) => {
       return res.json(cachedData);
     }
 
-    const data = await fetchData();
-    if (data && data.stockData && data.stockData.length > 0) {
-      cachedData = data;
-      lastFetchTime = now;
-    } else if (cachedData) {
-      console.log('Fetch returned empty/error; returning previous valid cachedData');
-      return res.json(cachedData);
-    } else if (data) {
-      cachedData = data;
-      lastFetchTime = now;
+    if (!isFetchingPromise) {
+      isFetchingPromise = fetchData()
+        .then(data => {
+          if (data && data.stockData && data.stockData.length > 0) {
+            cachedData = data;
+            lastFetchTime = Date.now();
+          } else if (data && !cachedData) {
+            cachedData = data;
+            lastFetchTime = Date.now();
+          }
+          return data;
+        })
+        .catch(err => {
+          console.error('Fetch error:', err);
+          if (cachedData) return cachedData;
+          throw err;
+        })
+        .finally(() => {
+          isFetchingPromise = null;
+        });
     }
-    console.log(`[API] Returning data to frontend. Golden Alerts: ${data?.goldenAlerts?.length || 0}`);
 
-    res.json(data || cachedData || {});
+    const data = await isFetchingPromise;
+    console.log(`[API] Returning data to frontend. Intraday Breakouts: ${cachedData?.intradayBreakout?.length || data?.intradayBreakout?.length || 0}`);
+    res.json(cachedData || data || {});
   } catch (error) {
     console.error('Error fetching data:', error);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
     res.status(500).json({ error: 'Failed to fetch data', message: error.message });
   }
 });
@@ -2711,7 +2882,11 @@ app.listen(PORT, '0.0.0.0', () => {
   // Initial fetch
   console.log('Performing initial data fetch...');
   fetchData()
-    .then(async () => {
+    .then(async (data) => {
+      if (data) {
+        cachedData = data;
+        lastFetchTime = Date.now();
+      }
       console.log('Initial fetch complete. Server is ready.');
       const mem = process.memoryUsage();
       console.log(`Memory Usage: RSS=${Math.round(mem.rss / 1024 / 1024)}MB, Heap=${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
@@ -2741,7 +2916,11 @@ app.listen(PORT, '0.0.0.0', () => {
 
       console.log(`[${istTime}] --- Scheduled Background Refresh Started ---`);
       fetchData()
-        .then(async () => {
+        .then(async (data) => {
+          if (data) {
+            cachedData = data;
+            lastFetchTime = Date.now();
+          }
           console.log('--- Scheduled Background Refresh Complete ---');
           const mem = process.memoryUsage();
           console.log(`Memory Usage: RSS=${Math.round(mem.rss / 1024 / 1024)}MB, Heap=${Math.round(mem.heapUsed / 1024 / 1024)}MB`);
