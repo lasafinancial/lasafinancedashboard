@@ -122,7 +122,7 @@ export default {
         shimmer: "shimmer 2s infinite linear",
         "spin-slow": "spin-slow 8s linear infinite",
         scan: "scan 3s ease-in-out infinite",
-        marquee: "marquee 40s linear infinite",
+        marquee: "marquee 120s linear infinite",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
