@@ -112,24 +112,13 @@ const screenerOptions = [
     },
     {
         path: "/screeners/breakout-v1",
-        label: "Breakout Board v1",
-        description: "Tabular overview of daily OHLC and key breakout indicator levels across the universe.",
+        label: "Breakout Board V1",
+        description: "Stocks trading above recent resistance on daily charts with high volume. No Buy/Sell Recommendations.",
         icon: Activity,
         color: "text-indigo-400",
         bgColor: "bg-indigo-400/10",
         borderColor: "group-hover:border-indigo-400/50",
         gradient: "from-indigo-400/20 to-transparent",
-        isPaid: false
-    },
-    {
-        path: "/screeners/intraday-dev",
-        label: "Breakout Board",
-        description: "Intraday status-based signals with real-time probability tracking and multi-tier analysis.",
-        icon: BarChart2,
-        color: "text-primary",
-        bgColor: "bg-primary/10",
-        borderColor: "group-hover:border-primary/50",
-        gradient: "from-primary/20 to-transparent",
         isPaid: false
     },
     ...(FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER ? [{

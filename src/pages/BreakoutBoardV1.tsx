@@ -268,16 +268,11 @@ export function BreakoutBoardV1() {
                         <Table>
                             <TableHeader className="bg-white/[0.03]">
                                 <TableRow className="border-white/5 hover:bg-transparent">
-                                    <TableHead className="w-[100px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Strength</TableHead>
                                     <TableHead className="w-[150px] text-[11px] font-black text-white/60 uppercase tracking-widest">Symbol</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Price</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Resistance</TableHead>
-                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">Model</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest pl-10">Projection / Note</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">BO Today</TableHead>
-                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Tier</TableHead>
-                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center cursor-pointer hover:text-white transition-colors" onClick={() => toggleSort("fr")}>Obv Breakout <SortIcon field="fr" /></TableHead>
-                                    <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-center">OBV</TableHead>
                                     <TableHead className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right">% Price Inc</TableHead>
                                     <TableHead className="w-[60px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">Action</TableHead>
                                 </TableRow>
@@ -305,9 +300,6 @@ export function BreakoutBoardV1() {
                                     <PremiumProtector requiredTier="pro" blurLevel="md">
                                         {(isFree ? filteredStocks.slice(0, 8) : filteredStocks).map((stock, idx) => (
                                             <TableRow key={`${stock.symbol}-${idx}`} className="border-white/5 hover:bg-white/[0.04] transition-colors group">
-                                                <TableCell className="py-1 text-center">
-                                                    {getStrengthBadge(stock.state)}
-                                                </TableCell>
                                                 <TableCell className="py-1">
                                                     <div className="flex flex-col leading-tight">
                                                         <div className="flex items-center gap-1.5">
@@ -325,9 +317,6 @@ export function BreakoutBoardV1() {
                                                 <TableCell className="py-1 text-right font-bold font-mono text-xs text-red-400/80">
                                                     ₹{formatNumber(stock.resistance)}
                                                 </TableCell>
-                                                <TableCell className="py-1 text-right font-bold font-mono text-xs text-orange-400/80">
-                                                    ₹{formatNumber(stock.MODEL || stock.targetPrice || stock.target)}
-                                                </TableCell>
                                                 <TableCell className="py-1 max-w-[300px] pl-10">
                                                     <div className="flex flex-col gap-0 leading-tight">
                                                         <span className="text-[10px] font-bold text-white/80 italic line-clamp-1">{stock.reasons || stock.note || 'No commentary available.'}</span>
@@ -337,24 +326,6 @@ export function BreakoutBoardV1() {
                                                 <TableCell className="py-1 text-center">
                                                     <span className={`text-[10px] font-black px-1.5 py-0 rounded ${stock.valV ? 'bg-primary/10 text-primary border border-primary/20' : 'text-white/20'}`}>
                                                         {stock.valV || '—'}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="py-1 text-center">
-                                                    <div className="flex flex-col items-center gap-0">
-                                                        {renderStars(stock.stars)}
-                                                        <span className={`text-[8px] font-black tracking-tighter uppercase ${stock.tier === 'GOLDEN' ? 'text-yellow-500' : 'text-white/40'}`}>
-                                                            {stock.tier}
-                                                        </span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="py-1 text-center font-bold font-mono text-xs">
-                                                    <span className="text-white/80">
-                                                        {stock.fr || '—'}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="py-1 text-center">
-                                                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${stock.obvSignal === 'ACCUMULATION' || stock.obvSignal === 'Bullish' || stock.obvSignal === 'BULLISH' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : stock.obvSignal === 'DISTRIBUTION' || stock.obvSignal === 'Bearish' || stock.obvSignal === 'BEARISH' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'text-white/40'}`}>
-                                                        {stock.obvSignal || '—'}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell className="py-1 text-right font-bold font-mono text-xs">

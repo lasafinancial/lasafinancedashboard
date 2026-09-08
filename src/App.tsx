@@ -23,7 +23,6 @@ import ReactionZone from "@/pages/ReactionZone";
 import IntradayBreakout from "@/pages/IntradayBreakout";
 import IntradayBreakoutScanner from "@/pages/IntradayBreakoutScanner";
 import IntradayReversal from "@/pages/IntradayReversal";
-import IntradayDev from "@/pages/IntradayDev";
 import BreakoutBoardV1 from "@/pages/BreakoutBoardV1";
 import NewBreakouts from "@/pages/NewBreakouts";
 import ObvAccumulation from "@/pages/ObvAccumulation";
@@ -247,7 +246,6 @@ const AppContent = () => {
             <Route path="/screeners/intraday-breakout-scanner" element={<ProtectedRoute><IntradayBreakoutScanner /></ProtectedRoute>} />
             <Route path="/screeners/intraday-reversal" element={<ProtectedRoute><IntradayReversal /></ProtectedRoute>} />
             <Route path="/screeners/nifty-analysis" element={<ProtectedRoute><NiftyAnalysis /></ProtectedRoute>} />
-            <Route path="/screeners/intraday-dev" element={<ProtectedRoute><IntradayDev /></ProtectedRoute>} />
             <Route path="/screeners/breakout-v1" element={<ProtectedRoute><BreakoutBoardV1 /></ProtectedRoute>} />
             <Route path="/screeners/new-breakouts" element={<ProtectedRoute><NewBreakouts /></ProtectedRoute>} />
             <Route path="/screeners/obv-accumulation" element={<ProtectedRoute><ObvAccumulation /></ProtectedRoute>} />
