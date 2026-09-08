@@ -211,6 +211,7 @@ export interface GoogleSheetsData {
   goldenAlerts?: any[];
   playbackSnapshots?: any[];
   dailyNews: DailyNewsItem[];
+  tickerTape?: string[];
   niftyAnalysis?: NiftyAnalysisData;
   niftyOptionsData?: any[];
   summaries?: StockSummaryItem[];
@@ -281,6 +282,7 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
         'reactionZone',
         'stockData',
         'dailyNews',
+        'tickerTape',
         'summaries',
         'playbackSnapshots',
         'exitTargetScreener',

@@ -38,6 +38,7 @@ export function useLiveData() {
   const [goldenAlerts, setGoldenAlerts] = useState<any[]>(cached ? (cached as any).goldenAlerts || [] : []);
   const [playbackSnapshots, setPlaybackSnapshots] = useState<any[]>(cached ? cached.playbackSnapshots || [] : []);
   const [dailyNews, setDailyNews] = useState<any[]>(cached ? (cached as any).dailyNews || [] : []);
+  const [tickerTape, setTickerTape] = useState<string[]>(cached ? (cached as any).tickerTape || [] : []);
   const [niftyAnalysis, setNiftyAnalysis] = useState<any | null>(cached ? (cached as any).niftyAnalysis || null : null);
   const [niftyOptionsData, setNiftyOptionsData] = useState<any[]>(cached ? (cached as any).niftyOptionsData || [] : []);
   const [summaries, setSummaries] = useState<any[]>(cached ? cached.summaries || [] : []);
@@ -68,6 +69,7 @@ export function useLiveData() {
       setGoldenAlerts((data as any).goldenAlerts || []);
       setPlaybackSnapshots(data.playbackSnapshots || []);
       setDailyNews((data as any).dailyNews || []);
+      setTickerTape((data as any).tickerTape || []);
       setNiftyAnalysis((data as any).niftyAnalysis || null);
       setNiftyOptionsData((data as any).niftyOptionsData || []);
       setSummaries(data.summaries || []);
@@ -107,6 +109,7 @@ export function useLiveData() {
     goldenAlerts,
     playbackSnapshots,
     dailyNews,
+    tickerTape,
     niftyAnalysis,
     niftyOptionsData,
     summaries,

@@ -221,7 +221,8 @@ async function fetchData() {
     indicesRes,
     newsRes,
     exitTargetScreenerRes,
-    weeklyRecommendationRes
+    weeklyRecommendationRes,
+    tickerRes
   ] = await Promise.all([
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'golden'" }),
     safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }),
@@ -246,7 +247,11 @@ async function fetchData() {
           console.warn('Failed to fetch WEEKLY-RECOMMENDATION tab:', e.message);
           return { data: { values: [] } };
         })
-      : Promise.resolve(null)
+      : Promise.resolve(null),
+    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'TICKER!A:A' }).catch(e => {
+      console.warn('Failed to fetch TICKER tab:', e.message);
+      return { data: { values: [] } };
+    })
   ]);
 
   console.log('Starting Batch 2 Fetches...');
@@ -597,6 +602,7 @@ async function fetchData() {
   let reactionZone = [];
   let currentData = [];
   let dailyNews = [];
+  let tickerTape = [];
   let summaries = [];
   let nifty50Stocks = [];
   let intradayBreakout = [];
@@ -1055,6 +1061,23 @@ async function fetchData() {
       }
     } catch (newsErr) {
       console.warn('Could not fetch DAILY_NEWS:', newsErr.message);
+    }
+
+    // --- 12.1 Process TICKER tab (Line by line announcement ticker) ---
+    try {
+      const tickerRows = tickerRes?.data?.values || [];
+      for (let i = 0; i < tickerRows.length; i++) {
+        const row = tickerRows[i];
+        if (row && row.length > 0) {
+          const line = (row[0] || '').toString().trim();
+          if (line) {
+            tickerTape.push(line);
+          }
+        }
+      }
+      console.log(`Fetched ${tickerTape.length} items from TICKER tab.`);
+    } catch (tickerErr) {
+      console.warn('Could not process TICKER:', tickerErr.message);
     }
 
     // --- 12b. Fetch Summaries tab (Independent) ---
@@ -2197,6 +2220,7 @@ async function fetchData() {
     playbackSnapshots,
     goldenAlerts,
     dailyNews,
+    tickerTape,
     niftyAnalysis,
     summaries,
     exitTargetScreener,

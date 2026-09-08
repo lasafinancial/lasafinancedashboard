@@ -398,6 +398,7 @@ async function fetchData() {
   let nearResistance = []; let supportReversal = [];
   let reactionZone = [];
   let dailyNews = [];
+  let tickerTape = [];
   let summaries = [];
   let intradayBreakout = [];
   let intradayBreakoutScanner = [];
@@ -1205,6 +1206,27 @@ async function fetchData() {
         }
       } catch (newsErr) {
         console.warn('Could not fetch DAILY_NEWS:', newsErr.message);
+      }
+
+      // --- 12.1 Fetch TICKER tab (Line by line announcement ticker) ---
+      try {
+        const tickerRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: INDICES_SHEET_ID,
+          range: 'TICKER!A:A',
+        });
+        const tickerRows = tickerRes.data.values || [];
+        for (let i = 0; i < tickerRows.length; i++) {
+          const row = tickerRows[i];
+          if (row && row.length > 0) {
+            const line = (row[0] || '').toString().trim();
+            if (line) {
+              tickerTape.push(line);
+            }
+          }
+        }
+        console.log(`Fetched ${tickerTape.length} items from TICKER tab.`);
+      } catch (tickerErr) {
+        console.warn('Could not fetch TICKER tab:', tickerErr.message);
       }
 
       // --- 12a2. Fetch RECOMMENDATION tab (Exit / Target Screener) ---
@@ -2361,6 +2383,7 @@ async function fetchData() {
     goldenAlerts,
     playbackSnapshots,
     dailyNews,
+    tickerTape,
     niftyAnalysis,
     summaries,
     exitTargetScreener,
