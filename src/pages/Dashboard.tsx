@@ -44,6 +44,8 @@ const MarketDescription = ({ text }: { text: string }) => (
   </p>
 );
 
+import { NewsTicker } from "@/components/ui/NewsTicker";
+
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const [showDisclaimer, setShowDisclaimer] = useState(false);
@@ -168,14 +170,12 @@ const Dashboard = () => {
 
       <div className="relative container mx-auto px-4 pt-3 sm:pt-6 lg:pt-10 pb-0">
         <Spotlight className="-top-40 left-0 opacity-50" />
+        
+        <NewsTicker />
 
         {/* Header Section */}
         <div className="relative z-[100] mb-6 sm:mb-8 animate-fade-in px-1 sm:px-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 sm:gap-6">
           <div className="space-y-2.5 sm:space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider animate-fade-in">
-              <Sparkles className="w-3 h-3" />
-              Decision Support Analytics Platform
-            </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-none">
                 Market <span className="gradient-text italic pr-2">Overview</span>
