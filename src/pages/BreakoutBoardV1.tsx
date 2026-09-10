@@ -108,9 +108,9 @@ export function BreakoutBoardV1() {
             isPinned: pinnedSymbols.includes(s.symbol)
         })).filter(s => {
             const rawPrice = s.close ?? s.price;
-            const price = typeof rawPrice === 'number' ? rawPrice : parseFloat(String(rawPrice || '0').replace(/,/g, '').trim());
+            const price = typeof rawPrice === 'number' ? rawPrice : parseFloat(String(rawPrice || '0').replace(/[^0-9.-]/g, ''));
             const rawRes = s.resistance;
-            const resistance = typeof rawRes === 'number' ? rawRes : parseFloat(String(rawRes || '0').replace(/,/g, '').trim());
+            const resistance = typeof rawRes === 'number' ? rawRes : parseFloat(String(rawRes || '0').replace(/[^0-9.-]/g, ''));
             return !isNaN(price) && !isNaN(resistance) && resistance > 0 && price > resistance;
         });
 
@@ -278,12 +278,13 @@ export function BreakoutBoardV1() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {isLoading ? (
+                                {isLoading || ((!stocks || stocks.length === 0) && (!playbackSnapshots || playbackSnapshots.length === 0)) ? (
                                     <TableRow>
                                         <TableCell colSpan={9} className="h-64 text-center">
                                             <div className="flex flex-col items-center justify-center gap-3">
                                                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                                                <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Initializing Terminal Data...</p>
+                                                <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Connecting to Live Terminal Feed...</p>
+                                                <p className="text-[10px] text-muted-foreground/60 font-mono">Syncing intraday sheets...</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>

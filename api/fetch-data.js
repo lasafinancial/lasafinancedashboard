@@ -2231,21 +2231,54 @@ async function fetchData() {
   };
 }
 
+let cachedData = null;
+let lastFetchTime = 0;
+let isFetchingPromise = null;
+const CACHE_DURATION = 30 * 1000; // 30 seconds — near-live data cache
+
 export default async function handler(req, res) {
   const isForced = req.query.force === 'true';
-  const isMarketNowOpen = isMarketOpen();
-  const istTime = getLogTimeIST();
+  const now = Date.now();
 
-  if (!isMarketNowOpen && !isForced) {
-      console.log(`[${istTime}] API requested after-hours. Resolving valid data structure for viewer...`);
+  // Edge caching for fast responses from Vercel CDN
+  res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=120');
+
+  // Return from in-memory cache instantly (<1ms) if still fresh
+  if (!isForced && cachedData && (now - lastFetchTime) < CACHE_DURATION) {
+    return res.status(200).json(cachedData);
+  }
+
+  // Deduplicate in-flight fetches so concurrent requests share a single execution
+  if (!isFetchingPromise) {
+    isFetchingPromise = fetchData()
+      .then(data => {
+        if (data && ((data.stockData && data.stockData.length > 0) || (data.intradayDev && data.intradayDev.length > 0))) {
+          cachedData = data;
+          lastFetchTime = Date.now();
+        } else if (data && !cachedData) {
+          cachedData = data;
+          lastFetchTime = Date.now();
+        }
+        return data;
+      })
+      .catch(err => {
+        console.error('Fetch error in handler:', err);
+        if (cachedData) return cachedData;
+        throw err;
+      })
+      .finally(() => {
+        isFetchingPromise = null;
+      });
   }
 
   try {
-    const data = await fetchData();
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
-    res.status(200).json(data);
+    const data = await isFetchingPromise;
+    res.status(200).json(cachedData || data || {});
   } catch (error) {
     console.error('Fetch Error:', error);
+    if (cachedData) {
+      return res.status(200).json(cachedData);
+    }
     res.status(500).json({ error: 'Failed to fetch data', message: error.message });
   }
 }

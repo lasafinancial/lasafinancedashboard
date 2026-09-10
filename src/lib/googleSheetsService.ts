@@ -314,6 +314,9 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
     return data;
   } catch (error) {
     console.error('Error refreshing data:', error);
+    if (!cachedData) {
+      setTimeout(() => refreshAllData(true), 3000);
+    }
     return cachedData;
   }
 }
