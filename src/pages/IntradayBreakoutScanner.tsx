@@ -62,7 +62,17 @@ export function IntradayBreakoutScanner() {
             }
         });
         
-        let data = Array.from(latestBySymbol.values()).map(item => item.stock);
+        // Normalize mlGap: If received as decimal fraction (e.g. 0.25 for 25%), scale to percentage (25)
+        data = data.map(stock => {
+            const rawMl = typeof stock.mlGap === 'number' ? stock.mlGap : parseFloat(String(stock.mlGap));
+            const normalizedMl = (!isNaN(rawMl) && Math.abs(rawMl) <= 2 && rawMl !== 0)
+                ? Number((rawMl * 100).toFixed(2))
+                : rawMl;
+            return {
+                ...stock,
+                mlGap: normalizedMl
+            };
+        });
 
         // Apply static filters: ML_Gap% > 20 AND Res_Gap% > 5
         data = data.filter(stock => {

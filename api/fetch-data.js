@@ -1686,21 +1686,28 @@ async function fetchData() {
               return (foundKey ? row[foundKey] : row[idx]) || '';
             };
 
+            const sym = (getVal('Symbol', 0) || 'N/A').toString().trim().toUpperCase();
+            const rawMlFromMap = currentAllStocksMlGapMap.get(sym);
+            const rawMlFromSheet = getNum(getVal('ML_GAP%', 27));
+            let mlGap = rawMlFromMap !== undefined
+              ? (Math.abs(rawMlFromMap) <= 2 && rawMlFromMap !== 0 ? Number((rawMlFromMap * 100).toFixed(2)) : rawMlFromMap)
+              : (Math.abs(rawMlFromSheet) <= 2 && rawMlFromSheet !== 0 ? Number((rawMlFromSheet * 100).toFixed(2)) : rawMlFromSheet);
+
             return {
-              symbol: getVal('Symbol', 0) || 'N/A',
+              symbol: sym,
               date: getVal('Date', 1) || 'N/A',
               time: getVal('Time', 2) || 'N/A',
               pattern: getVal('PATTERN', 14) || 'N/A',
               resGap: getNum(getVal('Res_Gap%', 20)),
               target: getNum(getVal('Target', 21)),
-              model: currentAllStocksModelMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksModelMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : (getVal('MODEL', 13) || 'N/A'),
+              model: currentAllStocksModelMap.has(sym) ? currentAllStocksModelMap.get(sym) : (getVal('MODEL', 13) || 'N/A'),
               resistance: getNum(getVal('RESISTANCE', 16)),
               u: getNum(getVal('Price_%_Move', 10)),
-              mlGap: currentAllStocksMlGapMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksMlGapMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : getNum(getVal('ML_GAP%', 27)),
-              close: currentAllStocksPriceMap.has((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) ? currentAllStocksPriceMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) : getNum(getVal('Close', 6)),
+              mlGap: mlGap,
+              close: currentAllStocksPriceMap.has(sym) ? currentAllStocksPriceMap.get(sym) : getNum(getVal('Close', 6)),
               boPrice: getNum(getVal('Close', 6)),
-              obvSignal: currentObvSignalMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) || '—',
-              fr: currentFrMap.get((getVal('Symbol', 0) || '').toString().trim().toUpperCase()) || '—'
+              obvSignal: currentObvSignalMap.get(sym) || '—',
+              fr: currentFrMap.get(sym) || '—'
             };
           })
           .sort((a, b) => {
