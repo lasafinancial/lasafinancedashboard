@@ -14,7 +14,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-type SortField = "id" | "currentPrice" | "low52" | "resistance" | "support";
+type SortField = "id" | "sector" | "currentPrice" | "low52" | "resistance" | "support";
 type SortDirection = "asc" | "desc";
 
 export function Week52Low() {
@@ -243,6 +243,15 @@ export function Week52Low() {
                                             </span>
                                         </TableHead>
                                         <TableHead
+                                            onClick={() => toggleSort("sector")}
+                                            className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors"
+                                        >
+                                            <span className="flex items-center gap-1.5">
+                                                Sector
+                                                {sortField === "sector" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                            </span>
+                                        </TableHead>
+                                        <TableHead
                                             onClick={() => toggleSort("currentPrice")}
                                             className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
                                         >
@@ -294,16 +303,16 @@ export function Week52Low() {
                                                 >
                                                     {/* ID / Symbol */}
                                                     <TableCell className="py-3.5">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-sm font-black text-white tracking-tight group-hover:text-rose-400 transition-colors">
-                                                                {stock.id}
-                                                            </span>
-                                                            {stock.sector && stock.sector !== stock.id && (
-                                                                <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">
-                                                                    {stock.sector}
-                                                                </span>
-                                                            )}
-                                                        </div>
+                                                        <span className="text-sm font-black text-white tracking-tight group-hover:text-rose-400 transition-colors">
+                                                            {stock.id}
+                                                        </span>
+                                                    </TableCell>
+
+                                                    {/* Sector */}
+                                                    <TableCell className="py-3.5">
+                                                        <span className="text-xs text-white/70 font-medium">
+                                                            {(stock.sector && stock.sector !== stock.id) ? stock.sector : (stock.group && stock.group !== stock.id ? stock.group : '—')}
+                                                        </span>
                                                     </TableCell>
 
                                                     {/* Current Price */}
