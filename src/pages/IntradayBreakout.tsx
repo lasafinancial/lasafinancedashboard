@@ -120,6 +120,15 @@ export function IntradayBreakout() {
                 return sortDirection === "asc" ? dateTimeA - dateTimeB : dateTimeB - dateTimeA;
             }
 
+            // Numeric check for string-encoded numeric values (e.g. BALANCE, MODEL, PATTERN, RESISTANCE)
+            const numA = parseFloat(String(valA));
+            const numB = parseFloat(String(valB));
+            if (!isNaN(numA) && !isNaN(numB)) {
+                return sortDirection === "asc" ? numA - numB : numB - numA;
+            }
+            if (!isNaN(numA)) return sortDirection === "asc" ? -1 : 1;
+            if (!isNaN(numB)) return sortDirection === "asc" ? 1 : -1;
+
             const strA = String(valA || "").toLowerCase();
             const strB = String(valB || "").toLowerCase();
             if (strA < strB) return sortDirection === "asc" ? -1 : 1;

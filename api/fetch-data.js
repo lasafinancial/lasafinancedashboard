@@ -276,11 +276,21 @@ async function fetchData() {
 
   // --- Golden Alerts Fetch (Moved to top for reliability) ---
   let goldenAlerts = [];
+  let goldenBalanceMap = new Map();
   let intradaySummaryMap = {}; // Hoisted for global access within fetchData
   try {
     
     const goldenRows = goldenRes.data.values;
     console.log(`[GOLDEN] Raw fetch result: ${goldenRows ? goldenRows.length : 0} rows`);
+    if (goldenRows && goldenRows.length > 1) {
+      goldenRows.slice(1).forEach(r => {
+        const sym = (r[0] || '').toString().trim().toUpperCase();
+        const bal = (r[11] || '').toString().trim();
+        if (sym && bal && !isNaN(parseFloat(bal))) {
+          goldenBalanceMap.set(sym, bal);
+        }
+      });
+    }
     if (goldenRows && goldenRows.length > 0) {
       console.log(`[GOLDEN-DEBUG] Row 0: ${JSON.stringify(goldenRows[0])}`);
       console.log(`[GOLDEN-DEBUG] Last Row: ${JSON.stringify(goldenRows[goldenRows.length - 1])}`);
@@ -1553,6 +1563,20 @@ async function fetchData() {
           historicalBoTodayMap[sym].sort((a, b) => a.timeMinutes - b.timeMinutes);
         });
 
+        const scannerBalanceMap = new Map();
+        const scannerPatternMap = new Map();
+        breakoutRows.slice(1).forEach(r => {
+          const sym = (r[0] || '').toString().trim().toUpperCase();
+          const bal = (r[12] || '').toString().trim();
+          const pat = (r[14] || '').toString().trim();
+          if (sym && bal && !isNaN(parseFloat(bal)) && !['UPTREND', 'DEVELOPING', 'GOLDEN', 'N/A', '—'].includes(bal.toUpperCase())) {
+            scannerBalanceMap.set(sym, bal);
+          }
+          if (sym && pat && pat !== 'N/A' && pat !== '—') {
+            scannerPatternMap.set(sym, pat);
+          }
+        });
+
         // 1. Intraday Breakout (All Recent Trading Days - up to 30 days)
         const allBreakoutDates = [...new Set(breakoutData.map(r => r['Date']).filter(Boolean))];
         const sortedBreakoutDates = allBreakoutDates.sort((a, b) => new Date(b) - new Date(a));
@@ -1576,6 +1600,16 @@ async function fetchData() {
             const sym = (getVal('Symbol', 0) || 'N/A').toString().trim().toUpperCase();
             const comm = commentaryLatestBySym[sym] || {};
 
+            const rawBalance = getVal('BALANCE', 12);
+            const validBalance = (rawBalance && !['UPTREND', 'DEVELOPING', 'GOLDEN', 'N/A', '—', ''].includes(rawBalance.toString().trim().toUpperCase()) && !isNaN(parseFloat(rawBalance)))
+              ? rawBalance.toString().trim()
+              : (scannerBalanceMap.get(sym) || goldenBalanceMap.get(sym) || '—');
+
+            const rawPattern = getVal('PATTERN', 14);
+            const validPattern = (rawPattern && rawPattern !== 'N/A' && rawPattern !== '—')
+              ? rawPattern.toString().trim()
+              : (comm.pattern || scannerPatternMap.get(sym) || '—');
+
             return {
               symbol: sym,
               date: getVal('Date', 1) || 'N/A',
@@ -1583,10 +1617,10 @@ async function fetchData() {
               close: getNum(getVal('Close', 6)),
               Volume_multiplie: getNum(getVal('Volume_multiplie', 9)),
               'Price_%_Move': getNum(getVal('Price_%_Move', 10)),
-              BALANCE: getVal('BALANCE', 12) || (intradaySummaryMap[sym] && intradaySummaryMap[sym].tier) || 'N/A',
-              MODEL: getVal('MODEL', 13) || comm.model || 'N/A',
-              PATTERN: getVal('PATTERN', 14) || comm.pattern || 'N/A',
-              RESISTANCE: getVal('RESISTANCE', 16) || comm.resistance || 'N/A',
+              BALANCE: validBalance,
+              MODEL: getVal('MODEL', 13) || comm.model || currentAllStocksModelMap.get(sym) || '—',
+              PATTERN: validPattern,
+              RESISTANCE: getVal('RESISTANCE', 16) || comm.resistance || '—',
               commentary: comm.reason || '',
               state: comm.state || '',
               event: comm.event || '',
@@ -1612,9 +1646,9 @@ async function fetchData() {
               close: c.close,
               Volume_multiplie: c.volMul || 1,
               'Price_%_Move': Number(priceMove.toFixed(2)),
-              BALANCE: (intradaySummaryMap[c.sym] && intradaySummaryMap[c.sym].tier) || '—',
+              BALANCE: scannerBalanceMap.get(c.sym) || goldenBalanceMap.get(c.sym) || '—',
               MODEL: c.model || (currentAllStocksModelMap.get(c.sym)) || '—',
-              PATTERN: c.pattern || '—',
+              PATTERN: c.pattern || scannerPatternMap.get(c.sym) || '—',
               RESISTANCE: c.resistance || '—',
               commentary: c.reason || '',
               state: c.state || '',
