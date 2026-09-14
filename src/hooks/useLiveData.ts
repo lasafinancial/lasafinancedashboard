@@ -16,6 +16,7 @@ import staticMarketMood from '../data/processed/market_mood.json';
 import staticMarketStrength from '../data/processed/market_strength.json';
 import staticTopMovers from '../data/processed/top_movers.json';
 import staticMarketPosition from '../data/processed/market_position.json';
+import staticWeeklyRecommendations from '../data/processed/weekly_recommendations.json';
 
 export function useLiveData() {
   const cached = getCachedData();
@@ -43,7 +44,11 @@ export function useLiveData() {
   const [niftyOptionsData, setNiftyOptionsData] = useState<any[]>(cached ? (cached as any).niftyOptionsData || [] : []);
   const [summaries, setSummaries] = useState<any[]>(cached ? cached.summaries || [] : []);
   const [exitTargetScreener, setExitTargetScreener] = useState<any[]>(cached ? cached.exitTargetScreener || [] : []);
-  const [weeklyRecommendation, setWeeklyRecommendation] = useState<any[]>(cached ? cached.weeklyRecommendation || [] : []);
+  const [weeklyRecommendation, setWeeklyRecommendation] = useState<any[]>(
+    cached && Array.isArray(cached.weeklyRecommendation) && cached.weeklyRecommendation.length > 0
+      ? cached.weeklyRecommendation
+      : (Array.isArray(staticWeeklyRecommendations) ? staticWeeklyRecommendations : [])
+  );
   const [week52High, setWeek52High] = useState<Week52HighStock[]>(cached ? (cached.week52High || []) : []);
   const [week52Low, setWeek52Low] = useState<Week52LowStock[]>(cached ? (cached.week52Low || []) : []);
   const [isLoading, setIsLoading] = useState(!cached);
@@ -119,7 +124,7 @@ export function useLiveData() {
     week52Low,
     isLoading,
     lastUpdate,
-    refresh: refreshAllData
+    refresh: (force: boolean = true) => refreshAllData(force)
   };
 }
 

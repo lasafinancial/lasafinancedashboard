@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import fs from 'fs';
 import { getGoogleCredentialsHelper } from './credentialsHelper.js';
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
@@ -36,6 +37,7 @@ const EXIT_TARGET_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 // 5. Positional (Weekly Recommendations / WEEKLY-RECOMMENDATION): 1 hour during market hours (0 outside)
 let cachedWeeklyRecommendation = null;
+let cachedWeeklyRecommendationRes = null;
 let lastWeeklyFetchTime = 0;
 const WEEKLY_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
@@ -225,7 +227,7 @@ let lastKnownIntradayBreakoutScanner = [];
 let lastKnownWeek52High = [];
 let lastKnownWeek52Low = [];
 
-async function fetchData() {
+async function fetchData(isForced = false) {
   const getNum = (val) => {
     if (val === undefined || val === null || val === '') return 0;
     const strVal = val.toString().replace(/,/g, '');
@@ -233,7 +235,7 @@ async function fetchData() {
     return parseFloat(strVal) || 0;
   };
 
-  console.log('Fetching live data from Google Sheets...');
+  console.log(`Fetching live data from Google Sheets... (force=${isForced})`);
   const symbolAliasMap = {
     'TMPV': 'TMCV',
     'M&M': 'M&M'
@@ -249,138 +251,209 @@ async function fetchData() {
 
   // --- BATCH FETCHING START (Target Frequency & Market Hours Controlled) ---
   const ist = getISTInfo();
-  console.log(`[SCHEDULE] Running fetchData() at ${getLogTimeIST()} | Market Open: ${ist.isMarketOpenNow}`);
+  console.log(`[SCHEDULE] Running fetchData() at ${getLogTimeIST()} | Market Open: ${ist.isMarketOpenNow} | Force: ${isForced}`);
 
-  const safeFetch = (req) => sheets.spreadsheets.values.get(req).catch(e => { 
-    console.error(`CRITICAL: Fetch error for ${req.range}`, e.message); 
-    throw new Error(`Failed to fetch sheet range: ${req.range}`); 
-  });
+  const safeBatchGet = async (spreadsheetId, ranges, retries = 3) => {
+    if (!ranges || ranges.length === 0) return [];
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const res = await sheets.spreadsheets.values.batchGet({
+          spreadsheetId,
+          ranges
+        });
+        if (res.data && Array.isArray(res.data.valueRanges)) {
+          return res.data.valueRanges;
+        }
+        return ranges.map(() => ({ values: [] }));
+      } catch (e) {
+        const isQuota = e.message && (e.message.includes('Quota') || e.code === 429 || e.message.includes('429') || e.status === 429);
+        if (i < retries && isQuota) {
+          const waitMs = (i + 1) * 2000;
+          console.warn(`[SafeBatchGet] Quota limit hit on spreadsheet ${spreadsheetId}. Retrying in ${waitMs}ms (attempt ${i + 1}/${retries})...`);
+          await new Promise(r => setTimeout(r, waitMs));
+        } else {
+          console.warn(`[SafeBatchGet] Batch get failed for ${spreadsheetId}: ${e.message}`);
+          return ranges.map(() => ({ values: [] }));
+        }
+      }
+    }
+    return ranges.map(() => ({ values: [] }));
+  };
+
+  const safeFetch = async (req, fallback = { data: { values: [] } }, retries = 3) => {
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const res = await sheets.spreadsheets.values.get(req);
+        return res;
+      } catch (e) {
+        const isQuota = e.message && (e.message.includes('Quota') || e.code === 429 || e.message.includes('429') || e.status === 429);
+        if (i < retries && isQuota) {
+          const waitMs = (i + 1) * 2000;
+          console.warn(`[SafeFetch] Quota limit hit on ${req.range}. Retrying in ${waitMs}ms (attempt ${i + 1}/${retries})...`);
+          await new Promise(r => setTimeout(r, waitMs));
+        } else {
+          console.warn(`[SafeFetch] Fetch failed for ${req.range}: ${e.message}. Using fallback.`);
+          return fallback;
+        }
+      }
+    }
+    return fallback;
+  };
 
   // 1. OBV Accumulation Scan ('allstocks' tab): Target: Once a day (EOD at 22:30 IST)
   const isAfter2230IST = ist.timeInMinutes >= (22 * 60 + 30);
-  const shouldFetchAllstocks = !cachedAllstocksRes || (isAfter2230IST && lastAllstocksDateKey !== ist.dateKey);
+  const shouldFetchAllstocks = isForced || !cachedAllstocksRes || (isAfter2230IST && lastAllstocksDateKey !== ist.dateKey);
 
   // 2. Near Resistance, Support Reversal, Reaction Zone ('current' tab & 'lasa-master'): Target: 1 hour during market hours (0 outside)
-  const shouldFetchCurrent = !cachedCurrentRes || (ist.isMarketOpenNow && (ist.nowMs - lastCurrentFetchTime >= CURRENT_CACHE_TTL));
+  const shouldFetchCurrent = isForced || !cachedCurrentRes || (ist.isMarketOpenNow && (ist.nowMs - lastCurrentFetchTime >= CURRENT_CACHE_TTL));
 
   // 3. Short-Term Cash (Exit & Target / RECOMMENDATION): Target: 1 hour during market hours (0 outside)
-  const shouldFetchExitTarget = !cachedExitTargetRes || (ist.isMarketOpenNow && (ist.nowMs - lastExitTargetFetchTime >= EXIT_TARGET_CACHE_TTL));
+  const shouldFetchExitTarget = isForced || !cachedExitTargetRes || (ist.isMarketOpenNow && (ist.nowMs - lastExitTargetFetchTime >= EXIT_TARGET_CACHE_TTL));
 
   // 4. Positional (Weekly Recommendations / WEEKLY-RECOMMENDATION): Target: 1 hour during market hours (0 outside)
-  const shouldFetchWeekly = !cachedWeeklyRecommendation || (ist.isMarketOpenNow && (ist.nowMs - lastWeeklyFetchTime >= WEEKLY_CACHE_TTL));
+  const shouldFetchWeekly = isForced || !cachedWeeklyRecommendation || (ist.isMarketOpenNow && (ist.nowMs - lastWeeklyFetchTime >= WEEKLY_CACHE_TTL));
 
   // 5. Intraday Screeners ('golden', 'DATA', 'intraday-breakout-scanner', 'intraday-summary', 'intraday-commentry', 'intraday reversal live test'): Target: 15 min during market hours (0 outside)
-  const shouldFetchIntraday = !cachedIntradayBatch || (ist.isMarketOpenNow && (ist.nowMs - lastIntradayFetchTime >= INTRADAY_CACHE_TTL));
+  const shouldFetchIntraday = isForced || !cachedIntradayBatch || (ist.isMarketOpenNow && (ist.nowMs - lastIntradayFetchTime >= INTRADAY_CACHE_TTL));
 
   // 6. Indices & News & Ticker ('Sheet1', 'DAILY_NEWS', 'TICKER', 'Summaries', 'DAILY_NIFTY_ANALYSIS'): Target: 15 min during market hours (0 outside)
-  const shouldFetchIndices = !cachedIndicesBatch || (ist.isMarketOpenNow && (ist.nowMs - lastIndicesFetchTime >= INDICES_CACHE_TTL));
+  const shouldFetchIndices = isForced || !cachedIndicesBatch || (ist.isMarketOpenNow && (ist.nowMs - lastIndicesFetchTime >= INDICES_CACHE_TTL));
 
   console.log(`[SCHEDULE] Fetch Deciders -> Allstocks(EOD): ${shouldFetchAllstocks}, Current(1h): ${shouldFetchCurrent}, ExitTarget(1h): ${shouldFetchExitTarget}, Weekly(1h): ${shouldFetchWeekly}, Intraday(15m): ${shouldFetchIntraday}, Indices(15m): ${shouldFetchIndices}`);
 
-  // Execute Batch 1 conditionally
-  const [
-    goldenRes,
-    lasaMasterRes,
-    swingRes,
-    currentRes,
-    allstocksRes,
-    indicesRes,
-    newsRes,
-    exitTargetScreenerRes,
-    weeklyRecommendationRes,
-    tickerRes
-  ] = await Promise.all([
-    // 'golden' (Intraday)
-    shouldFetchIntraday ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'golden'" }) : Promise.resolve(cachedIntradayBatch?.goldenRes || { data: { values: [] } }),
-    // 'lasa-master' (Current)
-    shouldFetchCurrent ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }) : Promise.resolve(cachedLasaMasterRes || { data: { values: [] } }),
-    // 'DATA' (Intraday Cash)
-    shouldFetchIntraday ? safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }) : Promise.resolve(cachedIntradayBatch?.swingRes || { data: { values: [] } }),
-    // 'current' (Current 1h)
-    shouldFetchCurrent ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FZ" }) : Promise.resolve(cachedCurrentRes || { data: { values: [] } }),
-    // 'allstocks' (OBV EOD 22:30 IST)
-    shouldFetchAllstocks 
-      ? sheets.spreadsheets.values.get({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'allstocks'!A1:ZZ" }).catch(async () => {
-          try {
-            return await sheets.spreadsheets.values.get({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'all stocks'!A1:ZZ" });
-          } catch (e) {
-            console.warn('Failed to fetch allstocks / all stocks tab:', e.message);
-            return cachedAllstocksRes || { data: { values: [] } };
-          }
-        })
-      : Promise.resolve(cachedAllstocksRes || { data: { values: [] } }),
-    // 'Sheet1' (Indices)
-    shouldFetchIndices ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }) : Promise.resolve(cachedIndicesBatch?.indicesRes || { data: { values: [] } }),
-    // 'DAILY_NEWS' (Indices)
-    shouldFetchIndices ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' }) : Promise.resolve(cachedIndicesBatch?.newsRes || { data: { values: [] } }),
-    // 'RECOMMENDATION' (Exit & Target 1h)
-    shouldFetchExitTarget ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'RECOMMENDATION'!A:AZ" }).catch(e => {
-      console.warn('Failed to fetch RECOMMENDATION tab:', e.message);
-      return cachedExitTargetRes || { data: { values: [] } };
-    }) : Promise.resolve(cachedExitTargetRes || { data: { values: [] } }),
-    // 'WEEKLY-RECOMMENDATION' (Weekly 1h)
-    shouldFetchWeekly ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'WEEKLY-RECOMMENDATION'!A:AZ" }).catch(e => {
-      console.warn('Failed to fetch WEEKLY-RECOMMENDATION tab:', e.message);
-      return { data: { values: [] } };
-    }) : Promise.resolve(null),
-    // 'TICKER' (Indices)
-    shouldFetchIndices ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'TICKER!A:A' }).catch(e => {
-      console.warn('Failed to fetch TICKER tab:', e.message);
-      return cachedIndicesBatch?.tickerRes || { data: { values: [] } };
-    }) : Promise.resolve(cachedIndicesBatch?.tickerRes || { data: { values: [] } })
+  // Define Batched Ranges for INDICES_SHEET_ID (all 7 ranges batched in 1 request)
+  const indicesRanges = [
+    'Sheet1!A:Z',                     // 0: indicesRes
+    'DAILY_NEWS!A:Z',                 // 1: newsRes
+    "'RECOMMENDATION'!A:AZ",          // 2: exitTargetScreenerRes
+    "'WEEKLY-RECOMMENDATION'!A:AZ",   // 3: weeklyRecommendationRes
+    'TICKER!A:A',                     // 4: tickerRes
+    'Summaries!A:Z',                  // 5: summariesRes
+    'DAILY_NIFTY_ANALYSIS!A:Z'        // 6: niftyRes
+  ];
+
+  // Define Batched Ranges for EOD_SHEET_ID (all 7 ranges batched in 1 request)
+  const eodRanges = [
+    "'golden'",                              // 0: goldenRes
+    'lasa-master!A:FZ',                      // 1: lasaMasterRes
+    "'current'!A1:FZ",                       // 2: currentRes
+    'intraday-breakout-scanner!A:AC',        // 3: breakoutRes
+    "'intraday-summary'!A1:Z500",            // 4: summaryRes
+    "'intraday-commentry'!A1:W5000",         // 5: devRes
+    "'intraday reversal live test'!A:I"      // 6: reversalRes
+  ];
+
+  const needIndices = shouldFetchIndices || shouldFetchExitTarget || shouldFetchWeekly || !cachedWeeklyRecommendationRes || !cachedExitTargetRes;
+  const needEod = shouldFetchCurrent || shouldFetchIntraday || !cachedCurrentRes || !cachedIntradayBatch;
+
+  // Execute grouped batch requests in parallel (only 3-4 API calls total)
+  const [indicesValueRanges, eodValueRanges, fetchedSwingRes, fetchedAllstocksRes] = await Promise.all([
+    needIndices
+      ? safeBatchGet(INDICES_SHEET_ID, indicesRanges)
+      : Promise.resolve(null),
+    needEod
+      ? safeBatchGet(EOD_SHEET_ID, eodRanges)
+      : Promise.resolve(null),
+    (shouldFetchIntraday || !cachedIntradayBatch)
+      ? safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }, cachedIntradayBatch?.swingRes || { data: { values: [] } })
+      : Promise.resolve(cachedIntradayBatch?.swingRes || { data: { values: [] } }),
+    shouldFetchAllstocks
+      ? safeFetch({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'allstocks'!A1:ZZ" }, cachedAllstocksRes || { data: { values: [] } })
+          .catch(() => safeFetch({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'all stocks'!A1:ZZ" }, cachedAllstocksRes || { data: { values: [] } }))
+      : Promise.resolve(cachedAllstocksRes || { data: { values: [] } })
   ]);
 
-  // Execute Batch 2 conditionally
-  const [
-    summariesRes,
-    niftyRes,
-    breakoutRes,
-    summaryRes,
-    devRes,
-    reversalRes
-  ] = await Promise.all([
-    // 'Summaries'
-    shouldFetchIndices ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Summaries!A:Z' }) : Promise.resolve(cachedIndicesBatch?.summariesRes || { data: { values: [] } }),
-    // 'DAILY_NIFTY_ANALYSIS'
-    shouldFetchIndices ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NIFTY_ANALYSIS!A:Z' }) : Promise.resolve(cachedIndicesBatch?.niftyRes || { data: { values: [] } }),
-    // 'intraday-breakout-scanner' (Intraday)
-    shouldFetchIntraday ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'intraday-breakout-scanner!A:AC' }) : Promise.resolve(cachedIntradayBatch?.breakoutRes || { data: { values: [] } }),
-    // 'intraday-summary' (Intraday)
-    shouldFetchIntraday ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-summary'!A1:Z500" }) : Promise.resolve(cachedIntradayBatch?.summaryRes || { data: { values: [] } }),
-    // 'intraday-commentry' (Intraday)
-    shouldFetchIntraday ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-commentry'!A1:W5000" }) : Promise.resolve(cachedIntradayBatch?.devRes || { data: { values: [] } }),
-    // 'intraday reversal live test' (Intraday)
-    shouldFetchIntraday ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday reversal live test'!A:I" }) : Promise.resolve(cachedIntradayBatch?.reversalRes || { data: { values: [] } })
-  ]);
+  // Map INDICES_SHEET_ID responses
+  let indicesRes = cachedIndicesBatch?.indicesRes || { data: { values: [] } };
+  let newsRes = cachedIndicesBatch?.newsRes || { data: { values: [] } };
+  let exitTargetScreenerRes = cachedExitTargetRes || { data: { values: [] } };
+  let weeklyRecommendationRes = cachedWeeklyRecommendationRes || { data: { values: [] } };
+  let tickerRes = cachedIndicesBatch?.tickerRes || { data: { values: [] } };
+  let summariesRes = cachedIndicesBatch?.summariesRes || { data: { values: [] } };
+  let niftyRes = cachedIndicesBatch?.niftyRes || { data: { values: [] } };
 
-  // Update in-memory caches and timestamps when fresh fetches succeed
-  if (shouldFetchAllstocks && allstocksRes && allstocksRes.data && allstocksRes.data.values && allstocksRes.data.values.length > 0) {
+  if (indicesValueRanges && indicesValueRanges.length >= 7) {
+    if (indicesValueRanges[0]?.values && indicesValueRanges[0].values.length > 0) {
+      indicesRes = { data: { values: indicesValueRanges[0].values } };
+    }
+    if (indicesValueRanges[1]?.values && indicesValueRanges[1].values.length > 0) {
+      newsRes = { data: { values: indicesValueRanges[1].values } };
+    }
+    if (indicesValueRanges[2]?.values && indicesValueRanges[2].values.length > 0) {
+      exitTargetScreenerRes = { data: { values: indicesValueRanges[2].values } };
+      cachedExitTargetRes = exitTargetScreenerRes;
+      lastExitTargetFetchTime = ist.nowMs;
+    }
+    if (indicesValueRanges[3]?.values && indicesValueRanges[3].values.length > 0) {
+      weeklyRecommendationRes = { data: { values: indicesValueRanges[3].values } };
+      cachedWeeklyRecommendationRes = weeklyRecommendationRes;
+      lastWeeklyFetchTime = ist.nowMs;
+    }
+    if (indicesValueRanges[4]?.values && indicesValueRanges[4].values.length > 0) {
+      tickerRes = { data: { values: indicesValueRanges[4].values } };
+    }
+    if (indicesValueRanges[5]?.values && indicesValueRanges[5].values.length > 0) {
+      summariesRes = { data: { values: indicesValueRanges[5].values } };
+    }
+    if (indicesValueRanges[6]?.values && indicesValueRanges[6].values.length > 0) {
+      niftyRes = { data: { values: indicesValueRanges[6].values } };
+    }
+
+    if (indicesRes.data.values.length > 0) {
+      cachedIndicesBatch = { indicesRes, newsRes, tickerRes, summariesRes, niftyRes };
+      lastIndicesFetchTime = ist.nowMs;
+    }
+  }
+
+  // Map EOD_SHEET_ID responses
+  let goldenRes = cachedIntradayBatch?.goldenRes || { data: { values: [] } };
+  let lasaMasterRes = cachedLasaMasterRes || { data: { values: [] } };
+  let currentRes = cachedCurrentRes || { data: { values: [] } };
+  let breakoutRes = cachedIntradayBatch?.breakoutRes || { data: { values: [] } };
+  let summaryRes = cachedIntradayBatch?.summaryRes || { data: { values: [] } };
+  let devRes = cachedIntradayBatch?.devRes || { data: { values: [] } };
+  let reversalRes = cachedIntradayBatch?.reversalRes || { data: { values: [] } };
+
+  if (eodValueRanges && eodValueRanges.length >= 7) {
+    if (eodValueRanges[0]?.values && eodValueRanges[0].values.length > 0) {
+      goldenRes = { data: { values: eodValueRanges[0].values } };
+    }
+    if (eodValueRanges[1]?.values && eodValueRanges[1].values.length > 0) {
+      lasaMasterRes = { data: { values: eodValueRanges[1].values } };
+      cachedLasaMasterRes = lasaMasterRes;
+    }
+    if (eodValueRanges[2]?.values && eodValueRanges[2].values.length > 0) {
+      currentRes = { data: { values: eodValueRanges[2].values } };
+      cachedCurrentRes = currentRes;
+      lastCurrentFetchTime = ist.nowMs;
+    }
+    if (eodValueRanges[3]?.values && eodValueRanges[3].values.length > 0) {
+      breakoutRes = { data: { values: eodValueRanges[3].values } };
+    }
+    if (eodValueRanges[4]?.values && eodValueRanges[4].values.length > 0) {
+      summaryRes = { data: { values: eodValueRanges[4].values } };
+    }
+    if (eodValueRanges[5]?.values && eodValueRanges[5].values.length > 0) {
+      devRes = { data: { values: eodValueRanges[5].values } };
+    }
+    if (eodValueRanges[6]?.values && eodValueRanges[6].values.length > 0) {
+      reversalRes = { data: { values: eodValueRanges[6].values } };
+    }
+
+    if (goldenRes.data.values.length > 0) {
+      cachedIntradayBatch = { goldenRes, swingRes: fetchedSwingRes, breakoutRes, summaryRes, devRes, reversalRes };
+      lastIntradayFetchTime = ist.nowMs;
+    }
+  }
+
+  const swingRes = fetchedSwingRes || cachedIntradayBatch?.swingRes || { data: { values: [] } };
+  let allstocksRes = fetchedAllstocksRes || cachedAllstocksRes || { data: { values: [] } };
+  if (allstocksRes && allstocksRes.data && allstocksRes.data.values && allstocksRes.data.values.length > 0) {
     cachedAllstocksRes = allstocksRes;
     if (isAfter2230IST) {
       lastAllstocksDateKey = ist.dateKey;
       console.log(`[OBV_EOD] Locked 'allstocks' cache for date ${ist.dateKey} at ${getLogTimeIST()}`);
     }
-  }
-
-  if (shouldFetchCurrent && currentRes && currentRes.data && currentRes.data.values && currentRes.data.values.length > 0) {
-    cachedCurrentRes = currentRes;
-    cachedLasaMasterRes = lasaMasterRes;
-    lastCurrentFetchTime = ist.nowMs;
-  }
-
-  if (shouldFetchExitTarget && exitTargetScreenerRes && exitTargetScreenerRes.data && exitTargetScreenerRes.data.values && exitTargetScreenerRes.data.values.length > 0) {
-    cachedExitTargetRes = exitTargetScreenerRes;
-    lastExitTargetFetchTime = ist.nowMs;
-  }
-
-  if (shouldFetchIntraday && goldenRes && goldenRes.data) {
-    cachedIntradayBatch = { goldenRes, swingRes, breakoutRes, summaryRes, devRes, reversalRes };
-    lastIntradayFetchTime = ist.nowMs;
-  }
-
-  if (shouldFetchIndices && indicesRes && indicesRes.data) {
-    cachedIndicesBatch = { indicesRes, newsRes, tickerRes, summariesRes, niftyRes };
-    lastIndicesFetchTime = ist.nowMs;
   }
 
   console.log('Batch fetching complete (cached stores preserved).');
@@ -2358,11 +2431,21 @@ async function fetchData() {
       }
       if (fetchedItems.length > 0) {
         cachedWeeklyRecommendation = fetchedItems;
-        lastWeeklyFetchTime = nowWeeklyTime;
+        lastWeeklyFetchTime = ist.nowMs;
+        weeklyRecommendation = fetchedItems;
       }
     }
-    if (cachedWeeklyRecommendation) {
+    if ((!weeklyRecommendation || weeklyRecommendation.length === 0) && cachedWeeklyRecommendation && cachedWeeklyRecommendation.length > 0) {
       weeklyRecommendation = cachedWeeklyRecommendation;
+    }
+    if (!weeklyRecommendation || weeklyRecommendation.length === 0) {
+      try {
+        const fallbackPath = new URL('../src/data/processed/weekly_recommendations.json', import.meta.url);
+        if (fs.existsSync(fallbackPath)) {
+          const raw = fs.readFileSync(fallbackPath, 'utf8');
+          weeklyRecommendation = JSON.parse(raw);
+        }
+      } catch (e) {}
     }
   } catch (err) {
     console.warn('Error processing weeklyRecommendation:', err.message);
@@ -2401,8 +2484,36 @@ async function fetchData() {
   };
 }
 
-let cachedData = null;
-let lastFetchTime = 0;
+const DISK_CACHE_PATH = '/tmp/lasa_dashboard_cache.json';
+function loadDiskCache() {
+  try {
+    if (fs.existsSync(DISK_CACHE_PATH)) {
+      const raw = fs.readFileSync(DISK_CACHE_PATH, 'utf8');
+      const diskData = JSON.parse(raw);
+      if (diskData && ((diskData.stockData && diskData.stockData.length > 0) || (diskData.weeklyRecommendation && diskData.weeklyRecommendation.length > 0))) {
+        console.log(`[DiskCache] Successfully restored cache from disk with ${diskData.weeklyRecommendation?.length || 0} positional trades.`);
+        return diskData;
+      }
+    }
+  } catch (e) {
+    console.warn('[DiskCache] Could not read disk cache:', e.message);
+  }
+  return null;
+}
+
+function saveDiskCache(data) {
+  try {
+    if (data && ((data.stockData && data.stockData.length > 0) || (data.weeklyRecommendation && data.weeklyRecommendation.length > 0))) {
+      fs.writeFileSync(DISK_CACHE_PATH, JSON.stringify(data));
+      console.log(`[DiskCache] Successfully persisted data to ${DISK_CACHE_PATH}`);
+    }
+  } catch (e) {
+    console.warn('[DiskCache] Could not write disk cache:', e.message);
+  }
+}
+
+let cachedData = loadDiskCache();
+let lastFetchTime = cachedData ? Date.now() : 0;
 let isFetchingPromise = null;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes during market hours
 
@@ -2412,34 +2523,40 @@ export default async function handler(req, res) {
   const ist = getISTInfo();
 
   // Edge caching for fast responses from Vercel CDN
-  // During market hours: 15 minutes CDN edge cache. Outside market hours: 24 hours edge cache.
-  if (ist.isMarketOpenNow) {
-    res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=1800');
+  // Force bypasses edge cache; market hours gets 15 min; outside market hours gets 10 min
+  if (isForced) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  } else if (ist.isMarketOpenNow) {
+    res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=1800');
   } else {
-    res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=172800');
+    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200');
   }
 
-  // Outside market hours, if we already have cachedData and it's not forced or the 22:30 window, return immediately
+  const hasValidData = cachedData && Array.isArray(cachedData.weeklyRecommendation) && cachedData.weeklyRecommendation.length > 0;
+
+  // Outside market hours, if we already have valid cachedData and it's not forced or the 22:30 window, return immediately
   const isAfter2230 = ist.timeInMinutes >= (22 * 60 + 30);
-  if (!isForced && cachedData && !ist.isMarketOpenNow && !(isAfter2230 && lastAllstocksDateKey !== ist.dateKey)) {
+  if (!isForced && hasValidData && !ist.isMarketOpenNow && !(isAfter2230 && lastAllstocksDateKey !== ist.dateKey)) {
     return res.status(200).json(cachedData);
   }
 
   // Return from in-memory cache instantly (<1ms) if still fresh
-  if (!isForced && cachedData && (now - lastFetchTime) < CACHE_DURATION) {
+  if (!isForced && hasValidData && (now - lastFetchTime) < CACHE_DURATION) {
     return res.status(200).json(cachedData);
   }
 
   // Deduplicate in-flight fetches so concurrent requests share a single execution
-  if (!isFetchingPromise) {
-    isFetchingPromise = fetchData()
+  if (!isFetchingPromise || isForced) {
+    isFetchingPromise = fetchData(isForced)
       .then(data => {
-        if (data && ((data.stockData && data.stockData.length > 0) || (data.intradayDev && data.intradayDev.length > 0))) {
+        if (data && ((data.stockData && data.stockData.length > 0) || (data.weeklyRecommendation && data.weeklyRecommendation.length > 0))) {
           cachedData = data;
           lastFetchTime = Date.now();
+          saveDiskCache(data);
         } else if (data && !cachedData) {
           cachedData = data;
           lastFetchTime = Date.now();
+          saveDiskCache(data);
         }
         return data;
       })
