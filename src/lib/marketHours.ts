@@ -39,3 +39,27 @@ export function getISTLogTime(): string {
     hour12: false 
   }) + " IST";
 }
+
+/**
+ * Check if current time is within the EOD refresh window (22:30 - 23:30 IST on weekdays)
+ * Used specifically for once-a-day OBV Accumulation Scan updates.
+ */
+export function isEODWindow(): boolean {
+  const now = new Date();
+  const istDateString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+  const istDate = new Date(istDateString);
+  const day = istDate.getDay();
+  const timeInMinutes = istDate.getHours() * 60 + istDate.getMinutes();
+  const isWeekday = day >= 1 && day <= 5;
+  return isWeekday && timeInMinutes >= (22 * 60 + 30) && timeInMinutes <= (23 * 60 + 30);
+}
+
+/**
+ * Returns date string 'YYYY-MM-DD' in IST for date-locking daily updates
+ */
+export function getISTDateKey(): string {
+  const now = new Date();
+  const istDateString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+  const istDate = new Date(istDateString);
+  return `${istDate.getFullYear()}-${istDate.getMonth() + 1}-${istDate.getDate()}`;
+}

@@ -13,18 +13,63 @@ const FEATURE_FLAGS = {
   ENABLE_NEW_BREAKOUTS_SCREENER: false,   // Disables NEW BREAKOUTS (newBreakouts) screener
 };
 
-// 1-hour cache for Positional / Weekly Recommendations (sheet updates weekly, so hourly refresh is optimal)
+// --- SCHEDULE & CACHE STORES ---
+// 1. OBV Accumulation ('allstocks' tab): Once a day (EOD at 22:30 IST)
+let cachedAllstocksRes = null;
+let lastAllstocksDateKey = null;
+
+// 2. Near Resistance, Support Reversal, Reaction Zone ('current' tab & 'lasa-master'): 1 hour during market hours (0 outside)
+let cachedCurrentRes = null;
+let cachedLasaMasterRes = null;
+let lastCurrentFetchTime = 0;
+const CURRENT_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+// 3. 52-Week High & Low: Once a day (10:00 AM IST only)
+let cachedWeek52High = null;
+let cachedWeek52Low = null;
+let lastWeek52DateKey = null;
+
+// 4. Short-Term Cash (Exit & Target / RECOMMENDATION): 1 hour during market hours (0 outside)
+let cachedExitTargetRes = null;
+let lastExitTargetFetchTime = 0;
+const EXIT_TARGET_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+// 5. Positional (Weekly Recommendations / WEEKLY-RECOMMENDATION): 1 hour during market hours (0 outside)
 let cachedWeeklyRecommendation = null;
 let lastWeeklyFetchTime = 0;
 const WEEKLY_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
-function isMarketOpen() {
+// 6. Intraday Screeners ('golden', 'DATA', 'intraday-breakout-scanner', 'intraday-summary', 'intraday-commentry', 'intraday reversal live test'): 15 min during market hours (0 outside)
+let cachedIntradayBatch = null;
+let lastIntradayFetchTime = 0;
+const INTRADAY_CACHE_TTL = 15 * 60 * 1000; // 15 min
+
+// 7. Indices & News & Ticker ('Sheet1', 'DAILY_NEWS', 'TICKER', 'Summaries', 'DAILY_NIFTY_ANALYSIS'): 15 min during market hours
+let cachedIndicesBatch = null;
+let lastIndicesFetchTime = 0;
+const INDICES_CACHE_TTL = 15 * 60 * 1000; // 15 min
+
+function getISTInfo() {
   const now = new Date();
   const istDateString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
   const istDate = new Date(istDateString);
   const day = istDate.getDay(); 
   const timeInMinutes = istDate.getHours() * 60 + istDate.getMinutes();
-  return (day >= 1 && day <= 5) && (timeInMinutes >= 9 * 60 + 15 && timeInMinutes <= 15 * 60 + 30);
+  const isWeekday = (day >= 1 && day <= 5);
+  const isMarketOpenNow = isWeekday && (timeInMinutes >= 9 * 60 + 15 && timeInMinutes <= 15 * 60 + 30);
+  const dateKey = `${istDate.getFullYear()}-${istDate.getMonth() + 1}-${istDate.getDate()}`;
+  return {
+    day,
+    timeInMinutes,
+    isWeekday,
+    isMarketOpenNow,
+    dateKey,
+    nowMs: Date.now()
+  };
+}
+
+function isMarketOpen() {
+  return getISTInfo().isMarketOpenNow;
 }
 
 function getLogTimeIST() {
@@ -202,16 +247,37 @@ async function fetchData() {
 
   const sheets = google.sheets({ version: 'v4', auth });
 
-  // --- BATCH FETCHING START ---
-  console.log('Starting Batch 1 Fetches...');
+  // --- BATCH FETCHING START (Target Frequency & Market Hours Controlled) ---
+  const ist = getISTInfo();
+  console.log(`[SCHEDULE] Running fetchData() at ${getLogTimeIST()} | Market Open: ${ist.isMarketOpenNow}`);
+
   const safeFetch = (req) => sheets.spreadsheets.values.get(req).catch(e => { 
     console.error(`CRITICAL: Fetch error for ${req.range}`, e.message); 
     throw new Error(`Failed to fetch sheet range: ${req.range}`); 
   });
-  
-  const nowWeeklyTime = Date.now();
-  const shouldFetchWeekly = !cachedWeeklyRecommendation || (nowWeeklyTime - lastWeeklyFetchTime >= WEEKLY_CACHE_TTL);
 
+  // 1. OBV Accumulation Scan ('allstocks' tab): Target: Once a day (EOD at 22:30 IST)
+  const isAfter2230IST = ist.timeInMinutes >= (22 * 60 + 30);
+  const shouldFetchAllstocks = !cachedAllstocksRes || (isAfter2230IST && lastAllstocksDateKey !== ist.dateKey);
+
+  // 2. Near Resistance, Support Reversal, Reaction Zone ('current' tab & 'lasa-master'): Target: 1 hour during market hours (0 outside)
+  const shouldFetchCurrent = !cachedCurrentRes || (ist.isMarketOpenNow && (ist.nowMs - lastCurrentFetchTime >= CURRENT_CACHE_TTL));
+
+  // 3. Short-Term Cash (Exit & Target / RECOMMENDATION): Target: 1 hour during market hours (0 outside)
+  const shouldFetchExitTarget = !cachedExitTargetRes || (ist.isMarketOpenNow && (ist.nowMs - lastExitTargetFetchTime >= EXIT_TARGET_CACHE_TTL));
+
+  // 4. Positional (Weekly Recommendations / WEEKLY-RECOMMENDATION): Target: 1 hour during market hours (0 outside)
+  const shouldFetchWeekly = !cachedWeeklyRecommendation || (ist.isMarketOpenNow && (ist.nowMs - lastWeeklyFetchTime >= WEEKLY_CACHE_TTL));
+
+  // 5. Intraday Screeners ('golden', 'DATA', 'intraday-breakout-scanner', 'intraday-summary', 'intraday-commentry', 'intraday reversal live test'): Target: 15 min during market hours (0 outside)
+  const shouldFetchIntraday = !cachedIntradayBatch || (ist.isMarketOpenNow && (ist.nowMs - lastIntradayFetchTime >= INTRADAY_CACHE_TTL));
+
+  // 6. Indices & News & Ticker ('Sheet1', 'DAILY_NEWS', 'TICKER', 'Summaries', 'DAILY_NIFTY_ANALYSIS'): Target: 15 min during market hours (0 outside)
+  const shouldFetchIndices = !cachedIndicesBatch || (ist.isMarketOpenNow && (ist.nowMs - lastIndicesFetchTime >= INDICES_CACHE_TTL));
+
+  console.log(`[SCHEDULE] Fetch Deciders -> Allstocks(EOD): ${shouldFetchAllstocks}, Current(1h): ${shouldFetchCurrent}, ExitTarget(1h): ${shouldFetchExitTarget}, Weekly(1h): ${shouldFetchWeekly}, Intraday(15m): ${shouldFetchIntraday}, Indices(15m): ${shouldFetchIndices}`);
+
+  // Execute Batch 1 conditionally
   const [
     goldenRes,
     lasaMasterRes,
@@ -224,37 +290,47 @@ async function fetchData() {
     weeklyRecommendationRes,
     tickerRes
   ] = await Promise.all([
-    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'golden'" }),
-    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }),
-    safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }),
-    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FZ" }),
-    sheets.spreadsheets.values.get({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'allstocks'!A1:ZZ" }).catch(async () => {
-      try {
-        return await sheets.spreadsheets.values.get({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'all stocks'!A1:ZZ" });
-      } catch (e) {
-        console.warn('Failed to fetch allstocks / all stocks tab:', e.message);
-        return { data: { values: [] } };
-      }
-    }),
-    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }),
-    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' }),
-    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'RECOMMENDATION'!A:AZ" }).catch(e => {
-      console.warn('Failed to fetch RECOMMENDATION tab:', e.message);
-      return { data: { values: [] } };
-    }),
-    shouldFetchWeekly
-      ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'WEEKLY-RECOMMENDATION'!A:AZ" }).catch(e => {
-          console.warn('Failed to fetch WEEKLY-RECOMMENDATION tab:', e.message);
-          return { data: { values: [] } };
+    // 'golden' (Intraday)
+    shouldFetchIntraday ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'golden'" }) : Promise.resolve(cachedIntradayBatch?.goldenRes || { data: { values: [] } }),
+    // 'lasa-master' (Current)
+    shouldFetchCurrent ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'lasa-master!A:FZ' }) : Promise.resolve(cachedLasaMasterRes || { data: { values: [] } }),
+    // 'DATA' (Intraday Cash)
+    shouldFetchIntraday ? safeFetch({ spreadsheetId: SWING_SHEET_ID, range: 'DATA' }) : Promise.resolve(cachedIntradayBatch?.swingRes || { data: { values: [] } }),
+    // 'current' (Current 1h)
+    shouldFetchCurrent ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'current'!A1:FZ" }) : Promise.resolve(cachedCurrentRes || { data: { values: [] } }),
+    // 'allstocks' (OBV EOD 22:30 IST)
+    shouldFetchAllstocks 
+      ? sheets.spreadsheets.values.get({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'allstocks'!A1:ZZ" }).catch(async () => {
+          try {
+            return await sheets.spreadsheets.values.get({ spreadsheetId: ALLSTOCKS_SHEET_ID, range: "'all stocks'!A1:ZZ" });
+          } catch (e) {
+            console.warn('Failed to fetch allstocks / all stocks tab:', e.message);
+            return cachedAllstocksRes || { data: { values: [] } };
+          }
         })
-      : Promise.resolve(null),
-    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'TICKER!A:A' }).catch(e => {
-      console.warn('Failed to fetch TICKER tab:', e.message);
+      : Promise.resolve(cachedAllstocksRes || { data: { values: [] } }),
+    // 'Sheet1' (Indices)
+    shouldFetchIndices ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Sheet1!A:Z' }) : Promise.resolve(cachedIndicesBatch?.indicesRes || { data: { values: [] } }),
+    // 'DAILY_NEWS' (Indices)
+    shouldFetchIndices ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NEWS!A:Z' }) : Promise.resolve(cachedIndicesBatch?.newsRes || { data: { values: [] } }),
+    // 'RECOMMENDATION' (Exit & Target 1h)
+    shouldFetchExitTarget ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'RECOMMENDATION'!A:AZ" }).catch(e => {
+      console.warn('Failed to fetch RECOMMENDATION tab:', e.message);
+      return cachedExitTargetRes || { data: { values: [] } };
+    }) : Promise.resolve(cachedExitTargetRes || { data: { values: [] } }),
+    // 'WEEKLY-RECOMMENDATION' (Weekly 1h)
+    shouldFetchWeekly ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: "'WEEKLY-RECOMMENDATION'!A:AZ" }).catch(e => {
+      console.warn('Failed to fetch WEEKLY-RECOMMENDATION tab:', e.message);
       return { data: { values: [] } };
-    })
+    }) : Promise.resolve(null),
+    // 'TICKER' (Indices)
+    shouldFetchIndices ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'TICKER!A:A' }).catch(e => {
+      console.warn('Failed to fetch TICKER tab:', e.message);
+      return cachedIndicesBatch?.tickerRes || { data: { values: [] } };
+    }) : Promise.resolve(cachedIndicesBatch?.tickerRes || { data: { values: [] } })
   ]);
 
-  console.log('Starting Batch 2 Fetches...');
+  // Execute Batch 2 conditionally
   const [
     summariesRes,
     niftyRes,
@@ -263,14 +339,51 @@ async function fetchData() {
     devRes,
     reversalRes
   ] = await Promise.all([
-    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Summaries!A:Z' }),
-    safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NIFTY_ANALYSIS!A:Z' }),
-    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'intraday-breakout-scanner!A:AC' }),
-    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-summary'!A1:Z500" }),
-    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-commentry'!A1:W5000" }),
-    safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday reversal live test'!A:I" })
+    // 'Summaries'
+    shouldFetchIndices ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'Summaries!A:Z' }) : Promise.resolve(cachedIndicesBatch?.summariesRes || { data: { values: [] } }),
+    // 'DAILY_NIFTY_ANALYSIS'
+    shouldFetchIndices ? safeFetch({ spreadsheetId: INDICES_SHEET_ID, range: 'DAILY_NIFTY_ANALYSIS!A:Z' }) : Promise.resolve(cachedIndicesBatch?.niftyRes || { data: { values: [] } }),
+    // 'intraday-breakout-scanner' (Intraday)
+    shouldFetchIntraday ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: 'intraday-breakout-scanner!A:AC' }) : Promise.resolve(cachedIntradayBatch?.breakoutRes || { data: { values: [] } }),
+    // 'intraday-summary' (Intraday)
+    shouldFetchIntraday ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-summary'!A1:Z500" }) : Promise.resolve(cachedIntradayBatch?.summaryRes || { data: { values: [] } }),
+    // 'intraday-commentry' (Intraday)
+    shouldFetchIntraday ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday-commentry'!A1:W5000" }) : Promise.resolve(cachedIntradayBatch?.devRes || { data: { values: [] } }),
+    // 'intraday reversal live test' (Intraday)
+    shouldFetchIntraday ? safeFetch({ spreadsheetId: EOD_SHEET_ID, range: "'intraday reversal live test'!A:I" }) : Promise.resolve(cachedIntradayBatch?.reversalRes || { data: { values: [] } })
   ]);
-  console.log('Batch fetching complete.');
+
+  // Update in-memory caches and timestamps when fresh fetches succeed
+  if (shouldFetchAllstocks && allstocksRes && allstocksRes.data && allstocksRes.data.values && allstocksRes.data.values.length > 0) {
+    cachedAllstocksRes = allstocksRes;
+    if (isAfter2230IST) {
+      lastAllstocksDateKey = ist.dateKey;
+      console.log(`[OBV_EOD] Locked 'allstocks' cache for date ${ist.dateKey} at ${getLogTimeIST()}`);
+    }
+  }
+
+  if (shouldFetchCurrent && currentRes && currentRes.data && currentRes.data.values && currentRes.data.values.length > 0) {
+    cachedCurrentRes = currentRes;
+    cachedLasaMasterRes = lasaMasterRes;
+    lastCurrentFetchTime = ist.nowMs;
+  }
+
+  if (shouldFetchExitTarget && exitTargetScreenerRes && exitTargetScreenerRes.data && exitTargetScreenerRes.data.values && exitTargetScreenerRes.data.values.length > 0) {
+    cachedExitTargetRes = exitTargetScreenerRes;
+    lastExitTargetFetchTime = ist.nowMs;
+  }
+
+  if (shouldFetchIntraday && goldenRes && goldenRes.data) {
+    cachedIntradayBatch = { goldenRes, swingRes, breakoutRes, summaryRes, devRes, reversalRes };
+    lastIntradayFetchTime = ist.nowMs;
+  }
+
+  if (shouldFetchIndices && indicesRes && indicesRes.data) {
+    cachedIndicesBatch = { indicesRes, newsRes, tickerRes, summariesRes, niftyRes };
+    lastIndicesFetchTime = ist.nowMs;
+  }
+
+  console.log('Batch fetching complete (cached stores preserved).');
   // --- BATCH FETCHING END ---
 
 
@@ -746,7 +859,10 @@ async function fetchData() {
       }
     });
 
-    // --- Process 52 Week High and 52 Week Low Screeners ---
+    // --- Process 52 Week High and 52 Week Low Screeners (Target: Once a day at 10:00 AM IST only) ---
+    const isAfter10AMIST = ist.timeInMinutes >= (10 * 60);
+    const shouldUpdate52Week = !cachedWeek52High || (isAfter10AMIST && lastWeek52DateKey !== ist.dateKey);
+
     week52High = [];
     week52Low = [];
     const w52IdIdx = colToIdx('C');
@@ -761,7 +877,7 @@ async function fetchData() {
     const w52GroupIdx = colToIdx('S');
     const w52ChangeIdx = colToIdx('G');
 
-    if (currentRows && currentRows.length > 1) {
+    if (shouldUpdate52Week && currentRows && currentRows.length > 1) {
       currentRows.slice(1).forEach(row => {
         const id = (row[w52IdIdx] || '').toString().trim();
         if (!id) return;
@@ -802,19 +918,32 @@ async function fetchData() {
           });
         }
       });
-      console.log(`[52-WEEK] Ingested ${week52High.length} Near 52W High stocks and ${week52Low.length} Near 52W Low stocks.`);
-    }
+      console.log(`[52-WEEK] Ingested fresh ${week52High.length} Near 52W High stocks and ${week52Low.length} Near 52W Low stocks.`);
 
-    if (week52High.length > 0) {
-      lastKnownWeek52High = week52High;
-    } else if (lastKnownWeek52High.length > 0) {
-      week52High = lastKnownWeek52High;
-    }
+      if (week52High.length > 0) {
+        cachedWeek52High = week52High;
+        lastKnownWeek52High = week52High;
+      }
+      if (week52Low.length > 0) {
+        cachedWeek52Low = week52Low;
+        lastKnownWeek52Low = week52Low;
+      }
+      if (isAfter10AMIST) {
+        lastWeek52DateKey = ist.dateKey;
+        console.log(`[52-WEEK] Locked 10:00 AM IST snapshot for date ${ist.dateKey}`);
+      }
+    } else {
+      if (cachedWeek52High && cachedWeek52High.length > 0) {
+        week52High = cachedWeek52High;
+      } else if (lastKnownWeek52High.length > 0) {
+        week52High = lastKnownWeek52High;
+      }
 
-    if (week52Low.length > 0) {
-      lastKnownWeek52Low = week52Low;
-    } else if (lastKnownWeek52Low.length > 0) {
-      week52Low = lastKnownWeek52Low;
+      if (cachedWeek52Low && cachedWeek52Low.length > 0) {
+        week52Low = cachedWeek52Low;
+      } else if (lastKnownWeek52Low.length > 0) {
+        week52Low = lastKnownWeek52Low;
+      }
     }
 
     const moodStocks = currentData.slice(0, 470).filter(row => {
@@ -2275,14 +2404,26 @@ async function fetchData() {
 let cachedData = null;
 let lastFetchTime = 0;
 let isFetchingPromise = null;
-const CACHE_DURATION = 30 * 1000; // 30 seconds — near-live data cache
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes during market hours
 
 export default async function handler(req, res) {
   const isForced = req.query.force === 'true';
   const now = Date.now();
+  const ist = getISTInfo();
 
   // Edge caching for fast responses from Vercel CDN
-  res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=120');
+  // During market hours: 15 minutes CDN edge cache. Outside market hours: 24 hours edge cache.
+  if (ist.isMarketOpenNow) {
+    res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=1800');
+  } else {
+    res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=172800');
+  }
+
+  // Outside market hours, if we already have cachedData and it's not forced or the 22:30 window, return immediately
+  const isAfter2230 = ist.timeInMinutes >= (22 * 60 + 30);
+  if (!isForced && cachedData && !ist.isMarketOpenNow && !(isAfter2230 && lastAllstocksDateKey !== ist.dateKey)) {
+    return res.status(200).json(cachedData);
+  }
 
   // Return from in-memory cache instantly (<1ms) if still fresh
   if (!isForced && cachedData && (now - lastFetchTime) < CACHE_DURATION) {

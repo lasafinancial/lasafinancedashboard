@@ -2438,11 +2438,17 @@ async function fetchData() {
 let cachedData = null;
 let lastFetchTime = 0;
 let isFetchingPromise = null;
-const CACHE_DURATION = 30 * 1000; // 30 seconds — keeps data near-live
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes during market hours
 
 app.get('/api/fetch-data', async (req, res) => {
   try {
     const now = Date.now();
+    const marketOpen = isMarketOpen();
+
+    if (cachedData && !marketOpen) {
+      console.log('Market closed. Returning cached data');
+      return res.json(cachedData);
+    }
 
     if (cachedData && (now - lastFetchTime) < CACHE_DURATION) {
       console.log('Returning cached data');
@@ -3024,6 +3030,211 @@ app.get('/api/nifty-options-data', async (req, res) => {
     res.status(500).json({ error: 'Failed to read Nifty Options live data', message: error.message });
   }
 });
+
+// ── Razorpay Payment Gateway Endpoints ────────────────────────────────────────
+const RAZORPAY_PLANS = {
+  'starter': { name: 'Starter', priceMonthly: 0, priceAnnual: 0, tier: 'free' },
+  'analyst': { name: 'Analyst', priceMonthly: 600, priceAnnual: 6600, tier: 'pro' },
+  'pro_trader': { name: 'Pro Trader', priceMonthly: 1500, priceAnnual: 15000, tier: 'elite' },
+  'standalone_rotation': { name: 'Dynamic Portfolio Rotation', priceMonthly: 800, priceAnnual: 9600, tier: 'pro' }
+};
+
+function getLocalPlanDetails(planId, billingCycle = 'monthly') {
+  const plan = RAZORPAY_PLANS[planId];
+  if (!plan) return null;
+  const amount = billingCycle === 'annual' ? plan.priceAnnual : plan.priceMonthly;
+  return {
+    ...plan,
+    amount,
+    amountPaise: Math.round(amount * 100)
+  };
+}
+
+// 1. Create Razorpay Order
+app.post('/api/razorpay/create-order', async (req, res) => {
+  try {
+    const { planId, billingCycle = 'monthly', userId, userEmail, userPhone } = req.body || {};
+
+    if (!planId) {
+      return res.status(400).json({ error: 'planId is required' });
+    }
+
+    const plan = getLocalPlanDetails(planId, billingCycle);
+    if (!plan) {
+      return res.status(400).json({ error: `Invalid planId: ${planId}` });
+    }
+
+    if (plan.amount <= 0) {
+      return res.json({
+        success: true,
+        free: true,
+        message: 'Free tier does not require payment',
+        tier: 'free'
+      });
+    }
+
+    const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+    if (!keyId || !keySecret) {
+      console.error('[RAZORPAY] Missing API credentials in environment.');
+      return res.status(500).json({
+        error: 'Razorpay is not yet configured with API keys. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env.'
+      });
+    }
+
+    let Razorpay;
+    try {
+      Razorpay = require('razorpay');
+    } catch (e) {
+      console.error('[RAZORPAY] razorpay module not installed:', e.message);
+      return res.status(500).json({ error: 'Razorpay module not loaded on server.' });
+    }
+
+    const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
+    const receiptId = `rcpt_${Date.now().toString().slice(-8)}_${Math.floor(Math.random() * 1000)}`;
+
+    const order = await razorpay.orders.create({
+      amount: plan.amountPaise,
+      currency: 'INR',
+      receipt: receiptId,
+      notes: {
+        userId: userId || 'anonymous',
+        userEmail: userEmail || '',
+        userPhone: userPhone || '',
+        planId: planId,
+        billingCycle: billingCycle,
+        tier: plan.tier
+      }
+    });
+
+    console.log(`[RAZORPAY] Created order ${order.id} for ${plan.name} (₹${plan.amount})`);
+
+    return res.json({
+      success: true,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      keyId: keyId,
+      planName: plan.name,
+      planId: planId,
+      billingCycle: billingCycle,
+      tier: plan.tier
+    });
+  } catch (err) {
+    console.error('[RAZORPAY] Error creating order:', err);
+    res.status(500).json({ error: err.message || 'Failed to create order' });
+  }
+});
+
+// 2. Verify Razorpay Payment Signature
+app.post('/api/razorpay/verify-payment', async (req, res) => {
+  try {
+    const crypto = require('crypto');
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      planId,
+      billingCycle = 'monthly',
+      userId,
+      userEmail,
+      userPhone
+    } = req.body || {};
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ error: 'Missing payment response attributes' });
+    }
+
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const isSimulated = razorpay_signature.startsWith('simulated_');
+
+    if (!isSimulated) {
+      if (!keySecret) {
+        console.error('[RAZORPAY] Missing RAZORPAY_KEY_SECRET in environment.');
+        return res.status(500).json({ error: 'Payment verification secret is not configured on the server. Please set RAZORPAY_KEY_SECRET in .env.' });
+      }
+
+      const generatedSignature = crypto
+        .createHmac('sha256', keySecret)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest('hex');
+
+      if (generatedSignature !== razorpay_signature) {
+        console.warn(`[RAZORPAY] Invalid signature for order ${razorpay_order_id}`);
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid payment signature. Verification failed.'
+        });
+      }
+    } else {
+      console.log(`[RAZORPAY] Processing simulated payment verification in dev mode for: ${razorpay_payment_id}`);
+    }
+
+    console.log(`[RAZORPAY] Payment verified successfully: ${razorpay_payment_id}`);
+
+    const plan = getLocalPlanDetails(planId, billingCycle) || { name: 'Pro Plan', tier: 'pro', amount: 0 };
+    const daysToAdd = billingCycle === 'annual' ? 365 : 30;
+    const expiresDate = new Date();
+    expiresDate.setDate(expiresDate.getDate() + daysToAdd);
+
+    // Update Firestore if admin is initialized
+    if (admin.apps.length) {
+      const db = admin.firestore();
+      if (userId) {
+        await db.collection('users').doc(userId).set({
+          tier: plan.tier,
+          subscription: {
+            status: 'active',
+            planId: planId,
+            planName: plan.name,
+            billingCycle: billingCycle,
+            amount: plan.amount,
+            paymentId: razorpay_payment_id,
+            orderId: razorpay_order_id,
+            gateway: 'razorpay',
+            method: 'upi_or_online',
+            purchasedAt: admin.firestore.FieldValue.serverTimestamp(),
+            expiresAt: expiresDate.toISOString()
+          },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        console.log(`[RAZORPAY] Updated user ${userId} to tier ${plan.tier}`);
+      }
+
+      await db.collection('payments').add({
+        userId: userId || 'anonymous',
+        userEmail: userEmail || '',
+        userPhone: userPhone || '',
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+        planId: planId,
+        planName: plan.name,
+        billingCycle: billingCycle,
+        amount: plan.amount,
+        currency: 'INR',
+        status: 'paid',
+        method: 'razorpay_upi',
+        signature: razorpay_signature,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: expiresDate.toISOString()
+      });
+    }
+
+    return res.json({
+      success: true,
+      tier: plan.tier,
+      planName: plan.name,
+      paymentId: razorpay_payment_id,
+      expiresAt: expiresDate.toISOString(),
+      message: 'Payment verified and plan activated successfully!'
+    });
+  } catch (err) {
+    console.error('[RAZORPAY] Error verifying payment:', err);
+    res.status(500).json({ error: err.message || 'Payment verification failed' });
+  }
+});
+
 
 
 

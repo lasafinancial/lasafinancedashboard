@@ -224,13 +224,14 @@ export interface GoogleSheetsData {
 
 let cachedData: GoogleSheetsData | null = null;
 let lastFetchTime: number = 0;
-const CACHE_DURATION = 45 * 1000; // 45 seconds
+let lastEODFetchDate: string | null = null;
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes during market hours
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
 const dataListeners: Set<(data: GoogleSheetsData) => void> = new Set();
 
 import { getApiUrl } from '@/config/api';
-import { isMarketOpen } from './marketHours';
+import { isMarketOpen, isEODWindow, getISTDateKey } from './marketHours';
 
 export function subscribeToData(callback: (data: GoogleSheetsData) => void): () => void {
   dataListeners.add(callback);
@@ -248,7 +249,21 @@ function notifyListeners(data: GoogleSheetsData) {
 
 export async function refreshAllData(force: boolean = false): Promise<GoogleSheetsData | null> {
   const now = Date.now();
+  const marketOpen = isMarketOpen();
+  const eodWindow = isEODWindow();
+  const todayKey = getISTDateKey();
 
+  // Guard: Outside market hours, only allow refresh if in the 22:30 EOD window once per day
+  if (!force && !marketOpen && cachedData) {
+    if (eodWindow && lastEODFetchDate !== todayKey) {
+      console.log('[googleSheetsService] 22:30 IST EOD window active. Fetching once-a-day EOD data.');
+    } else {
+      console.log('[googleSheetsService] Market is closed. Skipping auto-refresh and using cached data.');
+      return cachedData;
+    }
+  }
+
+  // During market hours, respect the 15-minute cache TTL
   if (!force && cachedData && (now - lastFetchTime) < CACHE_DURATION) {
     return cachedData;
   }
@@ -266,6 +281,11 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
     }
 
     const data: GoogleSheetsData = await response.json();
+
+    // Mark EOD update as completed for today if fetched outside market hours
+    if (!marketOpen && eodWindow) {
+      lastEODFetchDate = todayKey;
+    }
 
     // --- FALLBACK-TO-CACHE RESILIENCE LAYER ---
     // If the backend Google Sheets are momentarily empty due to an update,
@@ -321,7 +341,7 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
   }
 }
 
-export function startAutoRefresh(intervalMs: number = 90 * 1000): void {
+export function startAutoRefresh(intervalMs: number = 15 * 60 * 1000): void {
   if (refreshInterval) {
     clearInterval(refreshInterval);
   }
@@ -329,10 +349,14 @@ export function startAutoRefresh(intervalMs: number = 90 * 1000): void {
   refreshAllData();
 
   refreshInterval = setInterval(() => {
+    // Zero polling outside market hours unless inside the 22:30 EOD window
+    if (!isMarketOpen() && !isEODWindow()) {
+      return;
+    }
     refreshAllData();
   }, intervalMs);
 
-  console.log(`Auto-refresh started with ${intervalMs / 1000}s interval`);
+  console.log(`Auto-refresh started with ${intervalMs / 1000}s interval (market hours active)`);
 }
 
 export function stopAutoRefresh(): void {

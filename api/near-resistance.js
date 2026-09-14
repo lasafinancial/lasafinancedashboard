@@ -3,6 +3,19 @@ import { getGoogleCredentialsHelper } from './credentialsHelper.js';
 
 const EOD_SHEET_ID = '1zINbPMxpI4qXSFFNuOn6U_dvrSwwPAfxUe2ORPIuj2I';
 
+let cachedNearResistance = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour during market hours (0 outside)
+
+function isMarketOpen() {
+    const now = new Date();
+    const istDateString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const istDate = new Date(istDateString);
+    const day = istDate.getDay(); 
+    const timeInMinutes = istDate.getHours() * 60 + istDate.getMinutes();
+    return (day >= 1 && day <= 5) && (timeInMinutes >= 9 * 60 + 15 && timeInMinutes <= 15 * 60 + 30);
+}
+
 function colToIdx(col) {
     let idx = 0;
     for (let i = 0; i < col.length; i++) {
@@ -18,6 +31,21 @@ function getCredentials() {
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const marketOpen = isMarketOpen();
+    const now = Date.now();
+
+    // CDN edge cache: 1 hour during market hours, 24 hours outside market hours
+    if (marketOpen) {
+        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+    } else {
+        res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=172800');
+    }
+
+    // Return in-memory cache if market is closed or fresh within 1 hour
+    if (cachedNearResistance && (!marketOpen || (now - lastFetchTime < CACHE_DURATION))) {
+        return res.status(200).json(cachedNearResistance);
     }
 
     try {
@@ -80,7 +108,9 @@ export default async function handler(req, res) {
             };
         });
 
-        res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
+        cachedNearResistance = filtered;
+        lastFetchTime = now;
+
         return res.status(200).json(filtered);
     } catch (error) {
         console.error('Error in near-resistance api:', error);
