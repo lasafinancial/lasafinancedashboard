@@ -74,6 +74,32 @@ function isMarketOpen() {
   return getISTInfo().isMarketOpenNow;
 }
 
+function isQuotaError(err) {
+  const msg = (err?.message || '').toLowerCase();
+  return err?.code === 429 || err?.status === 429 || msg.includes('quota') || msg.includes('429');
+}
+
+function setCacheTier(res, tier) {
+  const tiers = {
+    intraday: 'public, s-maxage=900, stale-while-revalidate=3600',
+    hourly: 'public, s-maxage=3600, stale-while-revalidate=7200',
+    daily: 'public, s-maxage=86400, stale-while-revalidate=172800',
+  };
+  res.setHeader('Cache-Control', tiers[tier] || tiers.intraday);
+}
+
+function setNoStore(res) {
+  res.setHeader('Cache-Control', 'no-store');
+}
+
+function hasUsableData(data) {
+  if (!data) return false;
+  return (Array.isArray(data.stockData) && data.stockData.length > 0) ||
+    (Array.isArray(data.weeklyRecommendation) && data.weeklyRecommendation.length > 0);
+}
+
+let fetchQuotaHit = false;
+
 function getLogTimeIST() {
   return new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }) + " IST";
 }
@@ -236,6 +262,7 @@ async function fetchData(isForced = false) {
   };
 
   console.log(`Fetching live data from Google Sheets... (force=${isForced})`);
+  fetchQuotaHit = false;
   const symbolAliasMap = {
     'TMPV': 'TMCV',
     'M&M': 'M&M'
@@ -266,7 +293,8 @@ async function fetchData(isForced = false) {
         }
         return ranges.map(() => ({ values: [] }));
       } catch (e) {
-        const isQuota = e.message && (e.message.includes('Quota') || e.code === 429 || e.message.includes('429') || e.status === 429);
+        const isQuota = isQuotaError(e);
+        if (isQuota) fetchQuotaHit = true;
         if (i < retries && isQuota) {
           const waitMs = (i + 1) * 2000;
           console.warn(`[SafeBatchGet] Quota limit hit on spreadsheet ${spreadsheetId}. Retrying in ${waitMs}ms (attempt ${i + 1}/${retries})...`);
@@ -286,7 +314,8 @@ async function fetchData(isForced = false) {
         const res = await sheets.spreadsheets.values.get(req);
         return res;
       } catch (e) {
-        const isQuota = e.message && (e.message.includes('Quota') || e.code === 429 || e.message.includes('429') || e.status === 429);
+        const isQuota = isQuotaError(e);
+        if (isQuota) fetchQuotaHit = true;
         if (i < retries && isQuota) {
           const waitMs = (i + 1) * 2000;
           console.warn(`[SafeFetch] Quota limit hit on ${req.range}. Retrying in ${waitMs}ms (attempt ${i + 1}/${retries})...`);
@@ -2522,14 +2551,13 @@ export default async function handler(req, res) {
   const now = Date.now();
   const ist = getISTInfo();
 
-  // Edge caching for fast responses from Vercel CDN
-  // Force bypasses edge cache; market hours gets 15 min; outside market hours gets 10 min
+  // Edge caching: intraday during market hours, hourly outside (never daily — stale prices after reopen)
   if (isForced) {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    setNoStore(res);
   } else if (ist.isMarketOpenNow) {
-    res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=1800');
+    setCacheTier(res, 'intraday');
   } else {
-    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200');
+    setCacheTier(res, 'hourly');
   }
 
   const hasValidData = cachedData && Array.isArray(cachedData.weeklyRecommendation) && cachedData.weeklyRecommendation.length > 0;
@@ -2572,12 +2600,26 @@ export default async function handler(req, res) {
 
   try {
     const data = await isFetchingPromise;
-    res.status(200).json(cachedData || data || {});
+    const payload = cachedData || data;
+    if (!hasUsableData(payload)) {
+      setNoStore(res);
+      if (fetchQuotaHit) {
+        res.setHeader('Retry-After', '60');
+        return res.status(429).json({ error: 'Google Sheets quota exceeded', message: 'Upstream quota exhausted and no cached data available' });
+      }
+      return res.status(503).json({ error: 'Upstream data unavailable', message: 'No usable data from Google Sheets and no cache' });
+    }
+    return res.status(200).json(payload);
   } catch (error) {
     console.error('Fetch Error:', error);
-    if (cachedData) {
+    if (cachedData && hasUsableData(cachedData)) {
       return res.status(200).json(cachedData);
     }
-    res.status(500).json({ error: 'Failed to fetch data', message: error.message });
+    setNoStore(res);
+    if (isQuotaError(error) || fetchQuotaHit) {
+      res.setHeader('Retry-After', '60');
+      return res.status(429).json({ error: 'Google Sheets quota exceeded', message: error.message });
+    }
+    return res.status(500).json({ error: 'Failed to fetch data', message: error.message });
   }
 }

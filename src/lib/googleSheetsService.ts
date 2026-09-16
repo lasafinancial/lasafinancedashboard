@@ -225,8 +225,62 @@ export interface GoogleSheetsData {
 let cachedData: GoogleSheetsData | null = null;
 let lastFetchTime: number = 0;
 let lastEODFetchDate: string | null = null;
+let lastFetchError: string | null = null;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes during market hours
+const MAX_RETRIES = 3;
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isRetryableStatus(status: number): boolean {
+  if (status === 429) return true;
+  if (status === 503) return false;
+  if (status >= 400 && status < 500) return false;
+  return status >= 500;
+}
+
+async function fetchWithRetry(url: string): Promise<Response> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(url);
+
+      if (response.ok) {
+        return response;
+      }
+
+      if (!isRetryableStatus(response.status) || attempt >= MAX_RETRIES) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`HTTP ${response.status}${body ? `: ${body.slice(0, 200)}` : ''}`);
+      }
+
+      const retryAfterHeader = response.headers.get('Retry-After');
+      const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : 0;
+      const baseDelay = retryAfterSec > 0
+        ? retryAfterSec * 1000
+        : Math.min(1000 * Math.pow(2, attempt), 30000);
+      const jitter = Math.random() * 1000;
+      await sleep(baseDelay + jitter);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt >= MAX_RETRIES) {
+        throw lastError;
+      }
+      const baseDelay = Math.min(1000 * Math.pow(2, attempt), 30000);
+      const jitter = Math.random() * 1000;
+      await sleep(baseDelay + jitter);
+    }
+  }
+
+  throw lastError || new Error('Fetch failed after retries');
+}
+
+export function getLastFetchError(): string | null {
+  return lastFetchError;
+}
 
 const dataListeners: Set<(data: GoogleSheetsData) => void> = new Set();
 
@@ -274,12 +328,7 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
       finalUrl += finalUrl.includes('?') ? '&force=true' : '?force=true';
     }
     
-    const response = await fetch(finalUrl);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
+    const response = await fetchWithRetry(finalUrl);
     const data: GoogleSheetsData = await response.json();
 
     // Mark EOD update as completed for today if fetched outside market hours
@@ -327,6 +376,7 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
 
     cachedData = data;
     lastFetchTime = now;
+    lastFetchError = null;
 
     notifyListeners(data);
 
@@ -334,8 +384,9 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
     return data;
   } catch (error) {
     console.error('Error refreshing data:', error);
-    if (!cachedData) {
-      setTimeout(() => refreshAllData(true), 3000);
+    lastFetchError = error instanceof Error ? error.message : String(error);
+    if (cachedData) {
+      notifyListeners(cachedData);
     }
     return cachedData;
   }

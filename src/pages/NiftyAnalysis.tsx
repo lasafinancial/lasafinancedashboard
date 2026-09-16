@@ -43,29 +43,57 @@ export default function NiftyAnalysis() {
     }, [currentFrameIndex]);
 
     // Fetch data
-    const { data: frames, isLoading, isError } = useQuery({
+    const { data: frames, isLoading, isError, error } = useQuery({
         queryKey: ['niftyOptix'],
         queryFn: async () => {
-            const res = await fetch('/api/nifty-options-data');
-            if (!res.ok) throw new Error('Network response was not ok');
-            const json = await res.json();
+            const MAX_RETRIES = 3;
+            const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-            // Keep ALL rows that have a valid Time (for the 5-Min Timeline)
-            // parsedOptions may be null for some rows — OI Battlefield handles that gracefully
-            return json
-                .filter((row: any) => row.Time)
-                .map((row: any) => {
-                    let parsedOptions = null;
-                    try {
-                        if (row["Raw JSON Data"] && row["Raw JSON Data"] !== "API Error") {
-                            parsedOptions = JSON.parse(row["Raw JSON Data"]);
-                        }
-                    } catch (e) {
-                        console.error("Failed to parse options JSON for row:", row.Time);
+            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                const res = await fetch('/api/nifty-options-data');
+
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    const message = body.message || body.error || `HTTP ${res.status}`;
+                    const retryable = res.status === 429 || (res.status >= 500 && res.status !== 503);
+
+                    if (!retryable || attempt >= MAX_RETRIES) {
+                        throw new Error(message);
                     }
-                    return { ...row, parsedOptions };
-                });
+
+                    const retryAfter = parseInt(res.headers.get('Retry-After') || '0', 10);
+                    const baseDelay = retryAfter > 0
+                        ? retryAfter * 1000
+                        : Math.min(1000 * Math.pow(2, attempt), 30000);
+                    await sleep(baseDelay + Math.random() * 1000);
+                    continue;
+                }
+
+                const json = await res.json();
+                if (!Array.isArray(json)) {
+                    throw new Error('Invalid response from server');
+                }
+
+                // Keep ALL rows that have a valid Time (for the 5-Min Timeline)
+                // parsedOptions may be null for some rows — OI Battlefield handles that gracefully
+                return json
+                    .filter((row: any) => row.Time)
+                    .map((row: any) => {
+                        let parsedOptions = null;
+                        try {
+                            if (row["Raw JSON Data"] && row["Raw JSON Data"] !== "API Error") {
+                                parsedOptions = JSON.parse(row["Raw JSON Data"]);
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse options JSON for row:", row.Time);
+                        }
+                        return { ...row, parsedOptions };
+                    });
+            }
+
+            throw new Error('Failed to fetch Nifty options data');
         },
+        retry: false,
         refetchInterval: 900000 // Refetch every 15 mins
     });
 

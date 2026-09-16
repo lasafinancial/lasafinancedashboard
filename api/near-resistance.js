@@ -28,23 +28,40 @@ function getCredentials() {
     return getGoogleCredentialsHelper();
 }
 
+function isQuotaError(err) {
+    const msg = (err?.message || '').toLowerCase();
+    return err?.code === 429 || err?.status === 429 || msg.includes('quota') || msg.includes('429');
+}
+
+function setCacheTier(res, tier) {
+    const tiers = {
+        intraday: 'public, s-maxage=900, stale-while-revalidate=3600',
+        hourly: 'public, s-maxage=3600, stale-while-revalidate=7200',
+        daily: 'public, s-maxage=86400, stale-while-revalidate=172800',
+    };
+    res.setHeader('Cache-Control', tiers[tier] || tiers.intraday);
+}
+
+function setNoStore(res) {
+    res.setHeader('Cache-Control', 'no-store');
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
+        setNoStore(res);
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     const marketOpen = isMarketOpen();
     const now = Date.now();
 
-    // CDN edge cache: 1 hour during market hours, 24 hours outside market hours
     if (marketOpen) {
-        res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
+        setCacheTier(res, 'hourly');
     } else {
-        res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=172800');
+        setCacheTier(res, 'daily');
     }
 
-    // Return in-memory cache if market is closed or fresh within 1 hour
-    if (cachedNearResistance && (!marketOpen || (now - lastFetchTime < CACHE_DURATION))) {
+    if (cachedNearResistance && cachedNearResistance.length > 0 && (!marketOpen || (now - lastFetchTime < CACHE_DURATION))) {
         return res.status(200).json(cachedNearResistance);
     }
 
@@ -63,7 +80,11 @@ export default async function handler(req, res) {
 
         const rows = response.data.values;
         if (!rows || rows.length < 2) {
-            return res.status(200).json([]);
+            if (cachedNearResistance && cachedNearResistance.length > 0) {
+                return res.status(200).json(cachedNearResistance);
+            }
+            setNoStore(res);
+            return res.status(503).json({ error: 'Upstream data unavailable', message: 'No screener data in sheet' });
         }
 
         const idx = {
@@ -114,6 +135,14 @@ export default async function handler(req, res) {
         return res.status(200).json(filtered);
     } catch (error) {
         console.error('Error in near-resistance api:', error);
+        if (cachedNearResistance && cachedNearResistance.length > 0) {
+            return res.status(200).json(cachedNearResistance);
+        }
+        setNoStore(res);
+        if (isQuotaError(error)) {
+            res.setHeader('Retry-After', '60');
+            return res.status(429).json({ error: 'Google Sheets quota exceeded', message: error.message });
+        }
         return res.status(500).json({ error: 'Failed to fetch screener data', message: error.message });
     }
 }

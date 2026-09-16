@@ -71,6 +71,15 @@ function getGoogleCredentials() {
   return getGoogleCredentialsHelper();
 }
 
+function isQuotaError(err) {
+  const msg = (err?.message || '').toLowerCase();
+  return err?.code === 429 || err?.status === 429 || msg.includes('quota') || msg.includes('429');
+}
+
+function setNoStore(res) {
+  res.setHeader('Cache-Control', 'no-store');
+}
+
 function getDynamicStatus(price, lowerRange, upperRange) {
   const actualMin = Math.min(price, lowerRange);
   const actualMax = Math.max(price, upperRange);
@@ -219,6 +228,8 @@ async function sendNotificationToAll(tokens, title, body) {
 }
 
 export default async function handler(req, res) {
+  setNoStore(res);
+
   // Allow both GET (for cron) and POST (for manual trigger)
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -285,8 +296,16 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Error in send-market-mood:', error);
-    return res.status(500).json({
-      error: 'Failed to send market mood notification',
+    if (isQuotaError(error)) {
+      res.setHeader('Retry-After', '60');
+      return res.status(429).json({
+        error: 'Google Sheets quota exceeded',
+        message: error.message
+      });
+    }
+    const isEmpty = error.message && error.message.includes('No data found');
+    return res.status(isEmpty ? 503 : 500).json({
+      error: isEmpty ? 'Upstream data unavailable' : 'Failed to send market mood notification',
       message: error.message
     });
   }

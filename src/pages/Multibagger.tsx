@@ -97,22 +97,61 @@ export function Multibagger() {
   const [selectedStock, setSelectedStock] = useState<MultibaggerStock | null>(null);
   const [stocks, setStocks] = useState<MultibaggerStock[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [showStrategyModal, setShowStrategyModal] = useState(false);
 
   useEffect(() => {
+    const MAX_RETRIES = 3;
+
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
     const fetchMultibagger = async () => {
-      try {
-        const response = await fetch("/api/multibagger");
-        const data = await response.json();
-        setStocks(data);
-      } catch (error) {
-        console.error("Error fetching multibagger data:", error);
-      } finally {
-        setIsLoading(false);
+      let lastError: string | null = null;
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const response = await fetch("/api/multibagger");
+
+          if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            const message = body.message || body.error || `HTTP ${response.status}`;
+            lastError = message;
+
+            const retryable = response.status === 429 || (response.status >= 500 && response.status !== 503);
+            if (!retryable || attempt >= MAX_RETRIES) {
+              setFetchError(message);
+              return;
+            }
+
+            const retryAfter = parseInt(response.headers.get('Retry-After') || '0', 10);
+            const baseDelay = retryAfter > 0
+              ? retryAfter * 1000
+              : Math.min(1000 * Math.pow(2, attempt), 30000);
+            await sleep(baseDelay + Math.random() * 1000);
+            continue;
+          }
+
+          const data = await response.json();
+          if (!Array.isArray(data)) {
+            setFetchError('Invalid response from server');
+            return;
+          }
+          setStocks(data);
+          setFetchError(null);
+          return;
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : String(error);
+          if (attempt >= MAX_RETRIES) {
+            setFetchError(lastError);
+            return;
+          }
+          const baseDelay = Math.min(1000 * Math.pow(2, attempt), 30000);
+          await sleep(baseDelay + Math.random() * 1000);
+        }
       }
     };
 
-    fetchMultibagger();
+    fetchMultibagger().finally(() => setIsLoading(false));
   }, []);
 
   const filteredStocks = useMemo(() => {

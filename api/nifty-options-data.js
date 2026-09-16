@@ -3,7 +3,6 @@ import { getGoogleCredentialsHelper } from './credentialsHelper.js';
 
 const SPREADSHEET_ID = '1YYoW4dG9DrOWGAE0jNqmvnS65M6MpLVa4WGlWNYd4iU';
 
-// Simple in-memory cache to handle rapid user hits and prevent 429 Quota Exceeded
 let cachedData = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes (900 seconds)
@@ -12,15 +11,35 @@ function getCredentials() {
     return getGoogleCredentialsHelper();
 }
 
+function isQuotaError(err) {
+    const msg = (err?.message || '').toLowerCase();
+    return err?.code === 429 || err?.status === 429 || msg.includes('quota') || msg.includes('429');
+}
+
+function setCacheTier(res, tier) {
+    const tiers = {
+        intraday: 'public, s-maxage=900, stale-while-revalidate=3600',
+        hourly: 'public, s-maxage=3600, stale-while-revalidate=7200',
+        daily: 'public, s-maxage=86400, stale-while-revalidate=172800',
+    };
+    res.setHeader('Cache-Control', tiers[tier] || tiers.intraday);
+}
+
+function setNoStore(res) {
+    res.setHeader('Cache-Control', 'no-store');
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
+        setNoStore(res);
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    setCacheTier(res, 'intraday');
+
     try {
         const now = Date.now();
-        if (cachedData && (now - lastFetchTime < CACHE_DURATION)) {
-            console.log('[NIFTY-OPTIONS] Returning cached data due to quota safety.');
+        if (cachedData && cachedData.length > 0 && (now - lastFetchTime < CACHE_DURATION)) {
             res.setHeader('X-Cache', 'HIT');
             return res.status(200).json(cachedData);
         }
@@ -39,7 +58,12 @@ export default async function handler(req, res) {
 
         const rows = response.data.values;
         if (!rows || rows.length < 2) {
-            return res.status(200).json([]);
+            if (cachedData && cachedData.length > 0) {
+                res.setHeader('X-Cache', 'HIT');
+                return res.status(200).json(cachedData);
+            }
+            setNoStore(res);
+            return res.status(503).json({ error: 'Upstream data unavailable', message: 'No Nifty Options data in sheet' });
         }
 
         const headers = rows[0];
@@ -51,15 +75,21 @@ export default async function handler(req, res) {
             return obj;
         });
 
-        res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate');
-        
-        // Update local cache
         cachedData = data;
         lastFetchTime = Date.now();
-        
+
         return res.status(200).json(data);
     } catch (error) {
         console.error('Error in nifty-options-data api:', error);
+        if (cachedData && cachedData.length > 0) {
+            res.setHeader('X-Cache', 'HIT');
+            return res.status(200).json(cachedData);
+        }
+        setNoStore(res);
+        if (isQuotaError(error)) {
+            res.setHeader('Retry-After', '60');
+            return res.status(429).json({ error: 'Google Sheets quota exceeded', message: error.message });
+        }
         return res.status(500).json({ error: 'Failed to fetch Nifty Options data', message: error.message });
     }
 }

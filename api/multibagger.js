@@ -15,9 +15,39 @@ function getCredentials() {
   return getGoogleCredentialsHelper();
 }
 
+function isQuotaError(err) {
+  const msg = (err?.message || '').toLowerCase();
+  return err?.code === 429 || err?.status === 429 || msg.includes('quota') || msg.includes('429');
+}
+
+function setCacheTier(res, tier) {
+  const tiers = {
+    intraday: 'public, s-maxage=900, stale-while-revalidate=3600',
+    hourly: 'public, s-maxage=3600, stale-while-revalidate=7200',
+    daily: 'public, s-maxage=86400, stale-while-revalidate=172800',
+  };
+  res.setHeader('Cache-Control', tiers[tier] || tiers.intraday);
+}
+
+function setNoStore(res) {
+  res.setHeader('Cache-Control', 'no-store');
+}
+
+let cachedMultibagger = null;
+let lastMultibaggerFetch = 0;
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
+    setNoStore(res);
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  setCacheTier(res, 'hourly');
+
+  const now = Date.now();
+  if (cachedMultibagger && cachedMultibagger.length > 0 && (now - lastMultibaggerFetch) < CACHE_DURATION) {
+    return res.status(200).json(cachedMultibagger);
   }
 
   try {
@@ -35,7 +65,11 @@ export default async function handler(req, res) {
 
     const rows = response.data.values;
     if (!rows || rows.length < 2) {
-      return res.status(200).json([]);
+      if (cachedMultibagger && cachedMultibagger.length > 0) {
+        return res.status(200).json(cachedMultibagger);
+      }
+      setNoStore(res);
+      return res.status(503).json({ error: 'Upstream data unavailable', message: 'No multibagger data in sheet' });
     }
 
     const idx = {
@@ -87,10 +121,19 @@ export default async function handler(req, res) {
       };
     }).sort((a, b) => a.rsi - b.rsi);
 
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
+    cachedMultibagger = filtered;
+    lastMultibaggerFetch = now;
     return res.status(200).json(filtered);
   } catch (error) {
     console.error('Error in multibagger api:', error);
+    if (cachedMultibagger && cachedMultibagger.length > 0) {
+      return res.status(200).json(cachedMultibagger);
+    }
+    setNoStore(res);
+    if (isQuotaError(error)) {
+      res.setHeader('Retry-After', '60');
+      return res.status(429).json({ error: 'Google Sheets quota exceeded', message: error.message });
+    }
     return res.status(500).json({ error: 'Failed to fetch multibagger data', message: error.message });
   }
 }

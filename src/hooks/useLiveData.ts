@@ -4,6 +4,7 @@ import {
   subscribeToData,
   refreshAllData,
   getCachedData,
+  getLastFetchError,
   TopMoversData,
   MarketPositionData,
   GoogleSheetsData,
@@ -52,6 +53,7 @@ export function useLiveData() {
   const [week52High, setWeek52High] = useState<Week52HighStock[]>(cached ? (cached.week52High || []) : []);
   const [week52Low, setWeek52Low] = useState<Week52LowStock[]>(cached ? (cached.week52Low || []) : []);
   const [isLoading, setIsLoading] = useState(!cached);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleTimeString());
 
   useEffect(() => {
@@ -84,10 +86,12 @@ export function useLiveData() {
       setWeek52Low(data.week52Low || []);
       setLastUpdate(new Date().toLocaleTimeString());
       setIsLoading(false);
+      setFetchError(null);
     });
 
     refreshAllData().finally(() => {
       setIsLoading(false);
+      setFetchError(getLastFetchError());
     });
 
     return () => {
@@ -123,8 +127,11 @@ export function useLiveData() {
     week52High,
     week52Low,
     isLoading,
+    fetchError,
     lastUpdate,
-    refresh: (force: boolean = true) => refreshAllData(force)
+    refresh: (force: boolean = true) => refreshAllData(force).finally(() => {
+      setFetchError(getLastFetchError());
+    })
   };
 }
 
