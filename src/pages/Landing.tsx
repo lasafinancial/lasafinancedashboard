@@ -60,18 +60,27 @@ export default function LandingPage({ onEnter }: { onEnter: () => void }) {
           ))}
         </div>
 
-        {/* Action Buttons: Access Dashboard & Install App */}
-        <div className="animate-fade-in mb-10 flex flex-col sm:flex-row items-center justify-center gap-4 z-30">
-          <Button 
-            onClick={onEnter}
-            className="group relative px-8 py-6 bg-white text-black hover:bg-white/90 rounded-full text-lg font-semibold transition-all hover:scale-105 active:scale-95 overflow-hidden shadow-xl"
-          >
-            <span className="relative z-10 flex items-center gap-2">
-              Access Dashboard
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-          </Button>
+        {/* Action Buttons: Access Analytics Dashboard, Access Client Portal & Install App */}
+        <div className="animate-fade-in mb-10 flex flex-col sm:flex-row items-center sm:items-start justify-center gap-4 z-30">
+          <div className="flex flex-col items-center gap-4">
+            <Button
+              onClick={onEnter}
+              className="group relative px-8 py-6 bg-white text-black hover:bg-white/90 rounded-full text-lg font-semibold transition-all hover:scale-105 active:scale-95 overflow-hidden shadow-xl"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                Access Analytics Dashboard
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            </Button>
+
+            <Button
+              disabled
+              className="px-8 py-6 bg-black/70 backdrop-blur-md text-white border border-white/30 rounded-full text-lg font-semibold cursor-not-allowed disabled:opacity-80"
+            >
+              Access Client Portal
+            </Button>
+          </div>
 
           <InstallPWA variant="landing" />
         </div>
