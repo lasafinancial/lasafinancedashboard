@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Crosshair, TrendingUp, TrendingDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ExitTargetScreenerItem } from "@/lib/googleSheetsService";
-import { TradeRangeBar, getTradeBarMetrics, toPrice } from "@/components/cards/TradeRangeBar";
+import { TradeRangeBar, parseSheetNumber } from "@/components/cards/TradeRangeBar";
 
 /**
  * Preview only: hardcoded sample data, not linked from anywhere.
@@ -12,26 +12,32 @@ import { TradeRangeBar, getTradeBarMetrics, toPrice } from "@/components/cards/T
 
 type SortField = "date" | "profit" | "riskReward" | "id";
 
+// stoploss = sheet col V, rangeTarget = L, currentPrice = Y,
+// potentialLeft = AB, stoplossDistance = AC, riskReward = AD (all hardcoded here as sample cells).
 const SAMPLE_ITEMS: ExitTargetScreenerItem[] = [
   // Normal: marker mid-range
   {
     id: "ACMEPOWER", date: "12 Sep 2026", buyPrice: "1250", currentPrice: "1330", targetPrice: "1430",
-    stoploss: "1175", profit: "6.4", status: "OPEN", reason: "", exitDate: "", holdingDays: "8",
+    stoploss: "1175", rangeTarget: "1430", potentialLeft: "8", stoplossDistance: "11.65", riskReward: "0.65",
+    profit: "6.4", status: "OPEN", reason: "", exitDate: "", holdingDays: "8",
   },
   // Near target: marker close to the right end
   {
     id: "NOVABANK", date: "08 Sep 2026", buyPrice: "840", currentPrice: "951", targetPrice: "966",
-    stoploss: "798", profit: "13.2", status: "OPEN", reason: "", exitDate: "", holdingDays: "12",
+    stoploss: "798", rangeTarget: "966", potentialLeft: "2", stoplossDistance: "16.09", riskReward: "0.10",
+    profit: "13.2", status: "OPEN", reason: "", exitDate: "", holdingDays: "12",
   },
-  // Below stoploss: marker pinned to the left end
+  // Price below stoploss: marker held at the left end, sheet gives negative distance / ratio
   {
     id: "ZENITHPHARMA", date: "15 Sep 2026", buyPrice: "512", currentPrice: "471", targetPrice: "560",
-    stoploss: "480", profit: "-8.0", status: "OPEN", reason: "", exitDate: "", holdingDays: "5",
+    stoploss: "480", rangeTarget: "560", potentialLeft: "19", stoplossDistance: "-1.91", riskReward: "-9.89",
+    profit: "-8.0", status: "OPEN", reason: "", exitDate: "", holdingDays: "5",
   },
-  // Current price missing: no marker
+  // Current price and AB/AC/AD blank in the sheet: bar only, no marker, no labels
   {
     id: "ORIONAUTO", date: "03 Sep 2026", buyPrice: "2210", targetPrice: "2430",
-    stoploss: "2100", profit: "", status: "OPEN", reason: "", exitDate: "", holdingDays: "17",
+    stoploss: "2100", rangeTarget: "2430", potentialLeft: "", stoplossDistance: "", riskReward: "",
+    profit: "", status: "OPEN", reason: "", exitDate: "", holdingDays: "17",
   },
 ];
 
@@ -50,15 +56,6 @@ function parseDateValue(dateStr: string): number {
 function parseNumber(val: string | undefined): number {
   const num = parseFloat((val ?? "").replace(/,/g, "").replace(/%/g, "").trim());
   return isNaN(num) ? 0 : num;
-}
-
-function itemRiskReward(item: ExitTargetScreenerItem): number | null {
-  return getTradeBarMetrics({
-    buy: toPrice(item.buyPrice),
-    stoploss: toPrice(item.stoploss),
-    target: toPrice(item.targetPrice),
-    current: toPrice(item.currentPrice),
-  }).riskReward;
 }
 
 const renderReturnBadge = (profitStr: string | undefined) => {
@@ -110,9 +107,9 @@ export default function TradeBarPreview() {
       if (sortField === "date") return dir * (parseDateValue(a.date) - parseDateValue(b.date));
       if (sortField === "profit") return dir * (parseNumber(a.profit) - parseNumber(b.profit));
       if (sortField === "riskReward") {
-        const rA = itemRiskReward(a);
-        const rB = itemRiskReward(b);
-        // Trades with no computable ratio always sink to the bottom
+        const rA = parseSheetNumber(a.riskReward);
+        const rB = parseSheetNumber(b.riskReward);
+        // Trades with no ratio in the sheet always sink to the bottom
         if (rA === null && rB === null) return 0;
         if (rA === null) return 1;
         if (rB === null) return -1;
@@ -232,10 +229,12 @@ export default function TradeBarPreview() {
 
                 {/* NEW: stoploss → target bar, just above the LASA Research line */}
                 <TradeRangeBar
-                  buy={toPrice(item.buyPrice)}
-                  stoploss={toPrice(item.stoploss)}
-                  target={toPrice(item.targetPrice)}
-                  current={toPrice(item.currentPrice)}
+                  stoploss={item.stoploss}
+                  target={item.rangeTarget}
+                  current={item.currentPrice}
+                  potentialLeft={item.potentialLeft}
+                  stoplossDistance={item.stoplossDistance}
+                  riskReward={item.riskReward}
                 />
 
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground/80 pt-2 border-t border-white/5 flex-wrap gap-2">

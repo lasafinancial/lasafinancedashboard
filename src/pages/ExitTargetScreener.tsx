@@ -14,7 +14,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ExitTargetScreenerItem } from "@/lib/googleSheetsService";
-import { TradeRangeBar, getTradeBarMetrics, toPrice } from "@/components/cards/TradeRangeBar";
+import { TradeRangeBar, parseSheetNumber } from "@/components/cards/TradeRangeBar";
 
 type CategoryTab = "ALL" | "OPEN" | "CLOSE";
 type SortField = "date" | "profit" | "id" | "buyPrice" | "targetPrice" | "currentPrice" | "riskReward";
@@ -127,16 +127,10 @@ export function ExitTargetScreener() {
         return sortDirection === "asc" ? pA - pB : pB - pA;
       }
       if (sortField === "riskReward") {
-        const rrOf = (it: ExitTargetScreenerItem) =>
-          getTradeBarMetrics({
-            buy: toPrice(it.buyPrice),
-            stoploss: toPrice(it.stoploss),
-            target: toPrice(it.targetPrice),
-            current: null,
-          }).riskReward;
-        const rA = rrOf(a);
-        const rB = rrOf(b);
-        // Trades with no computable ratio always sink to the bottom
+        // Sorts on the sheet's own risk:reward value (column AD)
+        const rA = parseSheetNumber(a.riskReward);
+        const rB = parseSheetNumber(b.riskReward);
+        // Trades with no ratio in the sheet always sink to the bottom
         if (rA === null && rB === null) return 0;
         if (rA === null) return 1;
         if (rB === null) return -1;
@@ -570,13 +564,15 @@ export function ExitTargetScreener() {
                       </div>
                     </div>
 
-                    {/* Stoploss → Target range bar (hidden when the trade has no usable stoploss/target) */}
+                    {/* Stoploss (V) → Target (L) range bar, marker at current price (Y); labels are sheet columns AB / AC / AD */}
                     <TradeRangeBar
                       hideWhenUnavailable
-                      buy={toPrice(item.buyPrice)}
-                      stoploss={toPrice(item.stoploss)}
-                      target={toPrice(item.targetPrice)}
-                      current={toPrice(isExited ? (item.exitPrice || item.currentPrice) : item.currentPrice)}
+                      stoploss={item.stoploss}
+                      target={item.rangeTarget}
+                      current={item.currentPrice}
+                      potentialLeft={item.potentialLeft}
+                      stoplossDistance={item.stoplossDistance}
+                      riskReward={item.riskReward}
                     />
 
                     {/* Footer Row: LASA Branding & Entry Date & Holding Period */}

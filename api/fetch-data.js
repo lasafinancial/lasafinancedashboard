@@ -2378,7 +2378,12 @@ async function fetchData(isForced = false) {
         exitDate: row[20] !== undefined && row[20] !== null ? row[20].toString().trim() : '',
         exitPrice: row[23] !== undefined && row[23] !== null ? row[23].toString().trim() : '',
         stoploss: row[21] !== undefined && row[21] !== null ? row[21].toString().trim() : '',
-        holdingDays: row[26] !== undefined && row[26] !== null ? row[26].toString().trim() : ''
+        holdingDays: row[26] !== undefined && row[26] !== null ? row[26].toString().trim() : '',
+        // Range-bar values, passed through exactly as they appear in the sheet
+        rangeTarget: row[11] !== undefined && row[11] !== null ? row[11].toString().trim() : '',       // L
+        potentialLeft: row[27] !== undefined && row[27] !== null ? row[27].toString().trim() : '',     // AB
+        stoplossDistance: row[28] !== undefined && row[28] !== null ? row[28].toString().trim() : '',  // AC
+        riskReward: row[29] !== undefined && row[29] !== null ? row[29].toString().trim() : ''         // AD
       });
     }
   } catch (err) {

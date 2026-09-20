@@ -152,6 +152,11 @@ export interface ExitTargetScreenerItem {
   stoploss: string;
   holdingDays?: string;
   exitPrice?: string;
+  // Range-bar values, straight from the sheet
+  rangeTarget?: string;       // column L
+  potentialLeft?: string;     // column AB
+  stoplossDistance?: string;  // column AC
+  riskReward?: string;        // column AD
 }
 
 export interface WeeklyRecommendationItem {
