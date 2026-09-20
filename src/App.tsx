@@ -38,6 +38,7 @@ import Admin from "@/pages/Admin";
 import Help from "@/pages/Help";
 import Pricing from "@/pages/Pricing";
 import NotFound from "./pages/NotFound";
+import TradeBarPreview from "@/pages/preview/TradeBarPreview";
 import LandingPage from "@/pages/Landing";
 import { startAutoRefresh } from "@/lib/googleSheetsService";
 import { OnboardingModal } from "@/components/ui/OnboardingModal";
@@ -261,6 +262,7 @@ const AppContent = () => {
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+            <Route path="/preview/trade-bar" element={<TradeBarPreview />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           {!isLoginPage && <Footer />}
