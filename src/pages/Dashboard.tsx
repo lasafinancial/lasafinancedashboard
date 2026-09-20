@@ -12,6 +12,7 @@ import MarketPositionStructure from "@/components/charts/MarketPositionStructure
 import SectorCard from "@/components/cards/SectorCard";
 import IndicesPerformance from "@/components/cards/IndicesPerformance";
 import { LiveCallsGrid } from "@/components/cards/LiveCallsGrid";
+import { RecentPositionalStrip } from "@/components/cards/RecentPositionalStrip";
 import Walkthrough from "@/pages/Walkthrough";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
@@ -226,6 +227,9 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Latest open Positional Trades (last 5), scrolling strip */}
+        <RecentPositionalStrip />
 
         {/* Live Calls (Long Term, Short Term, Intraday, Futures & Options) */}
         <LiveCallsGrid />
