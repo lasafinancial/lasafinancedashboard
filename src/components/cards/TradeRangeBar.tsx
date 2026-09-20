@@ -70,10 +70,11 @@ const CAPTION: Partial<Record<TradeBarState, { text: string; className: string }
  * Stoploss → target range bar with a current-price marker.
  * Sits above the "LASA Research (SEBI RA)" footer of a Short Term Trades card.
  */
-export function TradeRangeBar(props: TradeBarInput) {
+export function TradeRangeBar(props: TradeBarInput & { hideWhenUnavailable?: boolean }) {
   const m = getTradeBarMetrics(props);
 
   if (!m.hasRange || m.stoplossPct === null || m.potentialPct === null) {
+    if (props.hideWhenUnavailable) return null;
     return (
       <div className="mb-3 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
         Stoploss / target range unavailable

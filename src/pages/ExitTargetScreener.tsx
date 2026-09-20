@@ -14,9 +14,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ExitTargetScreenerItem } from "@/lib/googleSheetsService";
+import { TradeRangeBar, getTradeBarMetrics, toPrice } from "@/components/cards/TradeRangeBar";
 
 type CategoryTab = "ALL" | "OPEN" | "CLOSE";
-type SortField = "date" | "profit" | "id" | "buyPrice" | "targetPrice" | "currentPrice";
+type SortField = "date" | "profit" | "id" | "buyPrice" | "targetPrice" | "currentPrice" | "riskReward";
 
 function parseDateValue(dateStr: string): number {
   if (!dateStr || !dateStr.trim()) return 0;
@@ -125,6 +126,22 @@ export function ExitTargetScreener() {
         const pB = parseNumber(b.profit);
         return sortDirection === "asc" ? pA - pB : pB - pA;
       }
+      if (sortField === "riskReward") {
+        const rrOf = (it: ExitTargetScreenerItem) =>
+          getTradeBarMetrics({
+            buy: toPrice(it.buyPrice),
+            stoploss: toPrice(it.stoploss),
+            target: toPrice(it.targetPrice),
+            current: null,
+          }).riskReward;
+        const rA = rrOf(a);
+        const rB = rrOf(b);
+        // Trades with no computable ratio always sink to the bottom
+        if (rA === null && rB === null) return 0;
+        if (rA === null) return 1;
+        if (rB === null) return -1;
+        return sortDirection === "asc" ? rA - rB : rB - rA;
+      }
       if (sortField === "buyPrice") {
         const numA = parseNumber(a.buyPrice);
         const numB = parseNumber(b.buyPrice);
@@ -153,7 +170,7 @@ export function ExitTargetScreener() {
       setSortDirection(prev => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortField(field);
-      setSortDirection(field === "date" || field === "profit" ? "desc" : "asc");
+      setSortDirection(field === "date" || field === "profit" || field === "riskReward" ? "desc" : "asc");
     }
   };
 
@@ -423,6 +440,14 @@ export function ExitTargetScreener() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => toggleSort("riskReward")}
+                className={`h-8 px-2.5 text-[11px] rounded-lg border-white/10 ${sortField === 'riskReward' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 font-bold' : 'bg-white/5 text-white/70'}`}
+              >
+                Risk:Reward {sortField === 'riskReward' && (sortDirection === 'desc' ? '▾' : '▴')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => toggleSort("id")}
                 className={`h-8 px-2.5 text-[11px] rounded-lg border-white/10 ${sortField === 'id' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 font-bold' : 'bg-white/5 text-white/70'}`}
               >
@@ -544,6 +569,15 @@ export function ExitTargetScreener() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Stoploss → Target range bar (hidden when the trade has no usable stoploss/target) */}
+                    <TradeRangeBar
+                      hideWhenUnavailable
+                      buy={toPrice(item.buyPrice)}
+                      stoploss={toPrice(item.stoploss)}
+                      target={toPrice(item.targetPrice)}
+                      current={toPrice(isExited ? (item.exitPrice || item.currentPrice) : item.currentPrice)}
+                    />
 
                     {/* Footer Row: LASA Branding & Entry Date & Holding Period */}
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground/80 pt-2 border-t border-white/5 flex-wrap gap-2">
