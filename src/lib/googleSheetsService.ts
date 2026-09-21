@@ -174,6 +174,7 @@ export interface WeeklyRecommendationItem {
   holdingWeeks?: string;
   exitPrice?: string;
   targetPrice?: string;
+  potential?: string;         // column AU
 }
 
 export interface Week52HighStock {

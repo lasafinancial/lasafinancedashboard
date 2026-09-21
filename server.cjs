@@ -1346,7 +1346,9 @@ async function fetchData() {
                 : (row[30] !== undefined && row[30] !== null ? row[30].toString().trim() : ''),
               exitDate: row[28] !== undefined && row[28] !== null ? row[28].toString().trim() : '',
               exitPrice: row[29] !== undefined && row[29] !== null ? row[29].toString().trim() : '',
-              holdingWeeks: row[32] !== undefined && row[32] !== null ? row[32].toString().trim() : ''
+              holdingWeeks: row[32] !== undefined && row[32] !== null ? row[32].toString().trim() : '',
+              // Column AU, passed through exactly as it appears in the sheet (same A:AZ range, no new fetch)
+              potential: row[46] !== undefined && row[46] !== null ? row[46].toString().trim() : ''
             });
           }
           if (fetchedItems.length > 0) {

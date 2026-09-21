@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useLiveData } from "@/hooks/useLiveData";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { MarqueeRow } from "@/components/ui/MarqueeRow";
@@ -28,35 +28,11 @@ function parseDateValue(dateStr: string): number {
   return 0;
 }
 
-function parseNumber(val: string | undefined | null): number {
-  if (val === undefined || val === null) return 0;
-  const num = parseFloat(val.toString().replace(/,/g, "").replace(/%/g, "").trim());
-  return isNaN(num) ? 0 : num;
-}
-
-/** Return % exactly as the sheet gives it, formatted like the screener's badge. */
-function ReturnBadge({ profit }: { profit: string | undefined }) {
-  if (!profit || profit === "—" || profit.trim() === "") {
-    return (
-      <div className="text-right shrink-0">
-        <span className="text-sm font-black text-white/50">—</span>
-        <div className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Returns</div>
-      </div>
-    );
-  }
-  const num = parseNumber(profit);
-  const isPos = num > 0;
-  const isNeg = num < 0;
-  return (
-    <div className="text-right shrink-0">
-      <div className={`flex items-center justify-end gap-1 text-sm font-black tracking-tight ${isPos ? "text-emerald-400" : isNeg ? "text-rose-400" : "text-white/80"}`}>
-        {isPos && <TrendingUp className="w-3.5 h-3.5" />}
-        {isNeg && <TrendingDown className="w-3.5 h-3.5" />}
-        <span>{isPos ? `+${num.toFixed(1)}%` : `${num.toFixed(1)}%`}</span>
-      </div>
-      <div className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">Returns</div>
-    </div>
-  );
+/** Potential exactly as the sheet gives it (column AU); a "%" is added only if the cell has none. */
+function potentialLabel(raw: string | undefined): string {
+  const v = (raw ?? "").trim();
+  if (!v) return "—";
+  return v.includes("%") ? v : `${v}%`;
 }
 
 /**
@@ -127,7 +103,7 @@ export function RecentPositionalStrip() {
               type="button"
               tabIndex={decoy ? -1 : 0}
               onClick={openPositional}
-              className="group shrink-0 w-[236px] sm:w-[260px] text-left bg-[#0b0f19]/90 border border-white/10 hover:border-cyan-400/40 rounded-2xl p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-cyan-500/5 active:scale-[0.98] backdrop-blur-md"
+              className="group shrink-0 w-[236px] sm:w-[260px] min-h-[163px] text-left bg-[#0b0f19]/90 border border-white/10 hover:border-cyan-400/40 rounded-2xl p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-cyan-500/5 active:scale-[0.98] backdrop-blur-md"
             >
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -138,27 +114,20 @@ export function RecentPositionalStrip() {
                     {item.id}
                   </h3>
                 </div>
-                <ReturnBadge profit={item.profit} />
               </div>
 
-              <div className="grid grid-cols-2 gap-2 py-2 px-2.5 rounded-xl bg-white/[0.02] border border-white/5 mb-2.5 text-xs">
-                <div>
-                  <div className="text-[9px] text-muted-foreground font-semibold uppercase">Buy Price</div>
-                  <div className="font-mono font-bold text-blue-300 truncate">{item.buyPrice ? `₹${item.buyPrice}` : "—"}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[9px] text-muted-foreground font-semibold uppercase">Current</div>
-                  <div className="font-mono font-bold text-cyan-300 truncate">{item.currentPrice ? `₹${item.currentPrice}` : "—"}</div>
-                </div>
+              <div className="flex items-center justify-between gap-2 py-2 px-2.5 rounded-xl bg-white/[0.02] border border-white/5 mb-2.5 text-xs">
+                <div className="text-[9px] text-muted-foreground font-semibold uppercase">Potential</div>
+                <div className="font-mono font-bold text-emerald-400 truncate">{potentialLabel(item.potential)}</div>
               </div>
 
-              <div className="flex items-center justify-between gap-2 text-[10px]">
-                <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-bold">
-                  Positional
-                </span>
-                <span className="font-mono text-muted-foreground truncate">
+              <div className="space-y-1 text-[10px] font-mono text-muted-foreground">
+                <div className="truncate">
                   Initiated: <strong className="text-blue-300 font-bold">{initiated || "—"}</strong>
-                </span>
+                </div>
+                <div className="truncate">
+                  Period: <strong className="text-white/90 font-bold">upto 1 year</strong>
+                </div>
               </div>
             </button>
           );
