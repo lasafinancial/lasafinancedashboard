@@ -28,11 +28,13 @@ function parseDateValue(dateStr: string): number {
   return 0;
 }
 
-/** Potential exactly as the sheet gives it (column AU); a "%" is added only if the cell has none. */
+/** Potential from the sheet (column AU), shown to 2 decimals like "+28.26%". Formatting only; nothing is calculated. */
 function potentialLabel(raw: string | undefined): string {
   const v = (raw ?? "").trim();
   if (!v) return "—";
-  return v.includes("%") ? v : `${v}%`;
+  const n = parseFloat(v.replace(/[,%+\s]/g, ""));
+  if (!isNaN(n)) return `${n > 0 ? "+" : ""}${n.toFixed(2)}%`;
+  return v; // not a number: show whatever the sheet has, untouched
 }
 
 /**
