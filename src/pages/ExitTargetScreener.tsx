@@ -391,7 +391,7 @@ export function ExitTargetScreener() {
             }`}
           >
             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 shrink-0" />
-            <span className="truncate">Closing</span>
+            <span className="truncate">Closed</span>
             <span className={`px-1.5 py-0.2 rounded-md text-[10px] shrink-0 ${activeTab === 'CLOSE' ? 'bg-emerald-400/20 text-emerald-200 font-bold' : 'bg-white/5 text-white/40'}`}>
               {tabCounts.close}
             </span>

@@ -13,7 +13,7 @@ import {
 const screenerOptions = [
     {
         path: "/screeners/recommendations",
-        label: "SHORT TERM TRADES",
+        label: "Short Term Trades",
         description: "Holding 1–4 Weeks. Short term swing trades tracking buy prices, targets, stoploss, and exit signals.",
         icon: Crosshair,
         color: "text-amber-400",
@@ -24,7 +24,7 @@ const screenerOptions = [
     },
     {
         path: "/screeners/weekly-recommendations",
-        label: "POSITIONAL TRADES",
+        label: "Positional Trades",
         description: "Holding 2–6 Months. Positional setups tracking entry levels, current prices, target returns, and technical summaries.",
         icon: Calendar,
         color: "text-cyan-400",
@@ -79,7 +79,7 @@ const screenerOptions = [
     },
     {
         path: "/screeners/obv-accumulation",
-        label: "OBV Accumulation Scan",
+        label: "Accumulation Scan",
         description: "Stocks whose On-Balance Volume shows daily breakout and weekly accumulation conditions.",
         icon: BarChart2,
         color: "text-teal-400",
@@ -240,10 +240,12 @@ export function Screeners() {
                             </Link>
                         );
 
-                        return (
-                            <PremiumProtector key={option.path} requiredTier={option.isPaid ? "pro" : "free"}>
+                        return option.isPaid ? (
+                            <PremiumProtector key={option.path} requiredTier="pro">
                                 {CardContent}
                             </PremiumProtector>
+                        ) : (
+                            <div key={option.path}>{CardContent}</div>
                         );
                     })}
                 </div>

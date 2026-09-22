@@ -127,6 +127,26 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                     >
                       <div className="absolute -top-2 left-0 w-full h-2 bg-transparent" /> { /* Bridge the gap */}
                       <Link
+                        to="/screeners/recommendations"
+                        onClick={() => setIsScreenersOpen(false)}
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold">Short Term Trades</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Holding 1–4 Weeks</span>
+                        </div>
+                      </Link>
+                      <Link
+                        to="/screeners/weekly-recommendations"
+                        onClick={() => setIsScreenersOpen(false)}
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold">Positional Trades</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Holding 2–6 Months</span>
+                        </div>
+                      </Link>
+                      <Link
                         to="/screeners/breakout-v1"
                         onClick={() => setIsScreenersOpen(false)}
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
@@ -221,7 +241,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">OBV Accumulation Scan</span>
+                          <span className="text-sm font-semibold">Accumulation Scan</span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Daily BO / Weekly Acc</span>
                         </div>
                       </Link>
@@ -233,26 +253,6 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold">Optics</span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Nifty Options</span>
-                        </div>
-                      </Link>
-                      <Link
-                        to="/screeners/recommendations"
-                        onClick={() => setIsScreenersOpen(false)}
-                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold">SHORT TERM TRADES</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Holding 1–4 Weeks</span>
-                        </div>
-                      </Link>
-                      <Link
-                        to="/screeners/weekly-recommendations"
-                        onClick={() => setIsScreenersOpen(false)}
-                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold">POSITIONAL TRADES</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Holding 2–6 Months</span>
                         </div>
                       </Link>
                       <Link
@@ -524,6 +524,8 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                               <span className="font-medium">Screeners</span>
                             </Link>
                             <div className="pl-12 space-y-1 border-l border-white/5 ml-6">
+                              <Link to="/screeners/recommendations" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Short Term Trades</Link>
+                              <Link to="/screeners/weekly-recommendations" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Positional Trades</Link>
                               <Link to="/screeners/breakout-v1" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Breakout Board v1</Link>
                               {FEATURE_FLAGS.ENABLE_NEW_BREAKOUTS_SCREENER && (
                                 <Link to="/screeners/new-breakouts" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">New Breakouts</Link>
@@ -535,10 +537,8 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                               <Link to="/screeners/intraday-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Reversal</Link>
                               <Link to="/screeners/intraday-breakout-scanner" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">ML Setup</Link>
 
-                              <Link to="/screeners/obv-accumulation" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">OBV Accumulation Scan</Link>
+                              <Link to="/screeners/obv-accumulation" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Accumulation Scan</Link>
                               <Link to="/screeners/nifty-analysis" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Optics</Link>
-                              <Link to="/screeners/recommendations" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">SHORT TERM TRADES</Link>
-                              <Link to="/screeners/weekly-recommendations" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">POSITIONAL TRADES</Link>
                               <Link to="/screeners/52-week-high" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">52 Week High</Link>
                               <Link to="/screeners/52-week-low" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">52 Week Low</Link>
                               {user?.email === 'lasafinancial@gmail.com' ? (
