@@ -37,6 +37,8 @@ import Backtests from "@/pages/Backtests";
 import Admin from "@/pages/Admin";
 import Help from "@/pages/Help";
 import Pricing from "@/pages/Pricing";
+import Terms from "@/pages/Terms";
+import SebiCompliance from "@/pages/SebiCompliance";
 import NotFound from "./pages/NotFound";
 import TradeBarPreview from "@/pages/preview/TradeBarPreview";
 import TradeTilesPreview from "@/pages/preview/TradeTilesPreview";
@@ -45,6 +47,7 @@ import { OnboardingModal } from "@/components/ui/OnboardingModal";
 import { CountrySelectionModal, type CountryId } from "@/components/ui/CountrySelectionModal";
 import { TraderTypeModal, type TraderType } from "@/components/ui/TraderTypeModal";
 import { DisclaimerModal } from "@/components/auth/DisclaimerModal";
+import { LoginNudgeModal } from "@/components/auth/LoginNudgeModal";
 
 
 
@@ -215,33 +218,35 @@ const AppContent = () => {
           {shouldShowNavbar && <Navbar selectedCountry={selectedCountry} onCountryChange={handleCountryChange} />}
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/stocks" element={<ProtectedRoute><StockAnalysis /></ProtectedRoute>} />
-            <Route path="/sectors" element={<ProtectedRoute><Sectors /></ProtectedRoute>} />
-            <Route path="/multibagger" element={<ProtectedRoute><Multibagger /></ProtectedRoute>} />
-            <Route path="/screeners" element={<ProtectedRoute><Screeners /></ProtectedRoute>} />
-            <Route path="/screeners/near-resistance" element={FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER ? <ProtectedRoute><NearResistance /></ProtectedRoute> : <Navigate to="/screeners" replace />} />
-            <Route path="/screeners/support-reversal" element={FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER ? <ProtectedRoute><SupportReversal /></ProtectedRoute> : <Navigate to="/screeners" replace />} />
-            <Route path="/screeners/reaction-zone" element={FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER ? <ProtectedRoute><ReactionZone /></ProtectedRoute> : <Navigate to="/screeners" replace />} />
-            <Route path="/screeners/intraday-breakout" element={<ProtectedRoute><IntradayBreakout /></ProtectedRoute>} />
-            <Route path="/screeners/intraday-breakout-scanner" element={<ProtectedRoute><IntradayBreakoutScanner /></ProtectedRoute>} />
-            <Route path="/screeners/intraday-reversal" element={<ProtectedRoute><IntradayReversal /></ProtectedRoute>} />
-            <Route path="/screeners/nifty-analysis" element={<ProtectedRoute><NiftyAnalysis /></ProtectedRoute>} />
-            <Route path="/screeners/breakout-v1" element={<ProtectedRoute><BreakoutBoardV1 /></ProtectedRoute>} />
-            <Route path="/screeners/new-breakouts" element={<ProtectedRoute><NewBreakouts /></ProtectedRoute>} />
-            <Route path="/screeners/obv-accumulation" element={<ProtectedRoute><ObvAccumulation /></ProtectedRoute>} />
-            <Route path="/screeners/recommendations" element={<ProtectedRoute><ExitTargetScreener /></ProtectedRoute>} />
-            <Route path="/screeners/weekly-recommendations" element={<ProtectedRoute><WeeklyRecommendationScreener /></ProtectedRoute>} />
-            <Route path="/screeners/52-week-high" element={<ProtectedRoute><Week52High /></ProtectedRoute>} />
-            <Route path="/screeners/52-week-low" element={<ProtectedRoute><Week52Low /></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute allowAnonymous><Dashboard /></ProtectedRoute>} />
+            <Route path="/stocks" element={<ProtectedRoute allowAnonymous><StockAnalysis /></ProtectedRoute>} />
+            <Route path="/sectors" element={<ProtectedRoute allowAnonymous><Sectors /></ProtectedRoute>} />
+            <Route path="/multibagger" element={<ProtectedRoute allowAnonymous><Multibagger /></ProtectedRoute>} />
+            <Route path="/screeners" element={<ProtectedRoute allowAnonymous><Screeners /></ProtectedRoute>} />
+            <Route path="/screeners/near-resistance" element={FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER ? <ProtectedRoute allowAnonymous><NearResistance /></ProtectedRoute> : <Navigate to="/screeners" replace />} />
+            <Route path="/screeners/support-reversal" element={FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER ? <ProtectedRoute allowAnonymous><SupportReversal /></ProtectedRoute> : <Navigate to="/screeners" replace />} />
+            <Route path="/screeners/reaction-zone" element={FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER ? <ProtectedRoute allowAnonymous><ReactionZone /></ProtectedRoute> : <Navigate to="/screeners" replace />} />
+            <Route path="/screeners/intraday-breakout" element={<ProtectedRoute allowAnonymous><IntradayBreakout /></ProtectedRoute>} />
+            <Route path="/screeners/intraday-breakout-scanner" element={<ProtectedRoute allowAnonymous><IntradayBreakoutScanner /></ProtectedRoute>} />
+            <Route path="/screeners/intraday-reversal" element={<ProtectedRoute allowAnonymous><IntradayReversal /></ProtectedRoute>} />
+            <Route path="/screeners/nifty-analysis" element={<ProtectedRoute allowAnonymous><NiftyAnalysis /></ProtectedRoute>} />
+            <Route path="/screeners/breakout-v1" element={<ProtectedRoute allowAnonymous><BreakoutBoardV1 /></ProtectedRoute>} />
+            <Route path="/screeners/new-breakouts" element={<ProtectedRoute allowAnonymous><NewBreakouts /></ProtectedRoute>} />
+            <Route path="/screeners/obv-accumulation" element={<ProtectedRoute allowAnonymous><ObvAccumulation /></ProtectedRoute>} />
+            <Route path="/screeners/recommendations" element={<ProtectedRoute allowAnonymous><ExitTargetScreener /></ProtectedRoute>} />
+            <Route path="/screeners/weekly-recommendations" element={<ProtectedRoute allowAnonymous><WeeklyRecommendationScreener /></ProtectedRoute>} />
+            <Route path="/screeners/52-week-high" element={<ProtectedRoute allowAnonymous><Week52High /></ProtectedRoute>} />
+            <Route path="/screeners/52-week-low" element={<ProtectedRoute allowAnonymous><Week52Low /></ProtectedRoute>} />
             <Route path="/screeners/weekly-recommendation" element={<Navigate to="/screeners/weekly-recommendations" replace />} />
             <Route path="/screeners/exit-target" element={<Navigate to="/screeners/recommendations" replace />} />
-            <Route path="/nifty50" element={<ProtectedRoute><Nifty50 /></ProtectedRoute>} />
-            <Route path="/daily-news" element={<ProtectedRoute><DailyNews /></ProtectedRoute>} />
-            <Route path="/backtests" element={<ProtectedRoute><Backtests /></ProtectedRoute>} />
+            <Route path="/nifty50" element={<ProtectedRoute allowAnonymous><Nifty50 /></ProtectedRoute>} />
+            <Route path="/daily-news" element={<ProtectedRoute allowAnonymous><DailyNews /></ProtectedRoute>} />
+            <Route path="/backtests" element={<ProtectedRoute allowAnonymous><Backtests /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-            <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
-            <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+            <Route path="/help" element={<ProtectedRoute allowAnonymous><Help /></ProtectedRoute>} />
+            <Route path="/pricing" element={<ProtectedRoute allowAnonymous><Pricing /></ProtectedRoute>} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/sebi-compliance" element={<SebiCompliance />} />
             <Route path="/preview/trade-bar" element={<TradeBarPreview />} />
             <Route path="/preview/trade-tiles" element={<TradeTilesPreview />} />
             <Route path="*" element={<NotFound />} />
@@ -249,6 +254,7 @@ const AppContent = () => {
           {!isLoginPage && <Footer />}
           {!isLoginPage && <StickyFooter />}
           {!isLoginPage && <AIChatbot />}
+          {!isLoginPage && <LoginNudgeModal />}
         </>
       ) : (
         <div className="flex-1 flex items-center justify-center bg-black">

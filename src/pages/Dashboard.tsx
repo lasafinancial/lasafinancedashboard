@@ -15,7 +15,6 @@ import { LiveCallsGrid } from "@/components/cards/LiveCallsGrid";
 import { RecentPositionalStrip } from "@/components/cards/RecentPositionalStrip";
 import Walkthrough from "@/pages/Walkthrough";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { indexSectorData } from "@/data/stockData";
 import { Spotlight } from "@/components/ui/spotlight";
 import marketMoodData from "@/data/processed/market_mood.json";
@@ -388,30 +387,24 @@ const Dashboard = () => {
 
           {/* ML Strength Meter */}
           <GlassCard delay={0.3} className="flex flex-col h-full">
-            <PremiumProtector requiredTier="pro">
-              <div className="h-full flex flex-col p-4">
-                <MLStrengthMeter data={displayStrengthData} eodDate={eodDate} />
-              </div>
-            </PremiumProtector>
+            <div className="h-full flex flex-col p-4">
+              <MLStrengthMeter data={displayStrengthData} eodDate={eodDate} />
+            </div>
           </GlassCard>
 
           {/* Market Strength Meter (Momentum Oscillator) */}
           <GlassCard delay={0.4} className="flex flex-col h-full">
-            <PremiumProtector requiredTier="pro">
-              <div className="h-full flex flex-col p-4">
-                <MarketStrengthMeter data={displayStrengthData} eodDate={eodDate} />
-                <MarketDescription text={getMarketStrengthDescription(displayStrengthData)} />
-              </div>
-            </PremiumProtector>
+            <div className="h-full flex flex-col p-4">
+              <MarketStrengthMeter data={displayStrengthData} eodDate={eodDate} />
+              <MarketDescription text={getMarketStrengthDescription(displayStrengthData)} />
+            </div>
           </GlassCard>
 
           {/* Market Balance Indicator - Full Width */}
           <GlassCard delay={0.5} className="flex flex-col h-full md:col-span-2">
-            <PremiumProtector requiredTier="pro">
-              <div className="h-full flex flex-col p-4">
-                <MarketBalanceIndicator data={displayStrengthData} eodDate={eodDate} />
-              </div>
-            </PremiumProtector>
+            <div className="h-full flex flex-col p-4">
+              <MarketBalanceIndicator data={displayStrengthData} eodDate={eodDate} />
+            </div>
           </GlassCard>
         </div>
 
