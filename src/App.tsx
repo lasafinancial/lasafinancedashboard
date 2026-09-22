@@ -52,7 +52,6 @@ import { LoginNudgeModal } from "@/components/auth/LoginNudgeModal";
 
 
 import { SplashScreen } from "@/components/ui/SplashScreen";
-import { useLiveData } from "@/hooks/useLiveData";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -74,8 +73,6 @@ const AppContent = () => {
   const [profileSetupFinishedSession, setProfileSetupFinishedSession] = useState(false);
   const { userData, updateUserData, user, loading: authLoading } = useAuth();
   const [selectedCountry, setSelectedCountry] = useState<CountryId>('india');
-  const { isLoading } = useLiveData();
-  const [loadingProgress, setLoadingProgress] = useState(0);
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
 
@@ -93,24 +90,6 @@ const AppContent = () => {
   }, [userData]);
 
   const isAdminPath = location.pathname === "/admin";
-
-  // Handle progress simulation when loading starts
-  useEffect(() => {
-    if (isLoading) {
-      setLoadingProgress(0);
-      const interval = setInterval(() => {
-        setLoadingProgress(prev => {
-          if (prev >= 95) return prev;
-          // Slowly approach 95%
-          const increment = Math.max(0.5, (95 - prev) / 20);
-          return prev + increment;
-        });
-      }, 100);
-      return () => clearInterval(interval);
-    } else if (!isLoading) {
-      setLoadingProgress(100);
-    }
-  }, [isLoading]);
 
   // Automatically show onboarding steps sequentially if required after auth is ready
   useEffect(() => {
@@ -186,10 +165,12 @@ const AppContent = () => {
   // Navbar visibility: ONLY show if fully onboarded (or logged out and not on login page)
   const shouldShowNavbar = !isLoginPage && (isFullyOnboarded || !user);
 
-  // Show splash screen if live data is still loading OR auth is still loading
-  // OR if we are logged in but don't have userData yet (still fetching from Firestore)
-  if (isLoading || loadingProgress < 100 || authLoading || (user && !userData)) {
-    return <SplashScreen progress={loadingProgress} />;
+  // Show splash only while auth state is resolving, or while we're logged in but still
+  // waiting on the Firestore user profile. Live market data is NOT a blocking condition:
+  // the dashboard renders instantly from bundled/cached data and streams live updates in
+  // behind the scenes, with each screener showing its own local loading state.
+  if (authLoading || (user && !userData)) {
+    return <SplashScreen progress={100} />;
   }
 
   return (

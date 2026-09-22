@@ -228,7 +228,31 @@ export interface GoogleSheetsData {
   lastUpdated: string;
 }
 
-let cachedData: GoogleSheetsData | null = null;
+// Persists the last successful fetch to localStorage so a fresh page load (or hard refresh)
+// can render real data instantly instead of waiting on a network round-trip. The in-memory
+// `cachedData` var alone doesn't survive a reload, which is what made every page load block
+// on /api/fetch-data even when we'd already fetched the same data moments earlier.
+const CACHE_STORAGE_KEY = 'lasa_live_data_cache_v1';
+
+function loadCacheFromStorage(): GoogleSheetsData | null {
+  try {
+    const raw = localStorage.getItem(CACHE_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as GoogleSheetsData) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCacheToStorage(data: GoogleSheetsData): void {
+  try {
+    localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    // Storage full or unavailable (private browsing, quota exceeded) - in-memory cache still works
+    console.warn('[googleSheetsService] Could not persist cache to localStorage:', e);
+  }
+}
+
+let cachedData: GoogleSheetsData | null = loadCacheFromStorage();
 let lastFetchTime: number = 0;
 let lastEODFetchDate: string | null = null;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes during market hours
@@ -333,6 +357,7 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
 
     cachedData = data;
     lastFetchTime = now;
+    saveCacheToStorage(data);
 
     notifyListeners(data);
 
