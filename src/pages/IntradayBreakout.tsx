@@ -11,8 +11,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
-import { PremiumProtector } from "@/components/ui/PremiumProtector";
-import { useAuth } from "@/context/AuthContext";
 import {
     Table,
     TableBody,
@@ -29,7 +27,6 @@ type SortDirection = "asc" | "desc";
 export function IntradayBreakout() {
     const navigate = useNavigate();
     const { intradayBreakout: stocks, isLoading, stockData } = useLiveData();
-    const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedDate, setSelectedDate] = useState<string>("LATEST");
     const [sortField, setSortField] = useState<SortField>("time");
@@ -374,8 +371,7 @@ export function IntradayBreakout() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium Feature" description="Upgrade to view all Intraday Volume Breakout data.">
-                                        {(isFree ? processedStocks.slice(0, 8) : processedStocks).map((stock, idx) => (
+                                    {processedStocks.map((stock, idx) => (
                                             <TableRow
                                                 key={`${stock.symbol}-${stock.time}-${idx}`}
                                                 className="border-white/5 hover:bg-white/[0.04] transition-colors group"
@@ -451,8 +447,7 @@ export function IntradayBreakout() {
                                                     ) : null}
                                                 </TableCell>
                                             </TableRow>
-                                        ))}
-                                    </PremiumProtector>
+                                    ))}
                                 </TableBody>
                             </Table>
                         </div>

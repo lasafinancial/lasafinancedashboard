@@ -3,8 +3,6 @@ import { Search, ArrowUpRight, Loader2, Sparkles, TrendingUp, TrendingDown, Chev
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
-import { PremiumProtector } from "@/components/ui/PremiumProtector";
-import { useAuth } from "@/context/AuthContext";
 import {
     Table,
     TableBody,
@@ -20,7 +18,6 @@ type SortDirection = "asc" | "desc";
 export function Week52High() {
     const navigate = useNavigate();
     const { week52High: stocks, isLoading, stockData } = useLiveData();
-    const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedGroup, setSelectedGroup] = useState<string>("ALL");
     const [sortField, setSortField] = useState<SortField>("id");
@@ -293,8 +290,7 @@ export function Week52High() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium Feature" description="Upgrade to view all 52 Week High data.">
-                                        {(isFree ? processedStocks.slice(0, 10) : processedStocks).map((stock) => {
+                                    {processedStocks.map((stock) => {
                                             return (
                                                 <TableRow
                                                     key={stock.id}
@@ -347,8 +343,7 @@ export function Week52High() {
                                                     </TableCell>
                                                 </TableRow>
                                             );
-                                        })}
-                                    </PremiumProtector>
+                                    })}
                                 </TableBody>
                             </Table>
                         </div>

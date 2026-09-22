@@ -3,8 +3,6 @@ import { Search, Info, Loader2, AlertCircle, ChevronDown, ChevronUp, Clock, Play
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
-import { PremiumProtector } from "@/components/ui/PremiumProtector";
-import { useAuth } from "@/context/AuthContext";
 import {
     Table,
     TableBody,
@@ -26,7 +24,6 @@ type SortDirection = "asc" | "desc";
 export function ObvAccumulation() {
     const navigate = useNavigate();
     const { intradayBreakoutScanner: rawStocks, intradayBreakout, isLoading, stockData, lastUpdate } = useLiveData();
-    const { isFree } = useAuth();
 
     const [searchTerm, setSearchTerm] = useState("");
     const [sortField, setSortField] = useState<SortField>("symbol");
@@ -286,8 +283,7 @@ export function ObvAccumulation() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <PremiumProtector requiredTier="pro" blurLevel="md" title="Premium Feature" description="Upgrade to Pro to view all OBV Accumulation signals.">
-                                        {(isFree ? processedStocks.slice(0, 8) : processedStocks).map((stock, idx) => (
+                                    {processedStocks.map((stock, idx) => (
                                             <TableRow
                                                 key={`${stock.symbol}-${idx}`}
                                                 className="border-white/5 hover:bg-white/[0.02] transition-colors group"
@@ -334,8 +330,7 @@ export function ObvAccumulation() {
                                                     ) : null}
                                                 </TableCell>
                                             </TableRow>
-                                        ))}
-                                    </PremiumProtector>
+                                    ))}
                                 </TableBody>
                             </Table>
                         </div>

@@ -981,21 +981,19 @@ const StockAnalysis = () => {
         {/* TradingView Technical Analysis Widget */}
         {currentStock?.symbol && (
           <div className="mb-6 animate-fade-in-up-delay-2 rounded-xl overflow-hidden border-none TV-widget-wrapper">
-            <PremiumProtector requiredTier="pro">
-              <TechnicalAnalysisWidget 
-                symbol={(() => {
-                  let sym = currentStock.symbol.trim().toUpperCase();
-                  if (sym === 'NIFTY') return 'NSE:NIFTY';
-                  if (sym === 'BANKNIFTY') return 'NSE:BANKNIFTY';
-                  if (sym === 'FINNIFTY') return 'NSE:FINNIFTY';
-                  if (sym === 'MIDCPNIFTY') return 'NSE:MIDCPNIFTY';
-                  // Handle M&M and L&T
-                  sym = sym.replace(/&/g, '_');
-                  return `NSE:${sym}`;
-                })()} 
-                height={600} 
-              />
-            </PremiumProtector>
+            <TechnicalAnalysisWidget
+              symbol={(() => {
+                let sym = currentStock.symbol.trim().toUpperCase();
+                if (sym === 'NIFTY') return 'NSE:NIFTY';
+                if (sym === 'BANKNIFTY') return 'NSE:BANKNIFTY';
+                if (sym === 'FINNIFTY') return 'NSE:FINNIFTY';
+                if (sym === 'MIDCPNIFTY') return 'NSE:MIDCPNIFTY';
+                // Handle M&M and L&T
+                sym = sym.replace(/&/g, '_');
+                return `NSE:${sym}`;
+              })()}
+              height={600}
+            />
           </div>
         )}
         {/* Data Table */}

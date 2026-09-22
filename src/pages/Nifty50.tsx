@@ -1,8 +1,10 @@
-import { useState } from "react";
-import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Activity, BarChart3, Clock, ShieldCheck, Zap, Target, Lightbulb, AlertCircle, Minus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronRight, ChevronDown, TrendingUp, TrendingDown, Activity, BarChart3, Clock, ShieldCheck, Zap, Target, Lightbulb, AlertCircle, Minus, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/context/AuthContext";
 import StockPriceChart from "@/components/charts/StockPriceChart";
 import {
   Dialog,
@@ -11,6 +13,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+// Parses the sheet's "DD-Mon-YYYY" analysis date (mirrors server.cjs's parseBlockDate)
+const MONTHS: Record<string, number> = {
+  jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+  apr: 3, april: 3, may: 4, jun: 5, june: 5,
+  jul: 6, july: 6, aug: 7, august: 7, sep: 8, september: 8,
+  oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11,
+};
+const parseAnalysisDate = (dateStr: string | undefined): Date | null => {
+  if (!dateStr) return null;
+  const parts = dateStr.trim().split('-');
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = MONTHS[parts[1].toLowerCase()];
+    let year = parseInt(parts[2], 10);
+    if (year < 100) year += 2000;
+    if (month !== undefined && !isNaN(day) && !isNaN(year)) {
+      return new Date(year, month, day);
+    }
+  }
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+};
 
 // ---- Reusable helpers (mirrors IndicesPerformance logic) ----
 const calculatePricePosition = (price: number, lowerRange: number, upperRange: number) => {
@@ -125,6 +150,9 @@ const getActionColor = (action: string) => {
 
 // ---- Main Page ----
 const Nifty50 = () => {
+  const navigate = useNavigate();
+  const { isPro, isElite } = useAuth();
+  const hasFullAccess = isPro || isElite;
   const { nifty50Stocks, stockData, niftyAnalysis, marketMood, isLoading } = useLiveData();
   const isMobile = useIsMobile();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -134,6 +162,28 @@ const Nifty50 = () => {
 
   const history = niftyAnalysis?.history || [];
   const selectedAnalysis = history[selectedAnalysisIndex] || (niftyAnalysis?.scenarios ? niftyAnalysis : null);
+
+  // Today's (and any future) analysis is gated behind Pro/Elite; past dates are always free to browse.
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const isDateLocked = (dateStr: string | undefined) => {
+    if (hasFullAccess) return false;
+    const d = parseAnalysisDate(dateStr);
+    return !!d && d.getTime() >= todayStart.getTime();
+  };
+  const selectedIsLocked = isDateLocked(selectedAnalysis?.summary?.date);
+
+  // If a restricted user's current selection is locked, default them to the newest unlocked (past) date instead.
+  useEffect(() => {
+    if (hasFullAccess || history.length === 0) return;
+    if (isDateLocked(history[selectedAnalysisIndex]?.summary?.date)) {
+      const firstUnlocked = history.findIndex((h: any) => !isDateLocked(h.summary?.date));
+      if (firstUnlocked !== -1 && firstUnlocked !== selectedAnalysisIndex) {
+        setSelectedAnalysisIndex(firstUnlocked);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasFullAccess, history.length]);
 
   // Find NIFTY 50 data in stockData for the chart
   const niftyStockData = stockData.find(
@@ -290,22 +340,29 @@ const Nifty50 = () => {
               </span>
               <div className="flex flex-wrap items-center gap-2">
                 {history.length > 0 ? (
-                  history.slice(0, 10).map((h: any, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedAnalysisIndex(idx)}
-                      className={`
-                        px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border
-                        ${selectedAnalysisIndex === idx
-                          ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_20px_rgba(59,130,246,0.3)] scale-105'
-                          : 'bg-white/5 text-muted-foreground border-white/10 hover:bg-white/10 hover:text-foreground hover:border-white/20'
-                        }
-                      `}
-                    >
-                      {h.summary?.date || "Unknown Date"}
-                      {idx === 0 && <span className="ml-1.5 text-[8px] opacity-70 uppercase tracking-tighter bg-white/10 px-1 py-0.5 rounded">Latest</span>}
-                    </button>
-                  ))
+                  history.slice(0, 10).map((h: any, idx: number) => {
+                    const dateLocked = isDateLocked(h.summary?.date);
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => dateLocked ? navigate("/pricing") : setSelectedAnalysisIndex(idx)}
+                        className={`
+                          flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border
+                          ${dateLocked
+                            ? 'bg-white/[0.02] text-muted-foreground/40 border-white/5 cursor-pointer hover:border-white/10'
+                            : selectedAnalysisIndex === idx
+                              ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_20px_rgba(59,130,246,0.3)] scale-105'
+                              : 'bg-white/5 text-muted-foreground border-white/10 hover:bg-white/10 hover:text-foreground hover:border-white/20'
+                          }
+                        `}
+                      >
+                        {dateLocked && <Lock className="w-3 h-3" />}
+                        {h.summary?.date || "Unknown Date"}
+                        {idx === 0 && !dateLocked && <span className="ml-1.5 text-[8px] opacity-70 uppercase tracking-tighter bg-white/10 px-1 py-0.5 rounded">Latest</span>}
+                        {dateLocked && <span className="ml-1 text-[8px] opacity-80 uppercase tracking-tighter">Upgrade</span>}
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="px-4 py-2 rounded-xl text-xs font-bold bg-primary/20 text-primary border border-primary/30">
                     {selectedAnalysis?.summary?.date || "Current Analysis"} (Latest)
@@ -315,7 +372,24 @@ const Nifty50 = () => {
             </div>
           </div>
 
-
+          {selectedIsLocked ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 rounded-2xl border border-white/10 bg-white/[0.02] text-center">
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="text-base font-bold text-foreground/90">Today's Analysis is Pro/Elite Only</h3>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                Past analysis dates are free to browse. Upgrade to unlock today's Trader Action Plan and scenario probabilities.
+              </p>
+              <button
+                onClick={() => navigate("/pricing")}
+                className="mt-2 px-5 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Upgrade to PRO
+              </button>
+            </div>
+          ) : (
+          <>
 
           {/* Trader Action Plan Section */}
           <div className="space-y-4 pt-4">
@@ -456,6 +530,8 @@ const Nifty50 = () => {
               </div>
             )}
           </div>
+          </>
+          )}
         </motion.div>
       )}
 
