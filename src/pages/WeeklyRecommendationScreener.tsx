@@ -45,7 +45,7 @@ function parseNumber(val: string | number | undefined | null): number {
 export function WeeklyRecommendationScreener() {
   const navigate = useNavigate();
   const { weeklyRecommendation, refresh, isLoading, stockData } = useLiveData();
-  const { isFree, isPro, isElite } = useAuth();
+  const { isPro, isElite } = useAuth();
 
   const [activeTab, setActiveTab] = useState<CategoryTab>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
@@ -481,7 +481,7 @@ export function WeeklyRecommendationScreener() {
               <p className="text-xs text-muted-foreground">Try adjusting your category filter or search keyword.</p>
             </div>
           ) : (
-            (isFree ? processedData.slice(0, 8) : processedData).map((item, idx) => {
+            processedData.map((item, idx) => {
               const statusMeta = getStatusDisplay(item);
               const isExited = (item.status || "").trim().toUpperCase() === "CLOSE" ||
                                (item.status || "").trim().toUpperCase() === "CLOSED" ||
