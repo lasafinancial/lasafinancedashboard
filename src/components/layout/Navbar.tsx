@@ -362,7 +362,15 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
 
             <ThemeToggle />
 
-            {/* User Profile Dropdown */}
+            {!user ? (
+              /* Guest: Login CTA */
+              <Link to="/login">
+                <Button className="h-10 px-4 gap-2 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90">
+                  <User className="h-4 w-4" />
+                  Login
+                </Button>
+              </Link>
+            ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-auto px-2 flex items-center gap-2 hover:bg-white/5 group border border-white/5 rounded-xl">
@@ -422,6 +430,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            )}
           </div>
 
           {/* Mobile Right Actions (Top Row) */}
@@ -636,14 +645,23 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
 
                     <div className="h-px bg-white/10 my-2" />
 
-                    <Button
-                      variant="destructive"
-                      className="w-full justify-start gap-3 h-11 rounded-xl"
-                      onClick={() => logout()}
-                    >
-                      <LogOut className="h-5 w-5" />
-                      <span>Logout</span>
-                    </Button>
+                    {!user ? (
+                      <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button className="w-full justify-start gap-3 h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90">
+                          <User className="h-5 w-5" />
+                          <span>Login</span>
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        className="w-full justify-start gap-3 h-11 rounded-xl"
+                        onClick={() => logout()}
+                      >
+                        <LogOut className="h-5 w-5" />
+                        <span>Logout</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </SheetContent>
