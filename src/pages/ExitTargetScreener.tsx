@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
-import { Search, Loader2, RefreshCw, Crosshair, TrendingUp, TrendingDown, ShieldAlert, CheckCircle2, ChevronRight, ExternalLink } from "lucide-react";
+import { Search, Loader2, RefreshCw, Crosshair, TrendingUp, TrendingDown, ShieldAlert, CheckCircle2, ChevronRight, ExternalLink, AlertCircle, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLiveData } from "@/hooks/useLiveData";
-import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +45,7 @@ function parseNumber(val: string | number | undefined | null): number {
 export function ExitTargetScreener() {
   const navigate = useNavigate();
   const { exitTargetScreener, refresh, isLoading, stockData } = useLiveData();
-  const { isFree } = useAuth();
+  const { isFree, isPro, isElite } = useAuth();
   
   const [activeTab, setActiveTab] = useState<CategoryTab>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
@@ -467,136 +466,154 @@ export function ExitTargetScreener() {
               <p className="text-xs text-muted-foreground">Try adjusting your category filter or search keyword.</p>
             </div>
           ) : (
-            <PremiumProtector requiredTier="pro" blurLevel="md">
-              {(isFree ? processedData.slice(0, 8) : processedData).map((item, idx) => {
-                const statusMeta = getStatusDisplay(item);
-                const isExited = (item.status || "").trim().toUpperCase() === "CLOSE" || 
-                                 (item.status || "").trim().toUpperCase() === "CLOSED" || 
-                                 (item.status || "").trim().toUpperCase().includes("EXIT");
-                const companyName = stockNameMap.get(item.id.toUpperCase()) || item.id;
-                const initials = item.id.slice(0, 2).toUpperCase();
+            (isFree ? processedData.slice(0, 8) : processedData).map((item, idx) => {
+              const statusMeta = getStatusDisplay(item);
+              const isExited = (item.status || "").trim().toUpperCase() === "CLOSE" ||
+                               (item.status || "").trim().toUpperCase() === "CLOSED" ||
+                               (item.status || "").trim().toUpperCase().includes("EXIT");
+              // Closed trades are always fully revealed (proof of track record). Ongoing trades hide
+              // identity + prices for non Pro/Elite users, but keep returns/holding/range visible as a hook.
+              const locked = !isExited && !(isPro || isElite);
+              const companyName = stockNameMap.get(item.id.toUpperCase()) || item.id;
+              const initials = item.id.slice(0, 2).toUpperCase();
 
-                return (
-                  <div
-                    key={`${item.id}-${idx}`}
-                    onClick={() => setSelectedStock(item)}
-                    className="group relative bg-[#0b0f19]/90 border border-white/10 hover:border-amber-400/40 rounded-2xl p-4 md:p-5 transition-all duration-200 hover:shadow-xl hover:shadow-amber-500/5 cursor-pointer backdrop-blur-md"
-                  >
-                    {/* Top Row: Status Banner & Chevron */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold tracking-wide ${statusMeta.badgeClass}`}>
-                        {statusMeta.icon}
-                        <span>{statusMeta.label}</span>
-                      </div>
+              const maskedStat = (
+                <span className="inline-flex items-center gap-1 text-white/25 select-none">
+                  <Lock className="w-3 h-3" />
+                  <span className="font-mono font-bold">•••</span>
+                </span>
+              );
 
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-amber-400 transition-colors">
-                        <span className="text-[11px] font-medium hidden sm:inline">View Report</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </div>
+              return (
+                <div
+                  key={`${item.id}-${idx}`}
+                  onClick={() => (locked ? navigate("/pricing") : setSelectedStock(item))}
+                  className="group relative bg-[#0b0f19]/90 border border-white/10 hover:border-amber-400/40 rounded-2xl p-4 md:p-5 transition-all duration-200 hover:shadow-xl hover:shadow-amber-500/5 cursor-pointer backdrop-blur-md"
+                >
+                  {/* Top Row: Status Banner & Chevron */}
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold tracking-wide ${statusMeta.badgeClass}`}>
+                      {statusMeta.icon}
+                      <span>{statusMeta.label}</span>
                     </div>
 
-                    {/* Middle Row: Stock Avatar + Symbol & Company + Returns */}
-                    <div className="flex items-center justify-between gap-3 mb-3.5">
-                      <div className="flex items-center gap-3 min-w-0">
-                        {/* Avatar */}
-                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/15 flex items-center justify-center font-black text-sm text-white shrink-0 shadow-inner group-hover:border-amber-400/50 group-hover:scale-105 transition-all">
-                          {initials}
-                        </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-amber-400 transition-colors">
+                      <span className="text-[11px] font-medium hidden sm:inline">{locked ? "Unlock" : "View Report"}</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
+                  </div>
 
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-base md:text-lg font-black text-white tracking-tight group-hover:text-amber-300 transition-colors truncate">
-                              {item.id}
-                            </h3>
-                            <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-300">
-                              Short Term
+                  {/* Middle Row: Stock Avatar + Symbol & Company + Returns */}
+                  <div className="flex items-center justify-between gap-3 mb-3.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Avatar */}
+                      <div className={`relative w-11 h-11 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/15 flex items-center justify-center font-black text-sm text-white shrink-0 shadow-inner transition-all ${locked ? "blur-[3px] opacity-40" : "group-hover:border-amber-400/50 group-hover:scale-105"}`}>
+                        {initials}
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className={`text-base md:text-lg font-black tracking-tight truncate transition-colors select-none ${locked ? "text-white/40 blur-[4px]" : "text-white group-hover:text-amber-300"}`}>
+                            {item.id}
+                          </h3>
+                          {locked && <Lock className="w-3.5 h-3.5 text-white/30 shrink-0" />}
+                          <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-300">
+                            Short Term
+                          </span>
+                          {item.date && (
+                            <span className="px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-[10px] font-bold text-blue-300">
+                              Initiated: {item.date}
                             </span>
-                            {item.date && (
-                              <span className="px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-[10px] font-bold text-blue-300">
-                                Initiated: {item.date}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate max-w-[220px] md:max-w-md font-medium">
-                            {companyName}
-                          </p>
+                          )}
                         </div>
-                      </div>
-
-                      {/* Return Metric */}
-                      <div className="shrink-0">
-                        {renderReturnBadge(item.profit)}
+                        <p className={`text-xs truncate max-w-[220px] md:max-w-md font-medium ${locked ? "text-muted-foreground/40 blur-[3px] select-none" : "text-muted-foreground"}`}>
+                          {companyName}
+                        </p>
                       </div>
                     </div>
 
-                    {/* Price Key Statistics Bar */}
-                    <div className="grid grid-cols-4 gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.02] border border-white/5 mb-3 text-xs">
-                      <div>
-                        <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">Buy Price</div>
-                        <div className="font-mono font-bold text-blue-300">
-                          {item.buyPrice ? `₹${item.buyPrice}` : "—"}
-                        </div>
-                      </div>
+                    {/* Return Metric */}
+                    <div className="shrink-0">
+                      {renderReturnBadge(item.profit)}
+                    </div>
+                  </div>
 
-                      <div>
-                        <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">
-                          {isExited ? "Closing Price" : "Current"}
-                        </div>
-                        <div className={`font-mono font-bold ${isExited ? "text-rose-300" : "text-cyan-300"}`}>
-                          {isExited
+                  {/* Price Key Statistics Bar */}
+                  <div className="grid grid-cols-4 gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.02] border border-white/5 mb-3 text-xs">
+                    <div>
+                      <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">Buy Price</div>
+                      <div className="font-mono font-bold text-blue-300">
+                        {locked ? maskedStat : (item.buyPrice ? `₹${item.buyPrice}` : "—")}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">
+                        {isExited ? "Closing Price" : "Current"}
+                      </div>
+                      <div className={`font-mono font-bold ${isExited ? "text-rose-300" : "text-cyan-300"}`}>
+                        {locked
+                          ? maskedStat
+                          : isExited
                             ? (item.exitPrice || item.currentPrice ? `₹${item.exitPrice || item.currentPrice}` : "—")
                             : (item.currentPrice ? `₹${item.currentPrice}` : "—")}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">Target</div>
-                        <div className="font-mono font-bold text-emerald-400">
-                          {item.targetPrice ? `₹${item.targetPrice}` : "—"}
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">Holding</div>
-                        <div className="font-mono font-bold text-amber-300">
-                          {item.holdingDays && parseNumber(item.holdingDays) > 0 ? `${item.holdingDays}d` : "—"}
-                        </div>
                       </div>
                     </div>
 
-                    {/* Stoploss (V) → Target (L) range bar, marker at current price (Y); labels are sheet columns AB / AC / AD */}
-                    <TradeRangeBar
-                      hideWhenUnavailable
-                      stoploss={item.stoploss}
-                      target={item.rangeTarget}
-                      current={item.currentPrice}
-                      potentialLeft={item.potentialLeft}
-                      stoplossDistance={item.stoplossDistance}
-                      riskReward={item.riskReward}
-                    />
-
-                    {/* Footer Row: LASA Branding & Entry Date & Holding Period */}
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground/80 pt-2 border-t border-white/5 flex-wrap gap-2">
-                      <div className="flex items-center gap-1.5 font-medium text-white/70">
-                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400/80" />
-                        <span>LASA Research (SEBI RA)</span>
+                    <div>
+                      <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">Target</div>
+                      <div className="font-mono font-bold text-emerald-400">
+                        {locked ? maskedStat : (item.targetPrice ? `₹${item.targetPrice}` : "—")}
                       </div>
-                      <div className="flex items-center gap-2 font-mono text-[11px] flex-wrap">
-                        {item.holdingDays && parseNumber(item.holdingDays) > 0 && (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold text-[10px]">
-                            {item.holdingDays} Days
-                          </span>
-                        )}
-                        <span>Initiated: <strong className="text-blue-300 font-bold">{item.date || "—"}</strong></span>
-                        {isExited && item.exitDate && (
-                          <span className="text-rose-300">• Closing: <strong className="font-bold">{item.exitDate}</strong></span>
-                        )}
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-[10px] text-muted-foreground font-semibold uppercase truncate">Holding</div>
+                      <div className="font-mono font-bold text-amber-300">
+                        {item.holdingDays && parseNumber(item.holdingDays) > 0 ? `${item.holdingDays}d` : "—"}
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </PremiumProtector>
+
+                  {/* Stoploss (V) → Target (L) range bar, marker at current price (Y); labels are sheet columns AB / AC / AD */}
+                  <TradeRangeBar
+                    hideWhenUnavailable
+                    stoploss={item.stoploss}
+                    target={item.rangeTarget}
+                    current={item.currentPrice}
+                    potentialLeft={item.potentialLeft}
+                    stoplossDistance={item.stoplossDistance}
+                    riskReward={item.riskReward}
+                  />
+
+                  {/* Footer Row: LASA Branding & Entry Date & Holding Period */}
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground/80 pt-2 border-t border-white/5 flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5 font-medium text-white/70">
+                      <div className="w-1.5 h-1.5 rounded-full bg-amber-400/80" />
+                      <span>LASA Research (SEBI RA)</span>
+                    </div>
+                    <div className="flex items-center gap-2 font-mono text-[11px] flex-wrap">
+                      {item.holdingDays && parseNumber(item.holdingDays) > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold text-[10px]">
+                          {item.holdingDays} Days
+                        </span>
+                      )}
+                      <span>Initiated: <strong className="text-blue-300 font-bold">{item.date || "—"}</strong></span>
+                      {isExited && item.exitDate && (
+                        <span className="text-rose-300">• Closing: <strong className="font-bold">{item.exitDate}</strong></span>
+                      )}
+                    </div>
+                  </div>
+
+                  {locked && (
+                    <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-300">
+                      <Lock className="w-3 h-3" />
+                      <span>Upgrade to Pro or Elite to reveal name & price levels</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
 

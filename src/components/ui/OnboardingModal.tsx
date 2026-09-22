@@ -10,8 +10,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowRight, Volume2, VolumeX } from "lucide-react";
-import { useState, type ReactNode, useRef, useEffect } from "react";
+import { ArrowRight } from "lucide-react";
+import { useState, type ReactNode } from "react";
 
 interface OnboardingModalProps {
     isOpen: boolean;
@@ -21,49 +21,6 @@ interface OnboardingModalProps {
 
 export function OnboardingModal({ isOpen, onOpenChange, onComplete }: OnboardingModalProps) {
     const [step, setStep] = useState(1);
-    const [isMuted, setIsMuted] = useState(false);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-
-    useEffect(() => {
-        if (isOpen) {
-            const playAudio = () => {
-                if (audioRef.current && !isMuted) {
-                    audioRef.current.volume = 0.9; // Increased volume to 0.8
-                    audioRef.current.play().catch(err => {
-                        console.log("Audio play failed, waiting for interaction", err);
-                    });
-                }
-            };
-
-            // Attempt initial play
-            playAudio();
-
-            // Broad interaction listener
-            const unlocked = () => {
-                playAudio();
-                window.removeEventListener("click", unlocked);
-                window.removeEventListener("touchstart", unlocked);
-            };
-            window.addEventListener("click", unlocked);
-            window.addEventListener("touchstart", unlocked);
-
-            return () => {
-                window.removeEventListener("click", unlocked);
-                window.removeEventListener("touchstart", unlocked);
-            };
-        } else {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-            }
-        }
-    }, [isOpen, isMuted]);
-
-    useEffect(() => {
-        if (audioRef.current) {
-            audioRef.current.muted = isMuted;
-        }
-    }, [isMuted]);
 
     const stepContent = [
         {
@@ -159,7 +116,6 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
 
     return (
         <>
-            <audio ref={audioRef} src="/onboarding/background-music.mp3" loop preload="auto" />
             <Dialog
                 open={isOpen}
                 onOpenChange={(open) => {
@@ -181,17 +137,6 @@ export function OnboardingModal({ isOpen, onOpenChange, onComplete }: Onboarding
                             height={320}
                             alt="onboarding step"
                         />
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute bottom-4 right-4 h-7 w-7 rounded-full bg-black/40 text-white hover:bg-black/60 backdrop-blur-sm border-none transition-all hover:scale-110 active:scale-95"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsMuted(!isMuted);
-                            }}
-                        >
-                            {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                        </Button>
                     </div>
                     <div className="space-y-4 sm:space-y-6 px-4 pb-4 pt-2 sm:px-6 sm:pb-6 sm:pt-3">
                         <DialogHeader>

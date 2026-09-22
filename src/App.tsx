@@ -40,7 +40,6 @@ import Pricing from "@/pages/Pricing";
 import NotFound from "./pages/NotFound";
 import TradeBarPreview from "@/pages/preview/TradeBarPreview";
 import TradeTilesPreview from "@/pages/preview/TradeTilesPreview";
-import LandingPage from "@/pages/Landing";
 import { startAutoRefresh } from "@/lib/googleSheetsService";
 import { OnboardingModal } from "@/components/ui/OnboardingModal";
 import { CountrySelectionModal, type CountryId } from "@/components/ui/CountrySelectionModal";
@@ -63,7 +62,6 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   useNotifications(); // Mount notification listener globally across app
-  const [showLanding, setShowLanding] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCountrySelection, setShowCountrySelection] = useState(false);
   const [showTraderTypeSelection, setShowTraderTypeSelection] = useState(false);
@@ -79,11 +77,6 @@ const AppContent = () => {
   const isLoginPage = location.pathname === "/login";
 
   useEffect(() => {
-    const hasEntered = sessionStorage.getItem("hasEntered");
-    if (hasEntered) {
-      setShowLanding(false);
-    }
-
     startAutoRefresh();
   }, []);
 
@@ -100,7 +93,7 @@ const AppContent = () => {
 
   // Handle progress simulation when loading starts
   useEffect(() => {
-    if (!showLanding && isLoading) {
+    if (isLoading) {
       setLoadingProgress(0);
       const interval = setInterval(() => {
         setLoadingProgress(prev => {
@@ -114,12 +107,12 @@ const AppContent = () => {
     } else if (!isLoading) {
       setLoadingProgress(100);
     }
-  }, [showLanding, isLoading]);
+  }, [isLoading]);
 
   // Automatically show onboarding steps sequentially if required after auth is ready
   useEffect(() => {
     // Only trigger if we've bypassed or finished the landing page, not on admin/login path, and have userData
-    if (!showLanding && !isAdminPath && !isLoginPage && userData) {
+    if (!isAdminPath && !isLoginPage && userData) {
       // 1. Check for Onboarding Slides
       if (!userData.hasSeenOnboarding && !showOnboarding && !slidesFinishedSession) {
         setShowOnboarding(true);
@@ -133,15 +126,10 @@ const AppContent = () => {
         setShowProfileSetup(true);
       }
     }
-  }, [userData, showLanding, showOnboarding, slidesFinishedSession, isAdminPath, showTraderTypeSelection, showProfileSetup, traderTypeFinishedSession, profileSetupFinishedSession]);
+  }, [userData, showOnboarding, slidesFinishedSession, isAdminPath, showTraderTypeSelection, showProfileSetup, traderTypeFinishedSession, profileSetupFinishedSession]);
 
   // Track activity
   useActivityLogger();
-
-  const handleEnter = () => {
-    setShowLanding(false);
-    sessionStorage.setItem("hasEntered", "true");
-  };
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
@@ -194,15 +182,6 @@ const AppContent = () => {
 
   // Navbar visibility: ONLY show if fully onboarded (or logged out and not on login page)
   const shouldShowNavbar = !isLoginPage && (isFullyOnboarded || !user);
-
-  if (showLanding) {
-    return (
-      <>
-        <NotificationPromptBanner />
-        <LandingPage onEnter={handleEnter} />
-      </>
-    );
-  }
 
   // Show splash screen if live data is still loading OR auth is still loading
   // OR if we are logged in but don't have userData yet (still fetching from Firestore)

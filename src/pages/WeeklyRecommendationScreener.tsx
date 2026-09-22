@@ -452,8 +452,8 @@ export function WeeklyRecommendationScreener() {
               <p className="text-xs text-muted-foreground">Try adjusting your category filter or search keyword.</p>
             </div>
           ) : (
-            <PremiumProtector requiredTier="pro" blurLevel="md">
-              {(isFree ? processedData.slice(0, 8) : processedData).map((item, idx) => {
+            (() => {
+              const cards = (isFree ? processedData.slice(0, 8) : processedData).map((item, idx) => {
                 const statusMeta = getStatusDisplay(item);
                 const isExited = (item.status || "").trim().toUpperCase() === "CLOSE" || 
                                  (item.status || "").trim().toUpperCase() === "CLOSED" || 
@@ -571,8 +571,16 @@ export function WeeklyRecommendationScreener() {
                     </div>
                   </div>
                 );
-              })}
-            </PremiumProtector>
+              });
+              // Closed trades are always fully visible (proof of track record); Ongoing / All Trades are gated.
+              return activeTab === "CLOSE" ? (
+                <>{cards}</>
+              ) : (
+                <PremiumProtector requiredTier="pro" blurLevel="md">
+                  {cards}
+                </PremiumProtector>
+              );
+            })()
           )}
         </div>
 

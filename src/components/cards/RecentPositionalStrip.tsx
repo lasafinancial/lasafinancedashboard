@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Lock } from "lucide-react";
 import { useLiveData } from "@/hooks/useLiveData";
-import { PremiumProtector } from "@/components/ui/PremiumProtector";
+import { useAuth } from "@/context/AuthContext";
 import { MarqueeRow } from "@/components/ui/MarqueeRow";
 import type { WeeklyRecommendationItem } from "@/lib/googleSheetsService";
 
@@ -44,6 +44,9 @@ function potentialLabel(raw: string | undefined): string {
 export function RecentPositionalStrip() {
   const navigate = useNavigate();
   const { weeklyRecommendation } = useLiveData();
+  const { isPro, isElite } = useAuth();
+  // Names are gated at "pro"; the potential % stays visible to everyone as a curiosity hook.
+  const nameUnlocked = isPro || isElite;
 
   const recent = useMemo(() => {
     return (weeklyRecommendation || [])
@@ -91,14 +94,10 @@ export function RecentPositionalStrip() {
             <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
           </button>
         }
-        wrapRow={(row) => (
-          <PremiumProtector requiredTier="pro" blurLevel="md">
-            {row}
-          </PremiumProtector>
-        )}
         renderItem={(item, { decoy }) => {
           const initials = item.id.slice(0, 2).toUpperCase();
           const initiated = item.entryDate || item.date;
+          const locked = !nameUnlocked;
 
           return (
             <button
@@ -109,12 +108,21 @@ export function RecentPositionalStrip() {
             >
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/15 flex items-center justify-center font-black text-xs text-white shrink-0 shadow-inner group-hover:border-cyan-400/50 transition-colors">
+                  <div
+                    className={`relative w-9 h-9 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/15 flex items-center justify-center font-black text-xs text-white shrink-0 shadow-inner transition-colors ${
+                      locked ? "blur-[3px] opacity-40" : "group-hover:border-cyan-400/50"
+                    }`}
+                  >
                     {initials}
                   </div>
-                  <h3 className="text-sm font-black text-white tracking-tight truncate min-w-0 group-hover:text-cyan-300 transition-colors">
+                  <h3
+                    className={`text-sm font-black tracking-tight truncate min-w-0 transition-colors select-none ${
+                      locked ? "text-white/40 blur-[4px]" : "text-white group-hover:text-cyan-300"
+                    }`}
+                  >
                     {item.id}
                   </h3>
+                  {locked && <Lock className="w-3 h-3 text-white/30 shrink-0" />}
                 </div>
               </div>
 
