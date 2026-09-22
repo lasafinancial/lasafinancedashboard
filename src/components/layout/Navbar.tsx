@@ -315,17 +315,18 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
+            {!user && (
+              /* Guest: Login CTA - kept first so it's never pushed off-screen by the icon cluster */
+              <Link to="/login">
+                <Button className="h-10 px-4 gap-2 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90">
+                  <User className="h-4 w-4" />
+                  Login
+                </Button>
+              </Link>
+            )}
+
             {/* Install PWA Button */}
             <InstallPWA />
-
-            {/* Live Indicator */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
-              </span>
-              <span className="text-xs font-medium text-success uppercase tracking-wider">Live</span>
-            </div>
 
             {/* Country Selector */}
             <CountrySelector
@@ -362,15 +363,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
 
             <ThemeToggle />
 
-            {!user ? (
-              /* Guest: Login CTA */
-              <Link to="/login">
-                <Button className="h-10 px-4 gap-2 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90">
-                  <User className="h-4 w-4" />
-                  Login
-                </Button>
-              </Link>
-            ) : (
+            {user && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-auto px-2 flex items-center gap-2 hover:bg-white/5 group border border-white/5 rounded-xl">
@@ -435,15 +428,6 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
 
           {/* Mobile Right Actions (Top Row) */}
           <div className="md:hidden flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Live Indicator Mobile */}
-            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-success/10 border border-success/20">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
-              </span>
-              <span className="text-[10px] font-medium text-success uppercase tracking-wider">Live</span>
-            </div>
-
             {/* Notification Toggle - Mobile Header */}
             {isSupported && (
               <button
