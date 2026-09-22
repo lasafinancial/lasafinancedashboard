@@ -15,7 +15,7 @@ import {
 import { ExitTargetScreenerItem } from "@/lib/googleSheetsService";
 import { TradeRangeBar, parseSheetNumber } from "@/components/cards/TradeRangeBar";
 
-type CategoryTab = "ALL" | "OPEN" | "CLOSE";
+type CategoryTab = "OPEN" | "CLOSE";
 type SortField = "date" | "profit" | "id" | "buyPrice" | "targetPrice" | "currentPrice" | "riskReward";
 
 function parseDateValue(dateStr: string): number {
@@ -47,7 +47,7 @@ export function ExitTargetScreener() {
   const { exitTargetScreener, refresh, isLoading, stockData } = useLiveData();
   const { isPro, isElite } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<CategoryTab>("ALL");
+  const [activeTab, setActiveTab] = useState<CategoryTab>("OPEN");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -68,19 +68,16 @@ export function ExitTargetScreener() {
 
   // Tab counts
   const tabCounts = useMemo(() => {
-    let all = 0, open = 0, close = 0;
+    let open = 0, close = 0;
     (exitTargetScreener || []).forEach((item: ExitTargetScreenerItem) => {
-      all++;
       const st = (item.status || "").trim().toUpperCase();
-      if (st === "OPEN") {
-        open++;
-      } else if (st === "CLOSE" || st === "CLOSED" || st.includes("EXIT") || st.includes("HIT") || st.includes("TARGET")) {
+      if (st === "CLOSE" || st === "CLOSED" || st.includes("EXIT") || st.includes("HIT") || st.includes("TARGET")) {
         close++;
       } else {
         open++;
       }
     });
-    return { all, open, close };
+    return { open, close };
   }, [exitTargetScreener]);
 
   // Filtered and sorted data
@@ -351,22 +348,8 @@ export function ExitTargetScreener() {
           </Button>
         </div>
 
-        {/* Category Tabs (All, Ongoing, Exited) - Fit on screen without scrollbar */}
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-2 border-b border-white/10 pb-3 w-full">
-          <button
-            onClick={() => setActiveTab("ALL")}
-            className={`w-full justify-center px-2 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 sm:gap-2 ${
-              activeTab === "ALL"
-                ? "bg-white/10 text-white border border-white/20 shadow-lg shadow-white/5 font-black"
-                : "bg-white/[0.02] text-white/60 hover:text-white hover:bg-white/5 border border-transparent"
-            }`}
-          >
-            <span className="truncate">All Trades</span>
-            <span className={`px-1.5 py-0.2 rounded-md text-[10px] shrink-0 ${activeTab === 'ALL' ? 'bg-amber-400/20 text-amber-300' : 'bg-white/5 text-white/40'}`}>
-              {tabCounts.all}
-            </span>
-          </button>
-
+        {/* Category Tabs (Open, Closed) - Fit on screen without scrollbar */}
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2 border-b border-white/10 pb-3 w-full">
           <button
             onClick={() => setActiveTab("OPEN")}
             className={`w-full justify-center px-2 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 sm:gap-2 ${
@@ -376,7 +359,7 @@ export function ExitTargetScreener() {
             }`}
           >
             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-400 shrink-0" />
-            <span className="truncate">Ongoing</span>
+            <span className="truncate">Open</span>
             <span className={`px-1.5 py-0.2 rounded-md text-[10px] shrink-0 ${activeTab === 'OPEN' ? 'bg-indigo-400/20 text-indigo-200 font-bold' : 'bg-white/5 text-white/40'}`}>
               {tabCounts.open}
             </span>
