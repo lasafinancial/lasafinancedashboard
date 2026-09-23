@@ -5,7 +5,7 @@ import { Check, Info, ShieldAlert } from 'lucide-react';
 
 export const Pricing = () => {
     const { user } = useAuth();
-    const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+    const [billingCycle, setBillingCycle] = useState<'quarterly' | 'annual'>('quarterly');
 
     return (
         <div className="min-h-screen bg-[#020617] text-white selection:bg-primary/30 py-20 px-4 md:px-8 font-sans">
@@ -31,27 +31,27 @@ export const Pricing = () => {
                     {/* Toggle */}
                     <div className="flex items-center justify-center mt-8">
                         <div className="bg-white/5 p-1 rounded-xl flex items-center border border-white/10">
-                            <button 
-                                onClick={() => setBillingCycle('monthly')}
+                            <button
+                                onClick={() => setBillingCycle('quarterly')}
                                 className={`px-6 py-2.5 rounded-lg text-sm font-bold tracking-wide transition-all ${
-                                    billingCycle === 'monthly' 
-                                    ? 'bg-white/10 text-white shadow-sm' 
+                                    billingCycle === 'quarterly'
+                                    ? 'bg-white/10 text-white shadow-sm'
                                     : 'text-muted-foreground hover:text-white'
                                 }`}
                             >
-                                MONTHLY
+                                QUARTERLY
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setBillingCycle('annual')}
                                 className={`px-6 py-2.5 rounded-lg text-sm font-bold tracking-wide transition-all flex items-center gap-2 ${
-                                    billingCycle === 'annual' 
-                                    ? 'bg-white/10 text-white shadow-sm' 
+                                    billingCycle === 'annual'
+                                    ? 'bg-white/10 text-white shadow-sm'
                                     : 'text-muted-foreground hover:text-white'
                                 }`}
                             >
                                 ANNUAL
                                 <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/30">
-                                    SAVE ₹3K
+                                    1 QUARTER FREE
                                 </span>
                             </button>
                         </div>
@@ -93,8 +93,12 @@ export const Pricing = () => {
                                 {[
                                     'Live Market Breadth Dashboard',
                                     'Index Performance Tracker (Nifty, Sensex, Bank Nifty)',
-                                    '1 In-depth Stock Analysis per day',
-                                    'Educational market commentary'
+                                    '3 In-depth Stock Analysis per day',
+                                    'Educational market commentary',
+                                    'Free Screeners',
+                                    'Historical Nifty Analysis',
+                                    'Daily News',
+                                    'News Letter'
                                 ].map((feature, i) => (
                                     <div key={i} className="flex gap-3 text-sm text-white/80">
                                         <div className="mt-1 flex-shrink-0">
@@ -110,48 +114,56 @@ export const Pricing = () => {
                             </button>
                             
                             <p className="text-[10px] text-muted-foreground mt-6 leading-relaxed opacity-60">
-                                Data-driven information only. Not a buy/sell recommendation. SEBI RA Reg. No. INH000XXXXXX.
+                                Data-driven information only. Not a buy/sell recommendation. SEBI RA Reg. No. INH000030144.
                             </p>
                         </div>
 
-                        {/* Analyst Plan */}
+                        {/* Trader Plan */}
                         <div className="bg-[#0b101e] border-t-2 border-blue-500 p-8 flex flex-col relative border-r border-b border-l border-white/5 md:border-l-0">
                             <div className="mb-6">
                                 <span className="text-[10px] font-bold tracking-widest text-blue-400 bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20 uppercase">
                                     Premium
                                 </span>
                             </div>
-                            <h3 className="text-3xl font-bold font-serif mb-2">Analyst</h3>
+                            <h3 className="text-3xl font-bold font-serif mb-2">Trader</h3>
                             <p className="text-sm text-muted-foreground mb-8 min-h-[40px]">
                                 Screeners, signals, and daily Nifty insights for active traders.
                             </p>
-                            
+
                             <div className="mb-8">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <span className="text-sm text-muted-foreground/50 line-through font-mono">
+                                        ₹{billingCycle === 'quarterly' ? '4,800' : '14,400'}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                                        50% Off
+                                    </span>
+                                </div>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-2xl text-muted-foreground">₹</span>
                                     <span className="text-5xl font-bold">
-                                        {billingCycle === 'monthly' ? '600' : '550'}
+                                        {billingCycle === 'quarterly' ? '2,400' : '7,200'}
                                     </span>
                                 </div>
                                 <div className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
-                                    <span className="text-white/30">/</span> month
+                                    <span className="text-white/30">/</span> {billingCycle === 'quarterly' ? 'quarter' : 'year'}
                                 </div>
                                 <div className="text-xs text-muted-foreground mt-2">
-                                    {billingCycle === 'monthly' 
-                                        ? 'Billed monthly • Cancel anytime' 
-                                        : 'Billed annually at ₹6,600 • Save ₹600'
+                                    {billingCycle === 'quarterly'
+                                        ? 'Billed quarterly • Cancel anytime'
+                                        : 'Billed annually • 1 quarter free'
                                     }
                                 </div>
                             </div>
-                            
+
                             <div className="space-y-4 mb-8 flex-1">
                                 {[
                                     'Everything in Starter',
-                                    'Advanced Stock Screeners',
-                                    'Technical Indicators Suite',
-                                    'Daily Nifty Analysis Report',
-                                    '2 Trade Ideas per week (Cash)',
-                                    '2 Stock Analyses per day'
+                                    'Short Term Trades (Up to 1-6 Weeks Holding Period)',
+                                    'Positional Trades (Upto 1 Year Holding Period based on Technical and Fundamental Strength)',
+                                    'Unlimited Stock Analysis',
+                                    'All Paid Screeners',
+                                    'Daily Nifty Analysis and Levels'
                                 ].map((feature, i) => (
                                     <div key={i} className="flex gap-3 text-sm text-white/80">
                                         <div className="mt-1 flex-shrink-0">
@@ -167,7 +179,7 @@ export const Pricing = () => {
                             </button>
                             
                             <p className="text-[10px] text-muted-foreground mt-6 leading-relaxed opacity-60">
-                                Research by SEBI RA Reg. No. INH000XXXXXX. Trade ideas are research recommendations, not guaranteed returns. For registered subscribers only.
+                                Research by SEBI RA Reg. No. INH000030144. Trade ideas are research recommendations, not guaranteed returns. For registered subscribers only.
                             </p>
                         </div>
 
@@ -190,36 +202,39 @@ export const Pricing = () => {
                             </p>
                             
                             <div className="mb-8">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <span className="text-sm text-muted-foreground/50 line-through font-mono">
+                                        ₹{billingCycle === 'quarterly' ? '7,200' : '21,600'}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                                        50% Off
+                                    </span>
+                                </div>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-2xl text-muted-foreground">₹</span>
                                     <span className="text-5xl font-bold">
-                                        {billingCycle === 'monthly' ? '1,500' : '1,250'}
+                                        {billingCycle === 'quarterly' ? '3,600' : '10,800'}
                                     </span>
                                 </div>
                                 <div className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
-                                    <span className="text-white/30">/</span> month
+                                    <span className="text-white/30">/</span> {billingCycle === 'quarterly' ? 'quarter' : 'year'}
                                 </div>
                                 <div className="text-xs text-muted-foreground mt-2 flex items-center gap-2">
-                                    {billingCycle === 'monthly' 
-                                        ? 'Billed monthly • Cancel anytime' 
-                                        : 'Billed annually at ₹15,000 • Save ₹3,000'
+                                    {billingCycle === 'quarterly'
+                                        ? 'Billed quarterly • Cancel anytime'
+                                        : 'Billed annually • 1 quarter free'
                                     }
                                 </div>
-                                {billingCycle === 'monthly' && (
-                                    <div className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold tracking-widest text-amber-600 uppercase">
-                                        <StarIcon /> Introductory Price
-                                    </div>
-                                )}
+                                <div className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold tracking-widest text-amber-600 uppercase">
+                                    <StarIcon /> Introductory Price
+                                </div>
                             </div>
-                            
+
                             <div className="space-y-4 mb-8 flex-1">
                                 {[
-                                    'Everything in Analyst',
-                                    'Cash Trade Ideas — 2 to 3 per week',
-                                    'F&O Trade Ideas — 2 to 3 per week',
-                                    'Up to 10 Stock Analyses per day (priority)',
-                                    'Dedicated research support',
-                                    'Early access to price increases'
+                                    'Everything in Trader',
+                                    'Futures and Options Trades',
+                                    'Intraday Trades'
                                 ].map((feature, i) => (
                                     <div key={i} className="flex gap-3 text-sm text-white/80">
                                         <div className="mt-1 flex-shrink-0">
@@ -235,7 +250,7 @@ export const Pricing = () => {
                             </button>
                             
                             <p className="text-[10px] text-muted-foreground mt-6 leading-relaxed opacity-60">
-                                SEBI RA Reg. No. INH000XXXXXX. F&O research involves higher risk. Suitable for investors with adequate risk tolerance. Risk profiling mandatory at onboarding.
+                                SEBI RA Reg. No. INH000030144. F&O research involves higher risk. Suitable for investors with adequate risk tolerance. Risk profiling mandatory at onboarding.
                             </p>
                         </div>
                     </div>
@@ -266,12 +281,22 @@ export const Pricing = () => {
                         </div>
                         
                         <div className="flex flex-col items-start md:items-end gap-3 min-w-[200px]">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground/50 line-through font-mono">
+                                    ₹{billingCycle === 'quarterly' ? '4,800' : '14,400'}
+                                </span>
+                                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                                    50% Off
+                                </span>
+                            </div>
                             <div className="flex items-baseline gap-1">
                                 <span className="text-xl text-muted-foreground">₹</span>
-                                <span className="text-4xl font-bold">800</span>
+                                <span className="text-4xl font-bold">
+                                    {billingCycle === 'quarterly' ? '2,400' : '7,200'}
+                                </span>
                             </div>
                             <div className="text-xs text-muted-foreground font-mono tracking-tight text-right w-full">
-                                per month • standalone
+                                {billingCycle === 'quarterly' ? 'per quarter • standalone' : 'per year • 1 quarter free'}
                             </div>
                             <button className="w-full md:w-auto px-8 py-3 text-xs font-bold tracking-widest text-purple-400 border border-purple-500/30 hover:bg-purple-500/10 transition-colors uppercase rounded mt-2">
                                 Subscribe
@@ -287,18 +312,21 @@ export const Pricing = () => {
                             </span>
                             <div>
                                 <h3 className="text-lg font-bold">Elite Annual Plan — Best Value</h3>
-                                <p className="text-sm text-muted-foreground">Full Elite access • Lock in introductory pricing • ₹1,250/month effective</p>
+                                <p className="text-sm text-muted-foreground">Full Elite access • 50% off introductory offer • 1 quarter free • ₹900/month effective</p>
                             </div>
                         </div>
-                        
+
                         <div className="flex flex-wrap items-center gap-4 sm:gap-6 w-full md:w-auto justify-between md:justify-end">
                             <div className="text-left sm:text-right">
-                                <div className="text-emerald-400 text-sm font-bold">₹3,000 saved</div>
-                                <div className="text-[10px] text-muted-foreground font-mono">vs monthly</div>
+                                <div className="text-emerald-400 text-sm font-bold">₹3,600 saved</div>
+                                <div className="text-[10px] text-muted-foreground font-mono">vs quarterly</div>
                             </div>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-xl text-muted-foreground">₹</span>
-                                <span className="text-3xl font-bold">15,000</span>
+                            <div className="text-right">
+                                <span className="text-sm text-muted-foreground/50 line-through font-mono block">₹21,600</span>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-xl text-muted-foreground">₹</span>
+                                    <span className="text-3xl font-bold">10,800</span>
+                                </div>
                             </div>
                             <div className="text-xs text-muted-foreground font-mono tracking-tight">
                                 per year
@@ -324,7 +352,7 @@ export const Pricing = () => {
                                 Screener & Data Screens
                             </div>
                             <p className="text-[11px] text-muted-foreground leading-relaxed font-mono opacity-60">
-                                Screener results are generated algorithmically based on technical and/or fundamental filters applied to publicly available market data. These outputs are data-driven and do not constitute a research recommendation, buy/sell advice, or endorsement of any security. Results should be used for analytical and educational purposes only. Investors must conduct independent due diligence before making any investment decisions. SEBI Registered Research Analyst | Reg. No. INH000XXXXXX.
+                                Screener results are generated algorithmically based on technical and/or fundamental filters applied to publicly available market data. These outputs are data-driven and do not constitute a research recommendation, buy/sell advice, or endorsement of any security. Results should be used for analytical and educational purposes only. Investors must conduct independent due diligence before making any investment decisions. SEBI Registered Research Analyst | Reg. No. INH000030144 | Analyst: Dheeraj Sogani.
                             </p>
                         </div>
                         
@@ -334,7 +362,7 @@ export const Pricing = () => {
                                 Trade Ideas & Research Reports
                             </div>
                             <p className="text-[11px] text-muted-foreground leading-relaxed font-mono opacity-60">
-                                Trade ideas are published by Lasa Research Services, a SEBI Registered Research Analyst (Reg. No. INH000XXXXXX) under SEBI (Research Analysts) Regulations, 2014. Research is prepared for the exclusive use of registered subscribers and is not for public circulation or redistribution. The analyst or Lasa Research Services may or may not hold positions in mentioned securities. Conflicts of interest, if any, are disclosed in each report. Past performance is not indicative of future results. F&O instruments carry higher risk and are suitable only for investors with adequate risk tolerance. Risk profiling is mandatory prior to onboarding for Elite subscribers.
+                                Trade ideas are published by Lasa Research Services (Analyst: Dheeraj Sogani), a SEBI Registered Research Analyst (Reg. No. INH000030144) under SEBI (Research Analysts) Regulations, 2014. Research is prepared for the exclusive use of registered subscribers and is not for public circulation or redistribution. The analyst or Lasa Research Services may or may not hold positions in mentioned securities. Conflicts of interest, if any, are disclosed in each report. Past performance is not indicative of future results. F&O instruments carry higher risk and are suitable only for investors with adequate risk tolerance. Risk profiling is mandatory prior to onboarding for Elite subscribers.
                             </p>
                         </div>
                     </div>
@@ -344,7 +372,7 @@ export const Pricing = () => {
                             Full Regulatory Disclosure
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed font-mono opacity-60">
-                            Lasa Research Services is a SEBI Registered Research Analyst under SEBI (Research Analysts) Regulations, 2014 | Reg. No. INH000XXXXXX. All research, analyses, trade ideas, and market content shared are for registered subscribers only and not for public circulation. This is not an offer or solicitation to buy or sell any securities. Investments in equity and F&O markets are subject to market risk. Read all scheme-related documents carefully. Past performance is not indicative of future returns. No guaranteed returns are promised or implied. Pricing is standardised for all subscribers of the same tier in compliance with SEBI RA Regulations. | Grievances: contact@lasa.in | SEBI Scores: scores.sebi.gov.in
+                            Lasa Research Services (Analyst: Dheeraj Sogani) is a SEBI Registered Research Analyst under SEBI (Research Analysts) Regulations, 2014 | Reg. No. INH000030144. All research, analyses, trade ideas, and market content shared are for registered subscribers only and not for public circulation. This is not an offer or solicitation to buy or sell any securities. Investments in equity and F&O markets are subject to market risk. Read all scheme-related documents carefully. Past performance is not indicative of future returns. No guaranteed returns are promised or implied. Pricing is standardised for all subscribers of the same tier in compliance with SEBI RA Regulations. | Grievances: contact@lasa.in | SEBI Scores: scores.sebi.gov.in
                         </p>
                     </div>
                 </div>

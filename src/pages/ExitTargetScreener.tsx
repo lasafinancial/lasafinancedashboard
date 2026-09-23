@@ -847,7 +847,7 @@ export function ExitTargetScreener() {
 
               {/* SEBI RA Disclaimer Footer */}
               <div className="pt-2 text-[10px] text-muted-foreground/60 text-center leading-relaxed">
-                LASA Research Services · SEBI Registered Research Analyst INH0000XXXXX · Investments in securities are subject to market risks.
+                LASA Research Services · SEBI Registered Research Analyst INH000030144 · Investments in securities are subject to market risks.
               </div>
             </div>
           );
