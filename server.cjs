@@ -3040,16 +3040,16 @@ app.get('/api/nifty-options-data', async (req, res) => {
 
 // ── Razorpay Payment Gateway Endpoints ────────────────────────────────────────
 const RAZORPAY_PLANS = {
-  'starter': { name: 'Starter', priceMonthly: 0, priceAnnual: 0, tier: 'free' },
-  'analyst': { name: 'Analyst', priceMonthly: 600, priceAnnual: 6600, tier: 'pro' },
-  'pro_trader': { name: 'Pro Trader', priceMonthly: 1500, priceAnnual: 15000, tier: 'elite' },
-  'standalone_rotation': { name: 'Dynamic Portfolio Rotation', priceMonthly: 800, priceAnnual: 9600, tier: 'pro' }
+  'starter': { name: 'Starter', priceQuarterly: 0, priceAnnual: 0, tier: 'free' },
+  'trader': { name: 'Trader', priceQuarterly: 2400, priceAnnual: 7200, tier: 'pro' },
+  'pro_trader': { name: 'Pro Trader', priceQuarterly: 3600, priceAnnual: 10800, tier: 'elite' },
+  'standalone_rotation': { name: 'Dynamic Portfolio Rotation', priceQuarterly: 2400, priceAnnual: 7200, tier: 'pro' }
 };
 
-function getLocalPlanDetails(planId, billingCycle = 'monthly') {
+function getLocalPlanDetails(planId, billingCycle = 'quarterly') {
   const plan = RAZORPAY_PLANS[planId];
   if (!plan) return null;
-  const amount = billingCycle === 'annual' ? plan.priceAnnual : plan.priceMonthly;
+  const amount = billingCycle === 'annual' ? plan.priceAnnual : plan.priceQuarterly;
   return {
     ...plan,
     amount,
@@ -3060,7 +3060,7 @@ function getLocalPlanDetails(planId, billingCycle = 'monthly') {
 // 1. Create Razorpay Order
 app.post('/api/razorpay/create-order', async (req, res) => {
   try {
-    const { planId, billingCycle = 'monthly', userId, userEmail, userPhone } = req.body || {};
+    const { planId, billingCycle = 'quarterly', userId, userEmail, userPhone } = req.body || {};
 
     if (!planId) {
       return res.status(400).json({ error: 'planId is required' });
@@ -3143,7 +3143,7 @@ app.post('/api/razorpay/verify-payment', async (req, res) => {
       razorpay_payment_id,
       razorpay_signature,
       planId,
-      billingCycle = 'monthly',
+      billingCycle = 'quarterly',
       userId,
       userEmail,
       userPhone
@@ -3181,7 +3181,7 @@ app.post('/api/razorpay/verify-payment', async (req, res) => {
     console.log(`[RAZORPAY] Payment verified successfully: ${razorpay_payment_id}`);
 
     const plan = getLocalPlanDetails(planId, billingCycle) || { name: 'Pro Plan', tier: 'pro', amount: 0 };
-    const daysToAdd = billingCycle === 'annual' ? 365 : 30;
+    const daysToAdd = billingCycle === 'annual' ? 365 : 90;
     const expiresDate = new Date();
     expiresDate.setDate(expiresDate.getDate() + daysToAdd);
 

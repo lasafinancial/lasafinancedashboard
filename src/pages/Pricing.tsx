@@ -1,11 +1,47 @@
 import React, { useState } from 'react';
 import { useAuth } from "@/context/AuthContext";
-import { Navigate } from "react-router-dom";
-import { Check, Info, ShieldAlert } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { Check, Info, ShieldAlert, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { startRazorpayCheckout, type BillingCycle } from '@/lib/razorpay';
 
 export const Pricing = () => {
     const { user } = useAuth();
-    const [billingCycle, setBillingCycle] = useState<'quarterly' | 'annual'>('quarterly');
+    const navigate = useNavigate();
+    const [billingCycle, setBillingCycle] = useState<BillingCycle>('quarterly');
+    const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+    const handleSubscribe = (planId: string, planName: string, cycle: BillingCycle = billingCycle) => {
+        if (!user) {
+            toast.error('Please log in to subscribe.');
+            navigate('/login');
+            return;
+        }
+        setLoadingPlan(planId);
+        startRazorpayCheckout({
+            planId,
+            planName,
+            billingCycle: cycle,
+            user,
+            onSuccess: ({ planName: confirmedPlan }) => {
+                setLoadingPlan(null);
+                toast.success(`Payment successful! You're now on the ${confirmedPlan} plan.`);
+            },
+            onError: (message) => {
+                setLoadingPlan(null);
+                toast.error(message);
+            },
+            onDismiss: () => setLoadingPlan(null),
+        });
+    };
+
+    const handleGetStartedFree = () => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        navigate('/');
+    };
 
     return (
         <div className="min-h-screen bg-[#020617] text-white selection:bg-primary/30 py-20 px-4 md:px-8 font-sans">
@@ -109,7 +145,7 @@ export const Pricing = () => {
                                 ))}
                             </div>
                             
-                            <button className="w-full py-4 text-sm font-bold tracking-widest text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/10 transition-colors uppercase rounded">
+                            <button onClick={handleGetStartedFree} className="w-full py-4 text-sm font-bold tracking-widest text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/10 transition-colors uppercase rounded">
                                 Get Started Free
                             </button>
                             
@@ -174,7 +210,12 @@ export const Pricing = () => {
                                 ))}
                             </div>
                             
-                            <button className="w-full py-4 text-sm font-bold tracking-widest text-blue-400 border border-blue-500/30 hover:bg-blue-500/10 transition-colors uppercase rounded bg-blue-500/5">
+                            <button
+                                onClick={() => handleSubscribe('trader', 'Trader')}
+                                disabled={loadingPlan === 'trader'}
+                                className="w-full py-4 text-sm font-bold tracking-widest text-blue-400 border border-blue-500/30 hover:bg-blue-500/10 transition-colors uppercase rounded bg-blue-500/5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {loadingPlan === 'trader' && <Loader2 className="w-4 h-4 animate-spin" />}
                                 Subscribe Now
                             </button>
                             
@@ -245,7 +286,12 @@ export const Pricing = () => {
                                 ))}
                             </div>
                             
-                            <button className="w-full py-4 text-sm font-bold tracking-widest text-black bg-amber-500 hover:bg-amber-400 transition-colors uppercase rounded">
+                            <button
+                                onClick={() => handleSubscribe('pro_trader', 'Pro Trader')}
+                                disabled={loadingPlan === 'pro_trader'}
+                                className="w-full py-4 text-sm font-bold tracking-widest text-black bg-amber-500 hover:bg-amber-400 transition-colors uppercase rounded disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {loadingPlan === 'pro_trader' && <Loader2 className="w-4 h-4 animate-spin" />}
                                 Join Elite
                             </button>
                             
@@ -298,7 +344,12 @@ export const Pricing = () => {
                             <div className="text-xs text-muted-foreground font-mono tracking-tight text-right w-full">
                                 {billingCycle === 'quarterly' ? 'per quarter • standalone' : 'per year • 1 quarter free'}
                             </div>
-                            <button className="w-full md:w-auto px-8 py-3 text-xs font-bold tracking-widest text-purple-400 border border-purple-500/30 hover:bg-purple-500/10 transition-colors uppercase rounded mt-2">
+                            <button
+                                onClick={() => handleSubscribe('standalone_rotation', 'Dynamic Portfolio Rotation')}
+                                disabled={loadingPlan === 'standalone_rotation'}
+                                className="w-full md:w-auto px-8 py-3 text-xs font-bold tracking-widest text-purple-400 border border-purple-500/30 hover:bg-purple-500/10 transition-colors uppercase rounded mt-2 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {loadingPlan === 'standalone_rotation' && <Loader2 className="w-4 h-4 animate-spin" />}
                                 Subscribe
                             </button>
                         </div>
@@ -331,7 +382,12 @@ export const Pricing = () => {
                             <div className="text-xs text-muted-foreground font-mono tracking-tight">
                                 per year
                             </div>
-                            <button className="w-full sm:w-auto px-6 py-3 text-xs font-bold tracking-widest text-black bg-emerald-400 hover:bg-emerald-300 transition-colors uppercase rounded ml-0 sm:ml-4">
+                            <button
+                                onClick={() => handleSubscribe('pro_trader', 'Pro Trader', 'annual')}
+                                disabled={loadingPlan === 'pro_trader'}
+                                className="w-full sm:w-auto px-6 py-3 text-xs font-bold tracking-widest text-black bg-emerald-400 hover:bg-emerald-300 transition-colors uppercase rounded ml-0 sm:ml-4 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {loadingPlan === 'pro_trader' && <Loader2 className="w-4 h-4 animate-spin" />}
                                 Get Annual
                             </button>
                         </div>
