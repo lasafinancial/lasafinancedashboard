@@ -89,10 +89,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 });
             } else {
                 console.log("[AuthContext] Updating last login for existing user.");
-                // Update last login and respect ELITE tier force flag
+                // Update last login only; never touch tier for existing users
                 await setDoc(userRef, {
                     lastLoginAt: serverTimestamp(),
-                    tier: FEATURE_FLAGS.FORCE_ELITE_FOR_ALL ? 'elite' : 'free',
                     // Ensure phoneNumber is updated if it was missing 
                     ...(firebaseUser.phoneNumber && { phoneNumber: firebaseUser.phoneNumber })
                 }, { merge: true });
