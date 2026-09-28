@@ -251,7 +251,13 @@
   }
 
   .nav-link {
-    @apply relative px-4 py-2 text-foreground/75 font-semibold hover:text-foreground transition-colors duration-200;
+    @apply relative px-2.5 xl:px-3 py-2 text-foreground/75 font-semibold hover:text-foreground transition-colors duration-200 whitespace-nowrap;
+  }
+
+  @media (min-width: 1920px) {
+    .nav-link {
+      @apply px-4;
+    }
   }
 
   .nav-link.active {

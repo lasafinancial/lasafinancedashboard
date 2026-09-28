@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader2, Send, Filter, ChevronDown, Menu, MessageSquare, HelpCircle, TrendingUp, Newspaper } from "lucide-react";
+import { Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader2, Send, Filter, ChevronDown, Menu, MessageSquare, HelpCircle, TrendingUp, Newspaper, Info } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { InstallPWA } from "@/components/InstallPWA";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -81,12 +81,13 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
     { path: "/daily-news", label: "News", icon: Newspaper },
     { path: "/screeners", label: "Screeners", icon: Filter },
     { path: "/pricing", label: "Packages", icon: Crown },
+    { path: "/about", label: "About", icon: Info },
     { path: "/help", label: "Help", icon: HelpCircle },
   ];
 
   return (
     <nav className="sticky top-0 z-[100] border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 min-[1700px]:max-w-[1680px] min-[1920px]:max-w-[1840px]">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group shrink-0 mr-2 lg:mr-4">
@@ -98,7 +99,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
           </Link>
 
           {/* Navigation Links - Desktop */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden xl:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path ||
@@ -115,7 +116,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                     <button
                       className={`nav-link flex items-center gap-2 ${isActive ? "active" : ""}`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4 hidden min-[1920px]:block" />
                       <span className="hidden sm:inline">{item.label}</span>
                       <ChevronDown className={`h-3 w-3 opacity-50 transition-transform ${isScreenersOpen ? 'rotate-180' : ''}`} />
                     </button>
@@ -307,14 +308,14 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                   to={item.path}
                   className={`nav-link flex items-center gap-2 ${isActive ? "active" : ""}`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4 hidden min-[1920px]:block" />
                   <span className="hidden sm:inline">{item.label}</span>
                 </Link>
               );
             })}
           </div>
 
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden xl:flex items-center gap-3 min-[1920px]:gap-4">
             {!user && (
               /* Guest: Login CTA - kept first so it's never pushed off-screen by the icon cluster */
               <Link to="/login">
@@ -325,14 +326,18 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
               </Link>
             )}
 
-            {/* Install PWA Button */}
-            <InstallPWA />
+            {/* Install PWA Button - only shown on very wide screens to keep the bar from overflowing */}
+            <div className="hidden 2xl:contents">
+              <InstallPWA />
+            </div>
 
-            {/* Country Selector */}
-            <CountrySelector
-              selectedCountry={selectedCountry || 'india'}
-              onCountryChange={onCountryChange}
-            />
+            {/* Country Selector - hidden on narrower laptops for the same reason */}
+            <div className="hidden min-[1700px]:contents">
+              <CountrySelector
+                selectedCountry={selectedCountry || 'india'}
+                onCountryChange={onCountryChange}
+              />
+            </div>
 
             {/* Notification Toggle */}
             {isSupported && (
@@ -370,7 +375,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                   <div className="h-7 w-7 rounded-lg bg-primary/20 flex items-center justify-center ring-1 ring-primary/40">
                     <User className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="hidden lg:flex flex-col items-start gap-0.5">
+                  <div className="hidden min-[1920px]:flex flex-col items-start gap-0.5">
                     <span className="text-sm font-semibold truncate max-w-[100px]">
                       {userData?.name || "User"}
                     </span>
@@ -387,6 +392,9 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                     <p className="text-sm font-medium leading-none">{userData?.name || "User"}</p>
                     <p className="text-xs leading-none text-muted-foreground truncate max-w-[180px]">
                       {user?.email || user?.phoneNumber || "No contact info"}
+                    </p>
+                    <p className="text-[10px] leading-none text-muted-foreground uppercase tracking-tight pt-0.5">
+                      {isElite ? 'Elite Member' : isPro ? 'Pro Member' : 'Free Tier'}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -427,7 +435,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
           </div>
 
           {/* Mobile Right Actions (Top Row) */}
-          <div className="md:hidden flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="xl:hidden flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Notification Toggle - Mobile Header */}
             {isSupported && (
               <button
@@ -654,7 +662,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
         </div>
 
         {/* Mobile Quick Action Bar - Shifted just below header LASA RESEARCH SERVICES */}
-        <div className="md:hidden flex items-center justify-between py-1.5 px-0.5 border-t border-border/30 gap-1 w-full overflow-x-hidden">
+        <div className="xl:hidden flex items-center justify-between py-1.5 px-0.5 border-t border-border/30 gap-1 w-full overflow-x-hidden">
           <Link
             to="/"
             onClick={() => setIsMobileMenuOpen(false)}

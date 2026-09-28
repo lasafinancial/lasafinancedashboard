@@ -39,6 +39,7 @@ import Help from "@/pages/Help";
 import Pricing from "@/pages/Pricing";
 import Terms from "@/pages/Terms";
 import SebiCompliance from "@/pages/SebiCompliance";
+import About from "@/pages/About";
 import NotFound from "./pages/NotFound";
 import TradeBarPreview from "@/pages/preview/TradeBarPreview";
 import TradeTilesPreview from "@/pages/preview/TradeTilesPreview";
@@ -228,6 +229,7 @@ const AppContent = () => {
             <Route path="/pricing" element={<ProtectedRoute allowAnonymous><Pricing /></ProtectedRoute>} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/sebi-compliance" element={<SebiCompliance />} />
+            <Route path="/about" element={<About />} />
             <Route path="/preview/trade-bar" element={<TradeBarPreview />} />
             <Route path="/preview/trade-tiles" element={<TradeTilesPreview />} />
             <Route path="*" element={<NotFound />} />

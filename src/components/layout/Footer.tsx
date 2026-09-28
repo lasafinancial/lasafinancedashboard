@@ -35,6 +35,7 @@ export function Footer() {
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground border-t border-white/5 pt-6">
                         <p>© {currentYear} LASA Research Services. All rights reserved.</p>
                         <div className="flex items-center gap-6">
+                            <Link to="/about" className="hover:text-primary transition-colors">About</Link>
                             <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
                             <Link to="/sebi-compliance" className="hover:text-primary transition-colors">Privacy Policy</Link>
                             <Link to="/sebi-compliance" className="hover:text-primary transition-colors">SEBI Compliance</Link>
