@@ -31,7 +31,7 @@ export function IntradayBreakout() {
     const [selectedDate, setSelectedDate] = useState<string>("LATEST");
     const [sortField, setSortField] = useState<SortField>("time");
     const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-    const [showHighVolume, setShowHighVolume] = useState(false);
+    const [showHighVolume, setShowHighVolume] = useState(true);
 
     // Extract all unique dates available in data
     const availableDates = useMemo(() => {

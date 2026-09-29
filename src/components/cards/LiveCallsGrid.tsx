@@ -71,6 +71,7 @@ export function LiveCallsGrid() {
       id: "fo",
       title: "Futures & Options",
       count: `${foCount} Calls`,
+      disabled: true, // Temporarily disabled — shown as "Coming Soon" and not clickable
       route: "/screeners/nifty-analysis",
       icon: <Layers className="w-6 h-6 text-purple-400" />,
       iconBg: "bg-purple-500/10 border-purple-500/20 shadow-purple-500/10",
@@ -104,23 +105,30 @@ export function LiveCallsGrid() {
 
       {/* 4 Call Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {cards.map((card) => (
+        {cards.map((card) => {
+          const disabled = "disabled" in card && card.disabled;
+          return (
           <div
             key={card.id}
-            onClick={() => navigate(card.route)}
-            className={`group relative overflow-hidden bg-[#0b0f19]/90 border border-white/10 ${card.hoverBorder} rounded-2xl p-3.5 sm:p-5 transition-all duration-200 hover:-translate-y-1 active:scale-[0.98] hover:shadow-xl cursor-pointer backdrop-blur-md flex flex-col items-center text-center justify-between min-h-[135px] sm:min-h-[160px] shadow-lg`}
+            onClick={disabled ? undefined : () => navigate(card.route)}
+            aria-disabled={disabled || undefined}
+            className={`group relative overflow-hidden bg-[#0b0f19]/90 border border-white/10 rounded-2xl p-3.5 sm:p-5 transition-all duration-200 backdrop-blur-md flex flex-col items-center text-center justify-between min-h-[135px] sm:min-h-[160px] shadow-lg ${
+              disabled
+                ? "opacity-50 grayscale cursor-not-allowed"
+                : `${card.hoverBorder} hover:-translate-y-1 active:scale-[0.98] hover:shadow-xl cursor-pointer`
+            }`}
           >
             {/* Top Ambient Gradient */}
             <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${card.glowColor}`} />
 
             {/* Icon Bubble */}
-            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${card.iconBg} border flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shrink-0 shadow-md`}>
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${card.iconBg} border flex items-center justify-center transition-transform duration-300 shrink-0 shadow-md ${disabled ? "" : "group-hover:scale-110"}`}>
               {card.icon}
             </div>
 
             {/* Title & Calls Count */}
             <div className="space-y-1 mt-3 w-full">
-              <h3 className="text-xs sm:text-sm font-black text-white tracking-tight group-hover:text-primary transition-colors line-clamp-1">
+              <h3 className={`text-xs sm:text-sm font-black text-white tracking-tight transition-colors line-clamp-1 ${disabled ? "" : "group-hover:text-primary"}`}>
                 {card.title}
               </h3>
               {"subtitle" in card && (
@@ -129,11 +137,12 @@ export function LiveCallsGrid() {
                 </p>
               )}
               <p className="text-[11px] sm:text-xs font-mono font-bold text-muted-foreground">
-                {card.count}
+                {disabled ? "Coming Soon" : card.count}
               </p>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
