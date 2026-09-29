@@ -233,6 +233,7 @@ export interface GoogleSheetsData {
 // `cachedData` var alone doesn't survive a reload, which is what made every page load block
 // on /api/fetch-data even when we'd already fetched the same data moments earlier.
 const CACHE_STORAGE_KEY = 'lasa_live_data_cache_v1';
+const CACHE_TIME_STORAGE_KEY = 'lasa_live_data_cache_time_v1';
 
 function loadCacheFromStorage(): GoogleSheetsData | null {
   try {
@@ -243,9 +244,18 @@ function loadCacheFromStorage(): GoogleSheetsData | null {
   }
 }
 
-function saveCacheToStorage(data: GoogleSheetsData): void {
+function loadCacheTimeFromStorage(): number {
+  try {
+    return Number(localStorage.getItem(CACHE_TIME_STORAGE_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveCacheToStorage(data: GoogleSheetsData, fetchedAt: number): void {
   try {
     localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(CACHE_TIME_STORAGE_KEY, String(fetchedAt));
   } catch (e) {
     // Storage full or unavailable (private browsing, quota exceeded) - in-memory cache still works
     console.warn('[googleSheetsService] Could not persist cache to localStorage:', e);
@@ -253,9 +263,10 @@ function saveCacheToStorage(data: GoogleSheetsData): void {
 }
 
 let cachedData: GoogleSheetsData | null = loadCacheFromStorage();
-let lastFetchTime: number = 0;
+let lastFetchTime: number = cachedData ? loadCacheTimeFromStorage() : 0;
 let lastEODFetchDate: string | null = null;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes during market hours
+const OFF_HOURS_CACHE_DURATION = 60 * 60 * 1000; // 1 hour outside market hours
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
 const dataListeners: Set<(data: GoogleSheetsData) => void> = new Set();
@@ -283,8 +294,9 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
   const eodWindow = isEODWindow();
   const todayKey = getISTDateKey();
 
-  // Guard: Outside market hours, only allow refresh if in the 22:30 EOD window once per day
-  if (!force && !marketOpen && cachedData) {
+  // Guard: Outside market hours, reuse the cache unless it's over an hour old
+  // or the 22:30 EOD window is active (once per day).
+  if (!force && !marketOpen && cachedData && (now - lastFetchTime) < OFF_HOURS_CACHE_DURATION) {
     if (eodWindow && lastEODFetchDate !== todayKey) {
       console.log('[googleSheetsService] 22:30 IST EOD window active. Fetching once-a-day EOD data.');
     } else {
@@ -357,7 +369,7 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
 
     cachedData = data;
     lastFetchTime = now;
-    saveCacheToStorage(data);
+    saveCacheToStorage(data, now);
 
     notifyListeners(data);
 
