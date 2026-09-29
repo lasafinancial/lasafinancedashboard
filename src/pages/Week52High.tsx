@@ -3,17 +3,18 @@ import { Search, ArrowUpRight, Loader2, Sparkles, TrendingUp, TrendingDown, Chev
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
 
 type SortField = "id" | "sector" | "currentPrice" | "high52" | "resistance" | "support";
 type SortDirection = "asc" | "desc";
+
+const SORT_OPTIONS: { field: SortField; label: string }[] = [
+    { field: "id", label: "Symbol" },
+    { field: "sector", label: "Sector" },
+    { field: "currentPrice", label: "Price" },
+    { field: "high52", label: "52W High" },
+    { field: "resistance", label: "Resistance" },
+    { field: "support", label: "Support" },
+];
 
 export function Week52High() {
     const navigate = useNavigate();
@@ -215,137 +216,96 @@ export function Week52High() {
                         </p>
                     </div>
                 ) : (
-                    <div className="relative rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden shadow-2xl">
-                        {/* Table Summary Bar */}
-                        <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.02] text-xs text-white/60 font-medium">
+                    <div className="space-y-4">
+                        {/* Summary + Sort Bar */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 text-xs text-white/60 font-medium">
                             <div>
                                 Showing <span className="text-white font-bold">{processedStocks.length}</span> stocks near 52-week high
                             </div>
-                            <div className="text-[11px] text-white/40 font-mono">
-                                Column FT = 'Y' (within 5% of 52W High)
+                            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                                <span className="text-[11px] text-white/40 uppercase tracking-widest mr-1">Sort</span>
+                                {SORT_OPTIONS.map(opt => (
+                                    <button
+                                        key={opt.field}
+                                        onClick={() => toggleSort(opt.field)}
+                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap flex items-center gap-1 transition-all ${
+                                            sortField === opt.field
+                                                ? "bg-emerald-500 text-black"
+                                                : "bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10"
+                                        }`}
+                                    >
+                                        {opt.label}
+                                        {sortField === opt.field && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="border-white/10 hover:bg-transparent">
-                                        <TableHead
-                                            onClick={() => toggleSort("id")}
-                                            className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors"
-                                        >
-                                            <span className="flex items-center gap-1.5">
-                                                ID
-                                                {sortField === "id" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                            </span>
-                                        </TableHead>
-                                        <TableHead
-                                            onClick={() => toggleSort("sector")}
-                                            className="text-[11px] font-black text-white/60 uppercase tracking-widest cursor-pointer hover:text-white transition-colors"
-                                        >
-                                            <span className="flex items-center gap-1.5">
-                                                Sector
-                                                {sortField === "sector" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                            </span>
-                                        </TableHead>
-                                        <TableHead
-                                            onClick={() => toggleSort("currentPrice")}
-                                            className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
-                                        >
-                                            <span className="flex items-center justify-end gap-1.5">
-                                                Current Price
-                                                {sortField === "currentPrice" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                            </span>
-                                        </TableHead>
-                                        <TableHead
-                                            onClick={() => toggleSort("high52")}
-                                            className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
-                                        >
-                                            <span className="flex items-center justify-end gap-1.5">
-                                                52 Week High
-                                                {sortField === "high52" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                            </span>
-                                        </TableHead>
-                                        <TableHead
-                                            onClick={() => toggleSort("resistance")}
-                                            className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
-                                        >
-                                            <span className="flex items-center justify-end gap-1.5">
-                                                Resistance
-                                                {sortField === "resistance" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                            </span>
-                                        </TableHead>
-                                        <TableHead
-                                            onClick={() => toggleSort("support")}
-                                            className="text-[11px] font-black text-white/60 uppercase tracking-widest text-right cursor-pointer hover:text-white transition-colors"
-                                        >
-                                            <span className="flex items-center justify-end gap-1.5">
-                                                Support
-                                                {sortField === "support" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
-                                            </span>
-                                        </TableHead>
-                                        <TableHead className="w-[80px] text-[11px] font-black text-white/60 uppercase tracking-widest text-center">
-                                            Action
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {processedStocks.map((stock) => {
-                                            return (
-                                                <TableRow
-                                                    key={stock.id}
-                                                    className="border-white/5 hover:bg-white/[0.04] transition-colors group cursor-pointer"
-                                                    onClick={() => handleStockClick(stock.id)}
-                                                >
-                                                    {/* ID / Symbol */}
-                                                    <TableCell className="py-3.5">
-                                                        <span className="text-sm font-black text-white tracking-tight group-hover:text-emerald-400 transition-colors">
-                                                            {stock.id}
-                                                        </span>
-                                                    </TableCell>
+                        {/* Stock Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {processedStocks.map((stock, i) => {
+                                const distance = stock.high52 > 0 && stock.currentPrice > 0 ? ((stock.high52 - stock.currentPrice) / stock.high52) * 100 : null;
+                                // Within-5% window: a full bar means the price is right at the 52W high
+                                const proximity = distance === null ? 0 : Math.max(0, Math.min(100, 100 - (distance / 5) * 100));
+                                const sectorLabel = (stock.sector && stock.sector !== stock.id) ? stock.sector : (stock.group && stock.group !== stock.id ? stock.group : '—');
+                                return (
+                                    <motion.div
+                                        key={stock.id}
+                                        initial={{ opacity: 0, y: 12 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: Math.min(i, 12) * 0.03 }}
+                                        onClick={() => handleStockClick(stock.id)}
+                                        className="group relative rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-4 sm:p-5 cursor-pointer transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/[0.04] hover:-translate-y-0.5 shadow-xl"
+                                    >
+                                        {/* Header */}
+                                        <div className="flex items-start justify-between gap-3 mb-4">
+                                            <div className="min-w-0">
+                                                <h3 className="text-base font-black text-white tracking-tight truncate group-hover:text-emerald-400 transition-colors">
+                                                    {stock.id}
+                                                </h3>
+                                                <p className="text-[11px] text-white/50 font-medium uppercase tracking-wide truncate">{sectorLabel}</p>
+                                            </div>
+                                            <div className="p-2 rounded-xl bg-white/5 border border-white/10 group-hover:bg-emerald-500 group-hover:text-black group-hover:border-emerald-500 transition-all duration-200 shrink-0">
+                                                <ArrowUpRight className="w-3.5 h-3.5" />
+                                            </div>
+                                        </div>
 
-                                                    {/* Sector */}
-                                                    <TableCell className="py-3.5">
-                                                        <span className="text-xs text-white/70 font-medium">
-                                                            {(stock.sector && stock.sector !== stock.id) ? stock.sector : (stock.group && stock.group !== stock.id ? stock.group : '—')}
-                                                        </span>
-                                                    </TableCell>
+                                        {/* Price + distance */}
+                                        <div className="flex flex-wrap items-end justify-between gap-x-2 gap-y-2 mb-3">
+                                            <div>
+                                                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mb-0.5">Current Price</p>
+                                                <p className="text-xl sm:text-2xl font-black tabular-nums text-white">₹{formatNumber(stock.currentPrice)}</p>
+                                            </div>
+                                            {distance !== null && (
+                                                <span className="px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold tabular-nums whitespace-nowrap">
+                                                    {distance.toFixed(2)}% below 52W high
+                                                </span>
+                                            )}
+                                        </div>
 
-                                                    {/* Current Price */}
-                                                    <TableCell className="py-3.5 text-right font-black tabular-nums text-sm text-white">
-                                                        ₹{formatNumber(stock.currentPrice)}
-                                                    </TableCell>
+                                        {/* Proximity bar */}
+                                        <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-4">
+                                            <div className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400" style={{ width: `${proximity}%` }} />
+                                        </div>
 
-                                                    {/* 52 Week High */}
-                                                    <TableCell className="py-3.5 text-right font-black tabular-nums text-sm text-emerald-400">
-                                                        ₹{formatNumber(stock.high52)}
-                                                    </TableCell>
-
-                                                    {/* Resistance */}
-                                                    <TableCell className="py-3.5 text-right font-bold tabular-nums text-xs text-rose-400">
-                                                        ₹{formatNumber(stock.resistance)}
-                                                    </TableCell>
-
-                                                    {/* Support */}
-                                                    <TableCell className="py-3.5 text-right font-bold tabular-nums text-xs text-emerald-400">
-                                                        ₹{formatNumber(stock.support)}
-                                                    </TableCell>
-
-                                                    {/* Action */}
-                                                    <TableCell className="py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                                                        <button
-                                                            onClick={() => handleStockClick(stock.id)}
-                                                            className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-emerald-500 hover:text-black hover:border-emerald-500 transition-all duration-200"
-                                                            title={`View ${stock.id} chart and analysis`}
-                                                        >
-                                                            <ArrowUpRight className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                    })}
-                                </TableBody>
-                            </Table>
+                                        {/* Levels */}
+                                        <div className="grid grid-cols-3 gap-x-3 gap-y-1 pt-3 border-t border-white/5">
+                                            <div>
+                                                <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider">52W High</p>
+                                                <p className="text-[11px] sm:text-xs font-black tabular-nums text-emerald-400">₹{formatNumber(stock.high52)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider">Resistance</p>
+                                                <p className="text-[11px] sm:text-xs font-bold tabular-nums text-rose-400">₹{formatNumber(stock.resistance)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider">Support</p>
+                                                <p className="text-[11px] sm:text-xs font-bold tabular-nums text-emerald-400">₹{formatNumber(stock.support)}</p>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
