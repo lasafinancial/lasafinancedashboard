@@ -96,6 +96,17 @@ export function Week52Low() {
         return data;
     }, [stocks, searchTerm, selectedGroup, sortField, sortDirection]);
 
+    // Only link cards to stocks that have chart data with real prices (the stock page otherwise falls back to a fuzzy match)
+    const normalizeSymbol = (symbol: string) => (symbol || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const chartSymbols = useMemo(
+        () => new Set(
+            (stockData || [])
+                .filter((s: any) => (s.history || []).some((h: any) => typeof h.price === 'number' && h.price > 0))
+                .map((s: any) => normalizeSymbol(s.symbol))
+        ),
+        [stockData]
+    );
+
     const handleStockClick = (symbol: string) => {
         const cleanSymbol = symbol.replace(/[\[\]\(\):-]/g, '').trim().toUpperCase();
         navigate(`/stocks?symbol=${cleanSymbol}`);
@@ -247,6 +258,7 @@ export function Week52Low() {
                                 const distance = stock.low52 > 0 && stock.currentPrice > 0 ? ((stock.currentPrice - stock.low52) / stock.low52) * 100 : null;
                                 // Within-5% window: a full bar means the price is right at the 52W low
                                 const proximity = distance === null ? 0 : Math.max(0, Math.min(100, 100 - (distance / 5) * 100));
+                                const hasChart = chartSymbols.has(normalizeSymbol(stock.id));
                                 const sectorLabel = (stock.sector && stock.sector !== stock.id) ? stock.sector : (stock.group && stock.group !== stock.id ? stock.group : '—');
                                 return (
                                     <motion.div
@@ -254,20 +266,24 @@ export function Week52Low() {
                                         initial={{ opacity: 0, y: 12 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: Math.min(i, 12) * 0.03 }}
-                                        onClick={() => handleStockClick(stock.id)}
-                                        className="group relative rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-4 sm:p-5 cursor-pointer transition-all duration-300 hover:border-rose-500/40 hover:bg-white/[0.04] hover:-translate-y-0.5 shadow-xl"
+                                        onClick={hasChart ? () => handleStockClick(stock.id) : undefined}
+                                        className={`group relative rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-4 sm:p-5 transition-all duration-300 shadow-xl ${
+                                            hasChart ? "cursor-pointer hover:border-rose-500/40 hover:bg-white/[0.04] hover:-translate-y-0.5" : ""
+                                        }`}
                                     >
                                         {/* Header */}
                                         <div className="flex items-start justify-between gap-3 mb-4">
                                             <div className="min-w-0">
-                                                <h3 className="text-base font-black text-white tracking-tight truncate group-hover:text-rose-400 transition-colors">
+                                                <h3 className={`text-base font-black text-white tracking-tight truncate ${hasChart ? "group-hover:text-rose-400" : ""} transition-colors`}>
                                                     {stock.id}
                                                 </h3>
                                                 <p className="text-[11px] text-white/50 font-medium uppercase tracking-wide truncate">{sectorLabel}</p>
                                             </div>
-                                            <div className="p-2 rounded-xl bg-white/5 border border-white/10 group-hover:bg-rose-500 group-hover:text-white group-hover:border-rose-500 transition-all duration-200 shrink-0">
-                                                <ArrowUpRight className="w-3.5 h-3.5" />
-                                            </div>
+                                            {hasChart && (
+                                                <div className="p-2 rounded-xl bg-white/5 border border-white/10 group-hover:bg-rose-500 group-hover:text-white group-hover:border-rose-500 transition-all duration-200 shrink-0">
+                                                    <ArrowUpRight className="w-3.5 h-3.5" />
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Price + distance */}

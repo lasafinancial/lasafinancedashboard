@@ -1,16 +1,8 @@
 import { useState, useMemo } from "react";
-import { Search, Info, Loader2, AlertCircle, ChevronDown, ChevronUp, Clock, Play } from "lucide-react";
+import { Search, Info, Loader2, AlertCircle, ChevronDown, ChevronUp, Clock, Play, ArrowUpRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
 import {
     Dialog,
     DialogContent,
@@ -20,6 +12,13 @@ import {
 
 type SortField = "symbol" | "close" | "support" | "resistance" | "obvSignal";
 type SortDirection = "asc" | "desc";
+
+const SORT_OPTIONS: { field: SortField; label: string }[] = [
+    { field: "symbol", label: "Symbol" },
+    { field: "close", label: "Price" },
+    { field: "support", label: "Support" },
+    { field: "resistance", label: "Resistance" },
+];
 
 export function ObvAccumulation() {
     const navigate = useNavigate();
@@ -82,6 +81,7 @@ export function ObvAccumulation() {
                 support: (stock as any).support || validHistorySupport || latestScannerEntry?.support || boData?.SUPPORT,
                 resistance: (stock as any).resistance || validHistoryResistance || latestScannerEntry?.resistance || boData?.RESISTANCE,
                 fr: (stock as any).fr || latestScannerEntry?.fr || "—",
+                hasChart: history.some(h => typeof h.price === 'number' && h.price > 0),
                 obvSignal: (stock as any).obvSignal || latestScannerEntry?.obvSignal || "—"
             };
         });
@@ -119,11 +119,6 @@ export function ObvAccumulation() {
 
     const handleStockClick = (symbol: string) => {
         navigate(`/stocks?symbol=${symbol}`);
-    };
-
-    const getSortIcon = (field: SortField) => {
-        if (sortField !== field) return null;
-        return sortDirection === "asc" ? <ChevronUp className="w-3.5 h-3.5 ml-1 inline text-primary" /> : <ChevronDown className="w-3.5 h-3.5 ml-1 inline text-primary" />;
     };
 
 
@@ -242,101 +237,119 @@ export function ObvAccumulation() {
                     </AnimatePresence>
                 </div>
 
-                {/* Main Table Content */}
-                <div className="bg-[#0f172a]/50 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
-                    {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-24 gap-4">
-                            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Loading...</p>
+                {/* Results */}
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-24 gap-4 bg-[#0f172a]/50 border border-white/5 rounded-xl">
+                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                        <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Loading...</p>
+                    </div>
+                ) : processedStocks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-24 text-center bg-[#0f172a]/50 border border-white/5 rounded-xl">
+                        <AlertCircle className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                        <h3 className="text-[14px] font-black text-white mb-1 uppercase tracking-widest">No Results</h3>
+                        <p className="text-[11px] text-muted-foreground max-w-md font-bold">
+                            {searchTerm
+                                ? `No stocks with ticker "${searchTerm}" match the active criteria.`
+                                : "No stocks currently satisfy the OBV Breakout conditions."}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {/* Sort Bar */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                            <span className="text-[11px] text-white/40 uppercase tracking-widest mr-1">Sort</span>
+                            {SORT_OPTIONS.map(opt => (
+                                <button
+                                    key={opt.field}
+                                    onClick={() => toggleSort(opt.field)}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap flex items-center gap-1 transition-all ${
+                                        sortField === opt.field
+                                            ? "bg-indigo-500 text-white"
+                                            : "bg-white/5 text-white/70 hover:text-white hover:bg-white/10 border border-white/10"
+                                    }`}
+                                >
+                                    {opt.label}
+                                    {sortField === opt.field && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+                                </button>
+                            ))}
                         </div>
-                    ) : processedStocks.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-24 text-center">
-                            <AlertCircle className="w-12 h-12 text-muted-foreground/30 mb-3" />
-                            <h3 className="text-[14px] font-black text-white mb-1 uppercase tracking-widest">No Results</h3>
-                            <p className="text-[11px] text-muted-foreground max-w-md font-bold">
-                                {searchTerm
-                                    ? `No stocks with ticker "${searchTerm}" match the active criteria.`
-                                    : "No stocks currently satisfy the OBV Breakout conditions."}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader className="bg-transparent border-b border-white/5">
-                                    <TableRow className="border-white/5 hover:bg-transparent">
-                                        <TableHead onClick={() => toggleSort("symbol")} className="w-[140px] text-[11px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors">
-                                            SYMBOL {getSortIcon("symbol")}
-                                        </TableHead>
-                                        <TableHead onClick={() => toggleSort("close")} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
-                                            PRICE {getSortIcon("close")}
-                                        </TableHead>
-                                        <TableHead onClick={() => toggleSort("support")} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
-                                            SUPPORT {getSortIcon("support")}
-                                        </TableHead>
-                                        <TableHead onClick={() => toggleSort("resistance")} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors text-right">
-                                            RESISTANCE {getSortIcon("resistance")}
-                                        </TableHead>
-                                        <TableHead onClick={() => toggleSort("obvSignal")} className="w-[160px] text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center cursor-pointer hover:text-white transition-colors">
-                                            OBV WEEKLY {getSortIcon("obvSignal")}
-                                        </TableHead>
-                                        <TableHead className="w-[60px] text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center"></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {processedStocks.map((stock, idx) => (
-                                            <TableRow
-                                                key={`${stock.symbol}-${idx}`}
-                                                className="border-white/5 hover:bg-white/[0.02] transition-colors group"
-                                            >
-                                                {/* Symbol */}
-                                                <TableCell className="py-4">
-                                                    <span className="text-[13px] font-bold text-white tracking-tight cursor-pointer group-hover:text-primary transition-colors" onClick={() => handleStockClick(stock.symbol)}>
-                                                        {stock.symbol}
-                                                    </span>
-                                                </TableCell>
-                                                
-                                                {/* Price */}
-                                                <TableCell className="py-4 text-right font-semibold text-[13px] text-gray-200">
-                                                    ₹{formatNumber(stock.close)}
-                                                </TableCell>
 
-                                                {/* Support (Column DH) */}
-                                                <TableCell className="py-4 text-right font-semibold text-[13px] text-emerald-400">
-                                                    {stock.support && stock.support !== "N/A" && stock.support !== "—" ? `₹${formatNumber(stock.support)}` : "—"}
-                                                </TableCell>
-                                                
-                                                {/* Resistance */}
-                                                <TableCell className="py-4 text-right font-semibold text-[13px] text-rose-400">
-                                                    {stock.resistance && stock.resistance !== "N/A" && stock.resistance !== "—" ? `₹${formatNumber(stock.resistance)}` : "—"}
-                                                </TableCell>
-                                                
-                                                {/* Obv Weekly */}
-                                                <TableCell className="py-4 text-center">
-                                                    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-[10px] font-bold tracking-wider">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                                        {stock.obvSignal?.toUpperCase() || '—'}
-                                                    </div>
-                                                </TableCell>
-                                                
-                                                {/* Action Button */}
-                                                <TableCell className="py-4 text-center">
-                                                    {stockData?.some(s => s.symbol === stock.symbol) ? (
-                                                        <button
-                                                            onClick={() => handleStockClick(stock.symbol)}
-                                                            className="text-cyan-400 hover:text-cyan-300 transition-colors p-1"
-                                                        >
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17l9.2-9.2M17 17V7H7"/></svg>
-                                                        </button>
-                                                    ) : null}
-                                                </TableCell>
-                                            </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                        {/* Stock Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {processedStocks.map((stock, idx) => {
+                                const price = Number(stock.close);
+                                const support = Number(stock.support);
+                                const resistance = Number(stock.resistance);
+                                const hasLevels = support > 0 && resistance > support && price > 0;
+                                // Where the price sits between support (0%) and resistance (100%)
+                                const position = hasLevels ? Math.max(0, Math.min(100, ((price - support) / (resistance - support)) * 100)) : null;
+                                return (
+                                    <motion.div
+                                        key={`${stock.symbol}-${idx}`}
+                                        initial={{ opacity: 0, y: 12 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: Math.min(idx, 12) * 0.03 }}
+                                        onClick={stock.hasChart ? () => handleStockClick(stock.symbol) : undefined}
+                                        className={`group relative rounded-2xl border border-white/10 bg-[#0f172a]/60 backdrop-blur-xl p-4 sm:p-5 transition-all duration-300 shadow-xl ${
+                                            stock.hasChart ? "cursor-pointer hover:border-indigo-500/40 hover:bg-white/[0.04] hover:-translate-y-0.5" : ""
+                                        }`}
+                                    >
+                                        {/* Header */}
+                                        <div className="flex items-start justify-between gap-3 mb-4">
+                                            <div className="min-w-0">
+                                                <h3 className={`text-base font-black text-white tracking-tight truncate ${stock.hasChart ? "group-hover:text-indigo-300" : ""} transition-colors`}>
+                                                    {stock.symbol}
+                                                </h3>
+                                                <div className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-[10px] font-bold tracking-wider">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                    {stock.obvSignal?.toUpperCase() || '—'}
+                                                </div>
+                                            </div>
+                                            {stock.hasChart && (
+                                                <div className="p-2 rounded-xl bg-white/5 border border-white/10 text-cyan-400 group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-500 transition-all duration-200 shrink-0">
+                                                    <ArrowUpRight className="w-3.5 h-3.5" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Price */}
+                                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mb-0.5">Price</p>
+                                        <p className="text-xl sm:text-2xl font-black tabular-nums text-white mb-3">₹{formatNumber(stock.close)}</p>
+
+                                        {/* Support -> Resistance position */}
+                                        {position !== null && (
+                                            <div className="mb-4">
+                                                <div className="relative h-1.5 rounded-full bg-gradient-to-r from-emerald-500/30 via-white/10 to-rose-500/30">
+                                                    <div
+                                                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.6)]"
+                                                        style={{ left: `${position}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Levels */}
+                                        <div className="grid grid-cols-2 gap-x-3 pt-3 border-t border-white/5">
+                                            <div>
+                                                <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider">Support</p>
+                                                <p className="text-[11px] sm:text-xs font-bold tabular-nums text-emerald-400">
+                                                    {support > 0 ? `₹${formatNumber(support)}` : "—"}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider">Resistance</p>
+                                                <p className="text-[11px] sm:text-xs font-bold tabular-nums text-rose-400">
+                                                    {resistance > 0 ? `₹${formatNumber(resistance)}` : "—"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
                         </div>
-                    )}
-                </div>
-                
+                    </div>
+                )}
+
                 {/* Footer Disclaimer */}
                 <div className="mt-8 pt-8 border-t border-white/5 text-[11px] text-muted-foreground/60 leading-relaxed max-w-5xl mx-auto space-y-4">
                     <p>
