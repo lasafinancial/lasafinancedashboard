@@ -288,15 +288,42 @@ function notifyListeners(data: GoogleSheetsData) {
   dataListeners.forEach(callback => callback(data));
 }
 
+// A cache saved while the backend sheets were mid-update can be missing key data
+// (no prices, empty 52W lists, all-zero market mood). Such a cache shouldn't wait out the TTL.
+const INCOMPLETE_CACHE_RETRY = 2 * 60 * 1000; // retry at most every 2 minutes
+let lastIncompleteRefetchAttempt = 0;
+
+function isCacheIncomplete(data: GoogleSheetsData): boolean {
+  const stocks = data.stockData || [];
+  if (stocks.length === 0) return true;
+  const missingPrices = stocks.filter(s => !s.price).length;
+  if (missingPrices > stocks.length / 2) return true;
+  if (!data.week52High?.length && !data.week52Low?.length) return true;
+  const mood = data.marketMood;
+  if (!mood || (mood.bullish || 0) + (mood.bearish || 0) + (mood.neutral || 0) === 0) return true;
+  return false;
+}
+
 export async function refreshAllData(force: boolean = false): Promise<GoogleSheetsData | null> {
   const now = Date.now();
   const marketOpen = isMarketOpen();
   const eodWindow = isEODWindow();
   const todayKey = getISTDateKey();
 
+  // Refetch an incomplete cache right away (rate-limited) instead of waiting for the TTL.
+  // This only skips the client-side cache guards; it doesn't force a server-side sheet re-read.
+  const refetchIncomplete = !force && !!cachedData && isCacheIncomplete(cachedData)
+    && (now - lastFetchTime) >= INCOMPLETE_CACHE_RETRY
+    && (now - lastIncompleteRefetchAttempt) >= INCOMPLETE_CACHE_RETRY;
+  if (refetchIncomplete) {
+    // Record the attempt up front so concurrent callers and failed fetches don't retry immediately
+    lastIncompleteRefetchAttempt = now;
+    console.log('[googleSheetsService] Cached data looks incomplete. Fetching fresh data.');
+  }
+
   // Guard: Outside market hours, reuse the cache unless it's over an hour old
   // or the 22:30 EOD window is active (once per day).
-  if (!force && !marketOpen && cachedData && (now - lastFetchTime) < OFF_HOURS_CACHE_DURATION) {
+  if (!force && !refetchIncomplete && !marketOpen && cachedData && (now - lastFetchTime) < OFF_HOURS_CACHE_DURATION) {
     if (eodWindow && lastEODFetchDate !== todayKey) {
       console.log('[googleSheetsService] 22:30 IST EOD window active. Fetching once-a-day EOD data.');
     } else {
@@ -306,7 +333,7 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
   }
 
   // During market hours, respect the 15-minute cache TTL
-  if (!force && cachedData && (now - lastFetchTime) < CACHE_DURATION) {
+  if (!force && !refetchIncomplete && cachedData && (now - lastFetchTime) < CACHE_DURATION) {
     return cachedData;
   }
 
