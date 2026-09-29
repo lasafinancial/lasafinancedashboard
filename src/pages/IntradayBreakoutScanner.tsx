@@ -61,18 +61,15 @@ export function IntradayBreakoutScanner() {
                 latestBySymbol.set(stock.symbol, { stock, time: stockDateTime });
             }
         });
-        
-        // Normalize mlGap: If received as decimal fraction (e.g. 0.25 for 25%), scale to percentage (25)
-        data = data.map(stock => {
-            const rawMl = typeof stock.mlGap === 'number' ? stock.mlGap : parseFloat(String(stock.mlGap));
-            const normalizedMl = (!isNaN(rawMl) && Math.abs(rawMl) <= 2 && rawMl !== 0)
-                ? Number((rawMl * 100).toFixed(2))
-                : rawMl;
-            return {
-                ...stock,
-                mlGap: normalizedMl
-            };
-        });
+
+        let data = Array.from(latestBySymbol.values()).map(item => item.stock);
+
+        // mlGap already arrives as a percentage (api/fetch-data.js scales fractions to %),
+        // so only coerce to a number here — scaling again would turn 1.5% into 150%.
+        data = data.map(stock => ({
+            ...stock,
+            mlGap: typeof stock.mlGap === 'number' ? stock.mlGap : parseFloat(String(stock.mlGap))
+        }));
 
         // Apply static filters: ML_Gap% > 20 AND Res_Gap% > 5
         data = data.filter(stock => {
@@ -154,7 +151,7 @@ export function IntradayBreakoutScanner() {
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-3xl font-bold tracking-tight text-white">
-                                ML Setup
+                                MEAN REVERSION
                             </h1>
                             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                                 <span className="relative flex h-2 w-2">
@@ -165,7 +162,10 @@ export function IntradayBreakoutScanner() {
                             </div>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1.5">
-                            Stocks filtered by breakout conditions — auto sorted by latest date
+                            Stocks showing Mean Reversion Behavior with breakout pattern — auto sorted by latest date
+                        </p>
+                        <p className="text-xs font-semibold text-amber-400/90 mt-1">
+                            No Buy/Sell Recommendations
                         </p>
                     </div>
                 </motion.div>
