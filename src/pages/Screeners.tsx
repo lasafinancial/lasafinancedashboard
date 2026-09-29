@@ -3,6 +3,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { PremiumProtector } from "@/components/ui/PremiumProtector";
 import { Link, useNavigate } from "react-router-dom";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
+import { isPaidScreener } from "@/lib/screenerAccess";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -20,7 +21,7 @@ const screenerOptions = [
         bgColor: "bg-amber-400/10",
         borderColor: "group-hover:border-amber-400/50",
         gradient: "from-amber-400/20 to-transparent",
-        isPaid: true
+        isPaid: isPaidScreener("/screeners/recommendations")
     },
     {
         path: "/screeners/weekly-recommendations",
@@ -31,7 +32,7 @@ const screenerOptions = [
         bgColor: "bg-cyan-400/10",
         borderColor: "group-hover:border-cyan-400/50",
         gradient: "from-cyan-400/20 to-transparent",
-        isPaid: true
+        isPaid: isPaidScreener("/screeners/weekly-recommendations")
     },
     {
         path: "/screeners/52-week-high",
@@ -42,7 +43,7 @@ const screenerOptions = [
         bgColor: "bg-emerald-400/10",
         borderColor: "group-hover:border-emerald-400/50",
         gradient: "from-emerald-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/52-week-high")
     },
     {
         path: "/screeners/52-week-low",
@@ -53,7 +54,7 @@ const screenerOptions = [
         bgColor: "bg-rose-400/10",
         borderColor: "group-hover:border-rose-400/50",
         gradient: "from-rose-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/52-week-low")
     },
     {
         path: "/screeners/intraday-breakout",
@@ -64,7 +65,7 @@ const screenerOptions = [
         bgColor: "bg-orange-400/10",
         borderColor: "group-hover:border-orange-400/50",
         gradient: "from-orange-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/intraday-breakout")
     },
     {
         path: "/screeners/intraday-reversal",
@@ -75,7 +76,7 @@ const screenerOptions = [
         bgColor: "bg-violet-400/10",
         borderColor: "group-hover:border-violet-400/50",
         gradient: "from-violet-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/intraday-reversal")
     },
     {
         path: "/screeners/obv-accumulation",
@@ -86,7 +87,7 @@ const screenerOptions = [
         bgColor: "bg-teal-400/10",
         borderColor: "group-hover:border-teal-400/50",
         gradient: "from-teal-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/obv-accumulation")
     },
     {
         path: "/screeners/nifty-analysis",
@@ -97,18 +98,18 @@ const screenerOptions = [
         bgColor: "bg-sky-400/10",
         borderColor: "group-hover:border-sky-400/50",
         gradient: "from-sky-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/nifty-analysis")
     },
     {
         path: "/screeners/intraday-breakout-scanner",
-        label: "ML Setup",
-        description: "Intraday volume breakout algorithmic scanner with quantitative momentum signals.",
+        label: "Mean Reversion",
+        description: "Stocks showing Mean Reversion Behavior with breakout pattern. No Buy/Sell Recommendations.",
         icon: Zap,
         color: "text-yellow-400",
         bgColor: "bg-yellow-400/10",
         borderColor: "group-hover:border-yellow-400/50",
         gradient: "from-yellow-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/intraday-breakout-scanner")
     },
     {
         path: "/screeners/breakout-v1",
@@ -119,7 +120,7 @@ const screenerOptions = [
         bgColor: "bg-indigo-400/10",
         borderColor: "group-hover:border-indigo-400/50",
         gradient: "from-indigo-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/breakout-v1")
     },
     ...(FEATURE_FLAGS.ENABLE_BREAKOUT_SCREENER ? [{
         path: "/screeners/near-resistance",
@@ -130,7 +131,7 @@ const screenerOptions = [
         bgColor: "bg-emerald-400/10",
         borderColor: "group-hover:border-emerald-400/50",
         gradient: "from-emerald-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/near-resistance")
     }] : []),
     ...(FEATURE_FLAGS.ENABLE_REVERSAL_SCREENER ? [{
         path: "/screeners/support-reversal",
@@ -141,7 +142,7 @@ const screenerOptions = [
         bgColor: "bg-blue-400/10",
         borderColor: "group-hover:border-blue-400/50",
         gradient: "from-blue-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/support-reversal")
     }] : []),
     ...(FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER ? [{
         path: "/screeners/reaction-zone",
@@ -152,7 +153,7 @@ const screenerOptions = [
         bgColor: "bg-purple-400/10",
         borderColor: "group-hover:border-purple-400/50",
         gradient: "from-purple-400/20 to-transparent",
-        isPaid: false
+        isPaid: isPaidScreener("/screeners/reaction-zone")
     }] : [])
 ];
 
@@ -241,7 +242,7 @@ export function Screeners() {
                         );
 
                         return option.isPaid ? (
-                            <PremiumProtector key={option.path} requiredTier="pro">
+                            <PremiumProtector key={option.path} requiredTier="pro" variant="compact">
                                 {CardContent}
                             </PremiumProtector>
                         ) : (

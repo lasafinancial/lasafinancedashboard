@@ -20,6 +20,18 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Crown, Shield } from "lucide-react";
+import { isPaidScreener } from "@/lib/screenerAccess";
+
+const ScreenerTierBadge = ({ path }: { path: string }) => {
+  const paid = isPaidScreener(path);
+  return (
+    <span className={`px-1.5 py-px rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+      paid ? "bg-amber-500/15 border-amber-500/30 text-amber-400" : "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+    }`}>
+      {paid ? "Paid" : "Free"}
+    </span>
+  );
+};
 
 interface NavbarProps {
   selectedCountry: CountryId | null;
@@ -133,7 +145,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Short Term Trades</span>
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Short Term Trades <ScreenerTierBadge path="/screeners/recommendations" /></span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Holding 1–4 Weeks</span>
                         </div>
                       </Link>
@@ -143,7 +155,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Positional Trades</span>
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Positional Trades <ScreenerTierBadge path="/screeners/weekly-recommendations" /></span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Holding 2–6 Months</span>
                         </div>
                       </Link>
@@ -153,7 +165,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Breakout Board v1</span>
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Breakout Board v1 <ScreenerTierBadge path="/screeners/breakout-v1" /></span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Excel / Tabular</span>
                         </div>
                       </Link>
@@ -164,7 +176,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                           className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                         >
                           <div className="flex flex-col">
-                            <span className="text-sm font-semibold">New Breakouts</span>
+                            <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">New Breakouts <ScreenerTierBadge path="/screeners/new-breakouts" /></span>
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Recent Breakouts</span>
                           </div>
                         </Link>
@@ -176,7 +188,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                           className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                         >
                           <div className="flex flex-col">
-                            <span className="text-sm font-semibold">Breakout</span>
+                            <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Breakout <ScreenerTierBadge path="/screeners/near-resistance" /></span>
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Bullish Setups</span>
                           </div>
                         </Link>
@@ -188,7 +200,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                           className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                         >
                           <div className="flex flex-col">
-                            <span className="text-sm font-semibold">Reversal</span>
+                            <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Reversal <ScreenerTierBadge path="/screeners/support-reversal" /></span>
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Potential Reversals</span>
                           </div>
                         </Link>
@@ -200,7 +212,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                           className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                         >
                           <div className="flex flex-col">
-                            <span className="text-sm font-semibold">Reaction Zone</span>
+                            <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Reaction Zone <ScreenerTierBadge path="/screeners/reaction-zone" /></span>
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Algo Level Proximity</span>
                           </div>
                         </Link>
@@ -211,7 +223,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Intraday Volume Breakout</span>
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Intraday Volume Breakout <ScreenerTierBadge path="/screeners/intraday-breakout" /></span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Breakout Momentum</span>
                         </div>
                       </Link>
@@ -221,7 +233,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Intraday Reversal</span>
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Intraday Reversal <ScreenerTierBadge path="/screeners/intraday-reversal" /></span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">HA Reversal Signals</span>
                         </div>
                       </Link>
@@ -231,8 +243,8 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">ML Setup</span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Intraday Volume Breakout</span>
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Mean Reversion <ScreenerTierBadge path="/screeners/intraday-breakout-scanner" /></span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Reversion + Breakout Pattern</span>
                         </div>
                       </Link>
 
@@ -242,7 +254,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Accumulation Scan</span>
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Accumulation Scan <ScreenerTierBadge path="/screeners/obv-accumulation" /></span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Daily BO / Weekly Acc</span>
                         </div>
                       </Link>
@@ -252,7 +264,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">Optics</span>
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Optics <ScreenerTierBadge path="/screeners/nifty-analysis" /></span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Nifty Options</span>
                         </div>
                       </Link>
@@ -262,7 +274,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">52 Week High</span>
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">52 Week High <ScreenerTierBadge path="/screeners/52-week-high" /></span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Near 52W High</span>
                         </div>
                       </Link>
@@ -272,31 +284,10 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
                       >
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold">52 Week Low</span>
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">52 Week Low <ScreenerTierBadge path="/screeners/52-week-low" /></span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Near 52W Low</span>
                         </div>
                       </Link>
-                      {user?.email === 'lasafinancial@gmail.com' ? (
-                        <Link
-                          to="/multibagger"
-                          className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold">Dev-MB</span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">High Growth Picks</span>
-                          </div>
-                        </Link>
-                      ) : (
-                        <button
-                          onClick={() => toast({ title: "Coming Soon", description: "Dev-MB section is under active development!" })}
-                          className="w-full block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold">Dev-MB</span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">High Growth Picks</span>
-                          </div>
-                        </button>
-                      )}
                     </div>
                   </div>
                 );
@@ -543,25 +534,12 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                               {FEATURE_FLAGS.ENABLE_REACTION_ZONE_SCREENER && <Link to="/screeners/reaction-zone" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Reaction Zone</Link>}
                               <Link to="/screeners/intraday-breakout" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Volume Breakout</Link>
                               <Link to="/screeners/intraday-reversal" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Intraday Reversal</Link>
-                              <Link to="/screeners/intraday-breakout-scanner" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">ML Setup</Link>
+                              <Link to="/screeners/intraday-breakout-scanner" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Mean Reversion</Link>
 
                               <Link to="/screeners/obv-accumulation" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Accumulation Scan</Link>
                               <Link to="/screeners/nifty-analysis" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Optics</Link>
                               <Link to="/screeners/52-week-high" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">52 Week High</Link>
                               <Link to="/screeners/52-week-low" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">52 Week Low</Link>
-                              {user?.email === 'lasafinancial@gmail.com' ? (
-                                <Link to="/multibagger" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Dev-MB</Link>
-                              ) : (
-                                <button
-                                  onClick={() => {
-                                    setIsMobileMenuOpen(false);
-                                    toast({ title: "Coming Soon", description: "Dev-MB section is under active development!" });
-                                  }}
-                                  className="w-full block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors text-left"
-                                >
-                                  Dev-MB
-                                </button>
-                              )}
                             </div>
                           </div>
                         );

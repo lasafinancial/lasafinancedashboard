@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 interface PremiumProtectorProps {
@@ -11,6 +12,7 @@ interface PremiumProtectorProps {
     title?: string;
     description?: string;
     isLocked?: boolean; // For custom lock conditions (like view limits)
+    variant?: 'default' | 'compact'; // 'compact' fits the lock overlay inside small cards/tiles
 }
 
 export const PremiumProtector = ({
@@ -21,6 +23,7 @@ export const PremiumProtector = ({
     title = "Premium Feature",
     description = "Please upgrade your account to access this feature.",
     isLocked,
+    variant = 'default',
 }: PremiumProtectorProps) => {
     const { isPro, isElite, isFree } = useAuth();
 
@@ -57,6 +60,31 @@ export const PremiumProtector = ({
         );
     }
 
+    const upgradeLabel = requiredTier === 'pro' ? 'Upgrade to PRO' : 'Upgrade to ELITE';
+
+    if (variant === 'compact') {
+        return (
+            <div className="relative h-full overflow-hidden rounded-2xl" style={{ isolation: 'isolate' }}>
+                <div className="h-full select-none pointer-events-none blur-sm opacity-40" aria-hidden="true">
+                    {children}
+                </div>
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 p-5 text-center bg-background/50 backdrop-blur-[2px] rounded-2xl border border-white/10">
+                    <div className="h-10 w-10 rounded-xl bg-background border border-white/10 flex items-center justify-center shadow-lg">
+                        <Lock className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="text-base font-bold tracking-tight">{title}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed max-w-[30ch]">{description}</p>
+                    <Link
+                        to="/pricing"
+                        className="mt-1 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold tracking-wide hover:bg-primary hover:text-white transition-colors"
+                    >
+                        {upgradeLabel}
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     const blurClasses = {
         sm: 'blur-sm',
         md: 'blur-md',
@@ -86,7 +114,7 @@ export const PremiumProtector = ({
                 </p>
 
                 <div className="px-6 py-2.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-sm font-bold tracking-wide hover:bg-primary hover:text-white transition-all duration-300 cursor-pointer shadow-lg shadow-primary/20 flex items-center gap-2">
-                    <span>{requiredTier === 'pro' ? 'Upgrade to PRO' : 'Upgrade to ELITE'}</span>
+                    <span>{upgradeLabel}</span>
                 </div>
             </div>
         </div>
