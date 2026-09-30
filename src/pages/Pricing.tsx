@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Check, Info, ShieldAlert, Loader2 } from 'lucide-react';
+import { Check, Info, ShieldAlert, Loader2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { startRazorpayCheckout, type BillingCycle } from '@/lib/razorpay';
+
+// Trader subscriptions are handled on the client portal (registration + KYC)
+const CLIENT_PORTAL_URL = 'https://client.lasaresearch.in';
 
 export const Pricing = () => {
     const { user } = useAuth();
@@ -169,7 +172,7 @@ export const Pricing = () => {
                             <div className="mb-8">
                                 <div className="flex items-center gap-2 mb-1.5">
                                     <span className="text-sm text-muted-foreground/50 line-through font-mono">
-                                        ₹{billingCycle === 'quarterly' ? '4,800' : '14,400'}
+                                        ₹{billingCycle === 'quarterly' ? '9,600' : '28,800'}
                                     </span>
                                     <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wide">
                                         50% Off
@@ -178,7 +181,7 @@ export const Pricing = () => {
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-2xl text-muted-foreground">₹</span>
                                     <span className="text-5xl font-bold">
-                                        {billingCycle === 'quarterly' ? '2,400' : '7,200'}
+                                        {billingCycle === 'quarterly' ? '4,800' : '14,400'}
                                     </span>
                                 </div>
                                 <div className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
@@ -210,14 +213,16 @@ export const Pricing = () => {
                                 ))}
                             </div>
                             
-                            <button
-                                onClick={() => handleSubscribe('trader', 'Trader')}
-                                disabled={loadingPlan === 'trader'}
-                                className="w-full py-4 text-sm font-bold tracking-widest text-blue-400 border border-blue-500/30 hover:bg-blue-500/10 transition-colors uppercase rounded bg-blue-500/5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            <a
+                                href={CLIENT_PORTAL_URL}
+                                className="w-full py-4 text-sm font-bold tracking-widest text-blue-400 border border-blue-500/30 hover:bg-blue-500/10 transition-colors uppercase rounded bg-blue-500/5 flex items-center justify-center gap-2"
                             >
-                                {loadingPlan === 'trader' && <Loader2 className="w-4 h-4 animate-spin" />}
                                 Subscribe Now
-                            </button>
+                            </a>
+                            <p className="text-xs text-muted-foreground text-center mt-3 flex items-center justify-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 shrink-0" />
+                                Registration &amp; KYC takes just 2–5 minutes
+                            </p>
                             
                             <p className="text-[10px] text-muted-foreground mt-6 leading-relaxed opacity-60">
                                 Research by SEBI RA Reg. No. INH000030144. Trade ideas are research recommendations, not guaranteed returns. For registered subscribers only.
@@ -245,7 +250,7 @@ export const Pricing = () => {
                             <div className="mb-8">
                                 <div className="flex items-center gap-2 mb-1.5">
                                     <span className="text-sm text-muted-foreground/50 line-through font-mono">
-                                        ₹{billingCycle === 'quarterly' ? '7,200' : '21,600'}
+                                        ₹{billingCycle === 'quarterly' ? '15,000' : '45,000'}
                                     </span>
                                     <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wide">
                                         50% Off
@@ -254,7 +259,7 @@ export const Pricing = () => {
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-2xl text-muted-foreground">₹</span>
                                     <span className="text-5xl font-bold">
-                                        {billingCycle === 'quarterly' ? '3,600' : '10,800'}
+                                        {billingCycle === 'quarterly' ? '7,500' : '22,500'}
                                     </span>
                                 </div>
                                 <div className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
@@ -286,13 +291,12 @@ export const Pricing = () => {
                                 ))}
                             </div>
                             
+                            {/* Pro Trader subscriptions are not open yet */}
                             <button
-                                onClick={() => handleSubscribe('pro_trader', 'Pro Trader')}
-                                disabled={loadingPlan === 'pro_trader'}
-                                className="w-full py-4 text-sm font-bold tracking-widest text-black bg-amber-500 hover:bg-amber-400 transition-colors uppercase rounded disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                disabled
+                                className="w-full py-4 text-sm font-bold tracking-widest text-white/40 bg-white/5 border border-white/10 uppercase rounded cursor-not-allowed"
                             >
-                                {loadingPlan === 'pro_trader' && <Loader2 className="w-4 h-4 animate-spin" />}
-                                Join Elite
+                                Coming Soon
                             </button>
                             
                             <p className="text-[10px] text-muted-foreground mt-6 leading-relaxed opacity-60">
@@ -363,32 +367,30 @@ export const Pricing = () => {
                             </span>
                             <div>
                                 <h3 className="text-lg font-bold">Elite Annual Plan — Best Value</h3>
-                                <p className="text-sm text-muted-foreground">Full Elite access • 50% off introductory offer • 1 quarter free • ₹900/month effective</p>
+                                <p className="text-sm text-muted-foreground">Full Elite access • 50% off introductory offer • 1 quarter free • ₹1,875/month effective</p>
                             </div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-4 sm:gap-6 w-full md:w-auto justify-between md:justify-end">
                             <div className="text-left sm:text-right">
-                                <div className="text-emerald-400 text-sm font-bold">₹3,600 saved</div>
+                                <div className="text-emerald-400 text-sm font-bold">₹7,500 saved</div>
                                 <div className="text-[10px] text-muted-foreground font-mono">vs quarterly</div>
                             </div>
                             <div className="text-right">
-                                <span className="text-sm text-muted-foreground/50 line-through font-mono block">₹21,600</span>
+                                <span className="text-sm text-muted-foreground/50 line-through font-mono block">₹45,000</span>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-xl text-muted-foreground">₹</span>
-                                    <span className="text-3xl font-bold">10,800</span>
+                                    <span className="text-3xl font-bold">22,500</span>
                                 </div>
                             </div>
                             <div className="text-xs text-muted-foreground font-mono tracking-tight">
                                 per year
                             </div>
                             <button
-                                onClick={() => handleSubscribe('pro_trader', 'Pro Trader', 'annual')}
-                                disabled={loadingPlan === 'pro_trader'}
-                                className="w-full sm:w-auto px-6 py-3 text-xs font-bold tracking-widest text-black bg-emerald-400 hover:bg-emerald-300 transition-colors uppercase rounded ml-0 sm:ml-4 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                disabled
+                                className="w-full sm:w-auto px-6 py-3 text-xs font-bold tracking-widest text-white/40 bg-white/5 border border-white/10 uppercase rounded ml-0 sm:ml-4 cursor-not-allowed"
                             >
-                                {loadingPlan === 'pro_trader' && <Loader2 className="w-4 h-4 animate-spin" />}
-                                Get Annual
+                                Coming Soon
                             </button>
                         </div>
                     </div>

@@ -4,8 +4,8 @@ import Razorpay from 'razorpay';
 
 const RAZORPAY_PLANS = {
     'starter': { name: 'Starter', priceQuarterly: 0, priceAnnual: 0, tier: 'free' },
-    'trader': { name: 'Trader', priceQuarterly: 2400, priceAnnual: 7200, tier: 'pro' },
-    'pro_trader': { name: 'Pro Trader', priceQuarterly: 3600, priceAnnual: 10800, tier: 'elite' },
+    'trader': { name: 'Trader', priceQuarterly: 4800, priceAnnual: 14400, tier: 'pro' },
+    'pro_trader': { name: 'Pro Trader', priceQuarterly: 7500, priceAnnual: 22500, tier: 'elite' },
     'standalone_rotation': { name: 'Dynamic Portfolio Rotation', priceQuarterly: 2400, priceAnnual: 7200, tier: 'pro' },
 };
 
