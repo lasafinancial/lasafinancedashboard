@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { Mail, Linkedin, Instagram } from "lucide-react";
+import { Mail, Linkedin, Instagram, Tv } from "lucide-react";
+import { InstagramReels } from "@/components/cards/InstagramReels";
 
 const TIMELINE = [
   {
@@ -132,12 +133,34 @@ export function About() {
           </div>
         </Section>
 
+        <Section id="about-media" title="In the media">
+          <div className="flex items-center gap-4 px-5 py-[18px] rounded-[10px] border border-white/10 bg-white/[0.03] mb-5">
+            <div className="shrink-0 w-16 h-16 rounded-[10px] bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center">
+              <Tv className="w-7 h-7 text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-base font-semibold mb-0.5">Market Times TV</p>
+              <p className="text-sm text-muted-foreground">Regular Analyst</p>
+            </div>
+          </div>
+          <InstagramReels />
+          <a
+            href="https://www.instagram.com/lasaresearch/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            <Instagram className="w-4 h-4" />
+            More videos on Instagram · @lasaresearch
+          </a>
+        </Section>
+
         <Section id="about-connect" title="Connect">
           <div className="flex flex-wrap gap-3">
             {[
               { href: "mailto:lasaresearch@gmail.com", label: "lasaresearch@gmail.com", icon: Mail, external: false },
-              { href: "https://www.linkedin.com/in/lasa-research-dheeraj-sogani-25752a3b4", label: "LinkedIn", icon: Linkedin, external: true },
-              { href: "https://instagram.com/lasaresearch", label: "@lasaresearch", icon: Instagram, external: true },
+              { href: "https://www.linkedin.com/in/lasa-research-dheeraj-sogani-25752a3b4/", label: "LinkedIn", icon: Linkedin, external: true },
+              { href: "https://www.instagram.com/lasaresearch/", label: "@lasaresearch", icon: Instagram, external: true },
             ].map(({ href, label, icon: Icon, external }) => (
               <a
                 key={label}
