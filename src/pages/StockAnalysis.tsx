@@ -25,6 +25,9 @@ interface HoveredData {
   pattern: number | null;
 }
 
+// Directional verdict sentences hidden from the Stock Summary, e.g. "Bearish." or "Cautiously Bearish."
+const BIAS_VERDICT = /^((cautiously|mildly|moderately|slightly|strongly|very)\s+)?(bullish|bearish|mixed|neutral|trending)\.?$/i;
+
 const StockAnalysis = () => {
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -384,7 +387,7 @@ const StockAnalysis = () => {
       const mlUpsidePct = pctDiff(mlTgt, close);
       result.targets["model"] = mlTgt;
       if (mlTgt > close) {
-        result.signals.push(`Model target ₹${mlTgt.toLocaleString()} — ${mlUpsidePct.toFixed(1)}% upside over 20 days.`);
+        result.signals.push(`Model level ₹${mlTgt.toLocaleString()} — ${mlUpsidePct.toFixed(1)}% upside over 20 days.`);
         if (mlDiff < -30) {
           result.signals.push(`Price is running below Model expectation (diff: ${mlDiff}) — Model sees undervaluation.`);
           bullishPts += 1;
@@ -393,7 +396,7 @@ const StockAnalysis = () => {
           bearishPts += 1;
         }
       } else {
-        result.signals.push(`Model target ₹${mlTgt.toLocaleString()} is BELOW current price — Model is bearish.`);
+        result.signals.push(`Model level ₹${mlTgt.toLocaleString()} is BELOW current price — Model is bearish.`);
         result.warnings.push(`Model projects ${Math.abs(mlUpsidePct).toFixed(1)}% downside.`);
         bearishPts += 2;
       }
@@ -415,13 +418,13 @@ const StockAnalysis = () => {
     // -- PATTERN (WOLFE WAVE) --
     const wolfeBull = latest.wolfeD || lastValidWolfeBull;
     if (wolfeBull > 0) {
-      result.signals.push(`Bullish Pattern active — target ₹${wolfeBull.toLocaleString()}.`);
+      result.signals.push(`Bullish Pattern active — level ₹${wolfeBull.toLocaleString()}.`);
       result.targets["pattern"] = wolfeBull;
       bullishPts += 2;
     }
     const wolfeBear = (latest as any).wolfeDBearish || (latest as any).wolfe_d_bearish || lastValidWolfeBear;
     if (wolfeBear > 0) {
-      result.signals.push(`Bearish Pattern active — downside target ₹${wolfeBear.toLocaleString()}.`);
+      result.signals.push(`Bearish Pattern active — downside level ₹${wolfeBear.toLocaleString()}.`);
       result.targets["bearish_pattern"] = wolfeBear;
       bearishPts += 2;
     }
@@ -458,7 +461,7 @@ const StockAnalysis = () => {
     // -- BIAS & ACTION --
     if (isTrending) {
       result.bias = "TRENDING";
-      result.action = `HOLD with strict stop at Support ₹${support.toLocaleString()}. Stock moving strongly — all upside targets valid. If Support ₹${support.toLocaleString()} breaks, exit immediately.`;
+      result.action = `HOLD with strict stop at Support ₹${support.toLocaleString()}. Stock moving strongly — all upside levels valid. If Support ₹${support.toLocaleString()} breaks, exit immediately.`;
     } else if (bullishPts > bearishPts + 1) {
       result.bias = "BULLISH";
       if (pctFromResist !== null && pctFromResist > 0) result.action = `BUY — Breakout confirmed. Stop below ₹${resist.toLocaleString()}.`;
@@ -498,7 +501,7 @@ const StockAnalysis = () => {
       if (balance && balance > close) upTargets.push(`Balance ₹${balance.toLocaleString()}`);
       if (result.targets.pattern) upTargets.push(`Pattern ₹${result.targets.pattern.toLocaleString()}`);
 
-      if (upTargets.length > 0) parts.push(`Upside targets: ${upTargets.join(", ")}.`);
+      if (upTargets.length > 0) parts.push(`Upside levels: ${upTargets.join(", ")}.`);
 
       const downLevels = [];
       if (balance && balance < close) downLevels.push(`Balance ₹${balance.toLocaleString()}`);
@@ -519,7 +522,7 @@ const StockAnalysis = () => {
       }
 
       if (balance > 0) {
-        if (balance > close) parts.push(`Balance at ₹${balance.toLocaleString()} is the first upside target.`);
+        if (balance > close) parts.push(`Balance at ₹${balance.toLocaleString()} is the first upside level.`);
         else parts.push(`Balance at ₹${balance.toLocaleString()} below price — acts as pullback magnet.`);
       }
 
@@ -528,8 +531,8 @@ const StockAnalysis = () => {
         else parts.push(`Model is bearish, projecting ₹${result.targets.model.toLocaleString()}.`);
       }
 
-      if (result.targets.pattern) parts.push(`Bullish Pattern target at ₹${result.targets.pattern.toLocaleString()}.`);
-      if (result.targets.bearish_pattern) parts.push(`Bearish Pattern target at ₹${result.targets.bearish_pattern.toLocaleString()}.`);
+      if (result.targets.pattern) parts.push(`Bullish Pattern level at ₹${result.targets.pattern.toLocaleString()}.`);
+      if (result.targets.bearish_pattern) parts.push(`Bearish Pattern level at ₹${result.targets.bearish_pattern.toLocaleString()}.`);
     }
 
     parts.push(`${result.action}`);
@@ -789,7 +792,7 @@ const StockAnalysis = () => {
                     </div>
 
                     {/* Sub-header */}
-                    <div className="text-[7.5px] font-bold text-muted-foreground/30 uppercase tracking-[0.15em]">Upside Targets &middot; Confidence Ranked</div>
+                    <div className="text-[7.5px] font-bold text-muted-foreground/30 uppercase tracking-[0.15em]">Upside Levels &middot; Confidence Ranked</div>
 
                     {/* HIGH CONFIDENCE */}
                     {(analysisResult.resistance > 0 || analysisResult.targets.balance > 0) && (
@@ -839,7 +842,7 @@ const StockAnalysis = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
                             <div className="h-1 w-1 rounded-full bg-warning shadow-[0_0_4px_rgba(234,179,8,0.7)] shrink-0" />
-                            <span className="text-[10px] font-semibold text-foreground/90">Model Target</span>
+                            <span className="text-[10px] font-semibold text-foreground/90">Model Level</span>
                             <div className="flex items-center gap-1 px-1 py-0 rounded bg-warning/10 border border-warning/20">
                               <span className="text-[7px] text-warning font-black tracking-tight">||</span>
                               <span className="text-[6.5px] font-black text-warning uppercase tracking-wide">MODERATE</span>
@@ -861,7 +864,7 @@ const StockAnalysis = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
                             <div className="h-1 w-1 rounded-full bg-primary shadow-[0_0_4px_rgba(99,102,241,0.7)] shrink-0" />
-                            <span className="text-[10px] font-semibold text-foreground/90">Pattern Target</span>
+                            <span className="text-[10px] font-semibold text-foreground/90">Pattern Level</span>
                             <div className="flex items-center gap-1 px-1 py-0 rounded bg-primary/10 border border-primary/20">
                               <span className="text-[7px] text-primary font-black">|</span>
                               <span className="text-[6.5px] font-black text-primary uppercase tracking-wide">SPECULATIVE</span>
@@ -885,7 +888,7 @@ const StockAnalysis = () => {
                     <div className="space-y-0.5 pt-0">
                       <div className="p-1 rounded-lg bg-primary/5 border border-primary/10 flex items-center gap-1.5">
                         <Info className="w-2.5 h-2.5 text-primary shrink-0" />
-                        <p className="text-[8px] text-muted-foreground/80 leading-tight">Higher targets carry lower probability in near term.</p>
+                        <p className="text-[8px] text-muted-foreground/80 leading-tight">Higher levels carry lower probability in near term.</p>
                       </div>
                       {analysisResult.support > 0 && (
                         <div className="p-1 rounded-lg bg-destructive/5 border border-destructive/10 flex items-center gap-1.5">
@@ -925,15 +928,6 @@ const StockAnalysis = () => {
                   <p className="text-xs text-muted-foreground">AI Generated Analysis</p>
                 </div>
               </div>
-              <div className={`px-3 py-1 rounded-lg border flex items-center gap-2 ${currentSummary.direction?.toLowerCase() === 'bullish'
-                  ? 'bg-success/10 border-success/30 text-success'
-                  : currentSummary.direction?.toLowerCase() === 'bearish'
-                    ? 'bg-destructive/10 border-destructive/30 text-destructive'
-                    : 'bg-warning/10 border-warning/30 text-warning'
-                }`}>
-                <Activity className="w-4 h-4" />
-                <span className="text-sm font-bold uppercase tracking-wider">{currentSummary.direction || 'NEUTRAL'}</span>
-              </div>
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-white/5 bg-black/20">
@@ -965,7 +959,8 @@ const StockAnalysis = () => {
                           .split(/(?<=\.)\s+/)
                           .filter(Boolean)
                           .filter((sentence: string) => !sentence.toLowerCase().includes('signal score'))
-                          .filter((sentence: string) => !/^(bullish|bearish|mixed|neutral|trending)\.?$/i.test(sentence.trim()))
+                          // Drop directional verdicts such as "Bearish." or "Cautiously Bearish."
+                          .filter((sentence: string) => !BIAS_VERDICT.test(sentence.trim()))
                           .map((sentence: string, i: number) => (
                             <li key={i}>{sentence}</li>
                           ))}

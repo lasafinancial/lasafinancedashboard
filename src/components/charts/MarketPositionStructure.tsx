@@ -112,23 +112,6 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
     );
   }
 
-  const overallBullish =
-    data.model.bullish +
-    data.balance.above +
-    data.momentum.bullish +
-    data.sr.atSupport +
-    data.reversal.up;
-
-  const overallBearish =
-    data.model.bearish +
-    data.balance.below +
-    data.momentum.bearish +
-    data.sr.atResistance +
-    data.reversal.down;
-
-  const verdict = overallBullish > overallBearish ? "BULLISH" : overallBearish > overallBullish ? "BEARISH" : "NEUTRAL";
-  const verdictColor = verdict === "BULLISH" ? "text-success" : verdict === "BEARISH" ? "text-destructive" : "text-warning";
-
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
@@ -137,9 +120,6 @@ export default function MarketPositionStructure({ eodDate }: MarketPositionStruc
             Current Overall Market Position Structure {eodDate && <span className="text-warning/80">(AS OF {eodDate})</span>}
           </h3>
           <p className="text-xs text-muted-foreground/60 font-medium italic">Multi-modal analytical engine</p>
-        </div>
-        <div className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide bg-white/5 border border-white/10 ${verdictColor} shadow-[0_0_20px_rgba(255,255,255,0.05)]`}>
-          {verdict}
         </div>
       </div>
 
