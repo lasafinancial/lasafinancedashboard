@@ -2524,14 +2524,23 @@ let lastFetchTime = cachedData ? Date.now() : 0;
 let isFetchingPromise = null;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes during market hours
 
+// ?force=true re-reads every sheet. Allow it at most once a minute per instance so bursts of
+// forced requests (e.g. client retry storms) can't exhaust the Google Sheets read quota.
+const FORCE_MIN_INTERVAL = 60 * 1000;
+let lastForcedFetchTime = 0;
+
 export default async function handler(req, res) {
-  const isForced = req.query.force === 'true';
   const now = Date.now();
+  const forceRequested = req.query.force === 'true';
+  const isForced = forceRequested && (now - lastForcedFetchTime >= FORCE_MIN_INTERVAL);
+  if (forceRequested && !isForced) {
+    console.log('[FORCE] Ignoring force=true: last forced fetch was under a minute ago.');
+  }
   const ist = getISTInfo();
 
   // Edge caching for fast responses from Vercel CDN
   // Force bypasses edge cache; market hours gets 15 min; outside market hours gets 10 min
-  if (isForced) {
+  if (forceRequested) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   } else if (ist.isMarketOpenNow) {
     res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=1800');
@@ -2552,8 +2561,9 @@ export default async function handler(req, res) {
     return res.status(200).json(cachedData);
   }
 
-  // Deduplicate in-flight fetches so concurrent requests share a single execution
-  if (!isFetchingPromise || isForced) {
+  // Deduplicate in-flight fetches so concurrent requests (forced or not) share a single execution
+  if (!isFetchingPromise) {
+    if (isForced) lastForcedFetchTime = now;
     isFetchingPromise = fetchData(isForced)
       .then(data => {
         if (data && ((data.stockData && data.stockData.length > 0) || (data.weeklyRecommendation && data.weeklyRecommendation.length > 0))) {

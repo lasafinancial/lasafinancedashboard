@@ -304,7 +304,22 @@ function isCacheIncomplete(data: GoogleSheetsData): boolean {
   return false;
 }
 
-export async function refreshAllData(force: boolean = false): Promise<GoogleSheetsData | null> {
+// Many components call refreshAllData() at once on page load; share one in-flight request.
+let inFlightRefresh: Promise<GoogleSheetsData | null> | null = null;
+// After a failed fetch, retry once with growing delays (not forced) instead of every caller retrying.
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let retryDelay = 5000;
+const MAX_RETRY_DELAY = 5 * 60 * 1000;
+
+export function refreshAllData(force: boolean = false): Promise<GoogleSheetsData | null> {
+  if (inFlightRefresh) return inFlightRefresh;
+  inFlightRefresh = doRefreshAllData(force).finally(() => {
+    inFlightRefresh = null;
+  });
+  return inFlightRefresh;
+}
+
+async function doRefreshAllData(force: boolean): Promise<GoogleSheetsData | null> {
   const now = Date.now();
   const marketOpen = isMarketOpen();
   const eodWindow = isEODWindow();
@@ -396,6 +411,7 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
 
     cachedData = data;
     lastFetchTime = now;
+    retryDelay = 5000;
     saveCacheToStorage(data, now);
 
     notifyListeners(data);
@@ -404,8 +420,12 @@ export async function refreshAllData(force: boolean = false): Promise<GoogleShee
     return data;
   } catch (error) {
     console.error('Error refreshing data:', error);
-    if (!cachedData) {
-      setTimeout(() => refreshAllData(true), 3000);
+    if (!cachedData && !retryTimer) {
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        refreshAllData();
+      }, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
     }
     return cachedData;
   }
