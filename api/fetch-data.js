@@ -1036,8 +1036,23 @@ async function fetchData(isForced = false) {
       else neutCount++;
     });
 
+    // Only trust the live reading when the live sheet actually has prices. On weekends and
+    // market holidays it's blank, and every stock would read as BEARISH (100% negative).
     const totalMoodStocks = moodStocks.length;
-    if (totalMoodStocks > 0) {
+    const pricedMoodStocks = moodStocks.filter(row =>
+      (parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0) > 0
+    ).length;
+    const hasLivePrices = totalMoodStocks > 0 && pricedMoodStocks >= totalMoodStocks / 2;
+    if (!hasLivePrices && marketMood.trend.length > 0) {
+      // Show the last trading day instead
+      const last = marketMood.trend[marketMood.trend.length - 1];
+      marketMood.bullish = last.bullish;
+      marketMood.bearish = last.bearish;
+      marketMood.neutral = last.neutral;
+      marketMood.date = last.date;
+      console.log(`[MOOD] No live prices (${pricedMoodStocks}/${totalMoodStocks}); using ${last.date}.`);
+    }
+    if (hasLivePrices) {
       const sentiment = calculateSentiment(moodStocks);
       marketMood.bullish = sentiment.bullish;
       marketMood.bearish = sentiment.bearish;
@@ -2270,9 +2285,10 @@ async function fetchData(isForced = false) {
 
   const finalStockData = stockData.map(stock => {
     const liveRow = currentLiveMap[stock.symbol];
-    if (liveRow && stock.history.length > 0) {
+    const cp = liveRow ? getNum(liveRow['CLOSE_PRICE'] || liveRow[colToIdx('E')]) : 0;
+    // No live price (weekend, holiday, sheet refreshing): keep the last close and don't add a 0 point
+    if (liveRow && stock.history.length > 0 && cp > 0) {
       const liveDate = formatDate(new Date());
-      const cp = getNum(liveRow['CLOSE_PRICE'] || liveRow[colToIdx('E')]);
 
       // Update main stock price with live value
       stock.price = cp;
