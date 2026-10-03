@@ -95,19 +95,10 @@ export default defineConfig(({ mode }) => ({
             }
           },
           {
+            // Live data must never come from the service worker cache: a slow server used to make
+            // it fall back to responses up to a day old. The app keeps its own copy in localStorage.
             urlPattern: /\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              networkTimeoutSeconds: 45,
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
+            handler: 'NetworkOnly'
           }
         ]
       }

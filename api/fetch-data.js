@@ -2519,6 +2519,58 @@ function saveDiskCache(data) {
   }
 }
 
+// --- Response shaping ---
+// ?part=live    -> everything, but each stock's history holds only today's live point
+// ?part=history -> { histories: { SYMBOL: [...] } } without live points; cached for an hour
+// (no part)     -> the full response, as before (used by the Android app and older pages)
+//
+// The intraday scanner sheet keeps every scan for ~70 days (~76k rows, about half the payload),
+// but every enabled page only uses each symbol's latest row. The list is sorted newest first.
+function latestPerSymbol(rows) {
+  const seen = new Set();
+  return (rows || []).filter((row) => {
+    if (seen.has(row.symbol)) return false;
+    seen.add(row.symbol);
+    return true;
+  });
+}
+
+const shapedResponses = new WeakMap();
+function shapeResponse(data, part) {
+  if (!data || typeof data !== 'object' || !Array.isArray(data.stockData)) return data;
+  let shapes = shapedResponses.get(data);
+  if (!shapes) {
+    shapes = {};
+    shapedResponses.set(data, shapes);
+  }
+  if (shapes[part]) return shapes[part];
+
+  const base = FEATURE_FLAGS.ENABLE_NEW_BREAKOUTS_SCREENER
+    ? data // New Breakouts needs the full scan history
+    : { ...data, intradayBreakoutScanner: latestPerSymbol(data.intradayBreakoutScanner) };
+
+  let out;
+  if (part === 'history') {
+    const histories = {};
+    for (const stock of data.stockData) {
+      histories[stock.symbol] = (stock.history || []).filter((h) => !h.isLive);
+    }
+    out = { histories, lastUpdated: data.lastUpdated };
+  } else if (part === 'live') {
+    out = {
+      ...base,
+      stockData: data.stockData.map((stock) => ({
+        ...stock,
+        history: (stock.history || []).filter((h) => h.isLive),
+      })),
+    };
+  } else {
+    out = base;
+  }
+  shapes[part] = out;
+  return out;
+}
+
 let cachedData = loadDiskCache();
 let lastFetchTime = cachedData ? Date.now() : 0;
 let isFetchingPromise = null;
@@ -2529,9 +2581,15 @@ const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes during market hours
 const FORCE_MIN_INTERVAL = 60 * 1000;
 let lastForcedFetchTime = 0;
 
+// After the close, refresh once per day so the closing data replaces the last intraday fetch
+// (otherwise the in-memory copy from earlier in the day is served all evening).
+const POST_CLOSE_REFRESH_MINUTES = 15 * 60 + 45; // 15:45 IST
+let lastPostCloseRefreshKey = null;
+
 export default async function handler(req, res) {
   const now = Date.now();
   const forceRequested = req.query.force === 'true';
+  const part = req.query.part === 'live' || req.query.part === 'history' ? req.query.part : 'full';
   const isForced = forceRequested && (now - lastForcedFetchTime >= FORCE_MIN_INTERVAL);
   if (forceRequested && !isForced) {
     console.log('[FORCE] Ignoring force=true: last forced fetch was under a minute ago.');
@@ -2543,28 +2601,39 @@ export default async function handler(req, res) {
   if (forceRequested) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   } else if (ist.isMarketOpenNow) {
-    res.setHeader('Cache-Control', 'public, s-maxage=900, stale-while-revalidate=1800');
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
   } else {
-    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200');
+    res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=600');
   }
+  if (part === 'history' && !forceRequested) {
+    // Price histories only change once a day; let the CDN keep them for an hour
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=600');
+  }
+
+  const needsPostCloseRefresh = ist.isWeekday
+    && ist.timeInMinutes >= POST_CLOSE_REFRESH_MINUTES
+    && lastPostCloseRefreshKey !== ist.dateKey;
 
   const hasValidData = cachedData && Array.isArray(cachedData.weeklyRecommendation) && cachedData.weeklyRecommendation.length > 0;
 
   // Outside market hours, if we already have valid cachedData and it's not forced or the 22:30 window, return immediately
   const isAfter2230 = ist.timeInMinutes >= (22 * 60 + 30);
-  if (!isForced && hasValidData && !ist.isMarketOpenNow && !(isAfter2230 && lastAllstocksDateKey !== ist.dateKey)) {
-    return res.status(200).json(cachedData);
+  if (!isForced && !needsPostCloseRefresh && hasValidData && !ist.isMarketOpenNow && !(isAfter2230 && lastAllstocksDateKey !== ist.dateKey)) {
+    return res.status(200).json(shapeResponse(cachedData, part));
   }
 
   // Return from in-memory cache instantly (<1ms) if still fresh
-  if (!isForced && hasValidData && (now - lastFetchTime) < CACHE_DURATION) {
-    return res.status(200).json(cachedData);
+  if (!isForced && !needsPostCloseRefresh && hasValidData && (now - lastFetchTime) < CACHE_DURATION) {
+    return res.status(200).json(shapeResponse(cachedData, part));
   }
 
   // Deduplicate in-flight fetches so concurrent requests (forced or not) share a single execution
   if (!isFetchingPromise) {
-    if (isForced) lastForcedFetchTime = now;
-    isFetchingPromise = fetchData(isForced)
+    // The post-close refresh is forced so every sheet is re-read, not just the intraday ones
+    const forceThisFetch = isForced || needsPostCloseRefresh;
+    if (forceThisFetch) lastForcedFetchTime = now;
+    if (needsPostCloseRefresh) lastPostCloseRefreshKey = ist.dateKey;
+    isFetchingPromise = fetchData(forceThisFetch)
       .then(data => {
         if (data && ((data.stockData && data.stockData.length > 0) || (data.weeklyRecommendation && data.weeklyRecommendation.length > 0))) {
           cachedData = data;
@@ -2589,11 +2658,11 @@ export default async function handler(req, res) {
 
   try {
     const data = await isFetchingPromise;
-    res.status(200).json(cachedData || data || {});
+    res.status(200).json(shapeResponse(cachedData || data, part) || {});
   } catch (error) {
     console.error('Fetch Error:', error);
     if (cachedData) {
-      return res.status(200).json(cachedData);
+      return res.status(200).json(shapeResponse(cachedData, part));
     }
     res.status(500).json({ error: 'Failed to fetch data', message: error.message });
   }

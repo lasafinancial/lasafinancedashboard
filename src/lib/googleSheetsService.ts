@@ -228,42 +228,63 @@ export interface GoogleSheetsData {
   lastUpdated: string;
 }
 
-// Persists the last successful fetch to localStorage so a fresh page load (or hard refresh)
-// can render real data instantly instead of waiting on a network round-trip. The in-memory
-// `cachedData` var alone doesn't survive a reload, which is what made every page load block
-// on /api/fetch-data even when we'd already fetched the same data moments earlier.
-const CACHE_STORAGE_KEY = 'lasa_live_data_cache_v1';
-const CACHE_TIME_STORAGE_KEY = 'lasa_live_data_cache_time_v1';
+// The last successful fetch is kept in IndexedDB so a fresh page load can render real data
+// instantly instead of waiting on the network. (localStorage is capped at ~5 MB, which the
+// payload exceeds, so saving there silently failed.)
+//
+// The data comes in two parts:
+//   - live:      /api/fetch-data?part=live, fetched on every page load and refresh
+//   - histories: /api/fetch-data?part=history, the daily price history of every stock,
+//                which only changes once a day, so it's fetched at most once an hour
+const LIVE_CACHE_KEY = 'live';
+const HISTORY_CACHE_KEY = 'history';
+const HISTORY_TTL = 60 * 60 * 1000; // 1 hour
 
-function loadCacheFromStorage(): GoogleSheetsData | null {
+type Histories = Record<string, any[]>;
+
+let cachedData: GoogleSheetsData | null = null;
+let lastFetchTime = 0;
+let historyCache: Histories | null = null;
+let historyFetchedAt = 0;
+
+// Each stock's history from the live part holds only today's live point; prepend the cached
+// daily history. If the server sent full histories (older server), leave them as they are.
+function mergeHistories(data: GoogleSheetsData, histories: Histories | null): GoogleSheetsData {
+  if (!histories || !Array.isArray(data.stockData)) return data;
+  return {
+    ...data,
+    stockData: data.stockData.map((stock: any) => {
+      const own = stock.history || [];
+      if (!own.every((h: any) => h.isLive)) return stock;
+      return { ...stock, history: [...(histories[stock.symbol] || []), ...own] };
+    }),
+  };
+}
+
+const cacheReady: Promise<void> = (async () => {
   try {
-    const raw = localStorage.getItem(CACHE_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as GoogleSheetsData) : null;
+    // Old localStorage cache (usually failed to save anyway); free the space
+    localStorage.removeItem('lasa_live_data_cache_v1');
+    localStorage.removeItem('lasa_live_data_cache_time_v1');
   } catch {
-    return null;
+    // Storage unavailable
   }
-}
-
-function loadCacheTimeFromStorage(): number {
-  try {
-    return Number(localStorage.getItem(CACHE_TIME_STORAGE_KEY)) || 0;
-  } catch {
-    return 0;
+  const [live, history] = await Promise.all([
+    idbGet<{ data: GoogleSheetsData; fetchedAt: number }>(LIVE_CACHE_KEY),
+    idbGet<{ histories: Histories; fetchedAt: number }>(HISTORY_CACHE_KEY),
+  ]);
+  if (history?.histories) {
+    historyCache = history.histories;
+    historyFetchedAt = history.fetchedAt || 0;
   }
-}
-
-function saveCacheToStorage(data: GoogleSheetsData, fetchedAt: number): void {
-  try {
-    localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(data));
-    localStorage.setItem(CACHE_TIME_STORAGE_KEY, String(fetchedAt));
-  } catch (e) {
-    // Storage full or unavailable (private browsing, quota exceeded) - in-memory cache still works
-    console.warn('[googleSheetsService] Could not persist cache to localStorage:', e);
+  // Only use the saved copy if nothing newer arrived from the network meanwhile
+  if (live?.data && !cachedData) {
+    cachedData = mergeHistories(live.data, historyCache);
+    lastFetchTime = live.fetchedAt || 0;
+    notifyListeners(cachedData);
   }
-}
+})();
 
-let cachedData: GoogleSheetsData | null = loadCacheFromStorage();
-let lastFetchTime: number = cachedData ? loadCacheTimeFromStorage() : 0;
 let lastEODFetchDate: string | null = null;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes during market hours
 const OFF_HOURS_CACHE_DURATION = 60 * 60 * 1000; // 1 hour outside market hours
@@ -272,6 +293,7 @@ let refreshInterval: ReturnType<typeof setInterval> | null = null;
 const dataListeners: Set<(data: GoogleSheetsData) => void> = new Set();
 
 import { getApiUrl } from '@/config/api';
+import { idbGet, idbSet } from './idbCache';
 import { isMarketOpen, isEODWindow, getISTDateKey } from './marketHours';
 
 export function subscribeToData(callback: (data: GoogleSheetsData) => void): () => void {
@@ -292,6 +314,8 @@ function notifyListeners(data: GoogleSheetsData) {
 // (no prices, empty 52W lists, all-zero market mood). Such a cache shouldn't wait out the TTL.
 const INCOMPLETE_CACHE_RETRY = 2 * 60 * 1000; // retry at most every 2 minutes
 let lastIncompleteRefetchAttempt = 0;
+// The saved copy is shown instantly, but every page load still fetches fresh data once.
+let fetchedThisPageLoad = false;
 
 function isCacheIncomplete(data: GoogleSheetsData): boolean {
   const stocks = data.stockData || [];
@@ -320,6 +344,7 @@ export function refreshAllData(force: boolean = false): Promise<GoogleSheetsData
 }
 
 async function doRefreshAllData(force: boolean): Promise<GoogleSheetsData | null> {
+  await cacheReady;
   const now = Date.now();
   const marketOpen = isMarketOpen();
   const eodWindow = isEODWindow();
@@ -336,9 +361,12 @@ async function doRefreshAllData(force: boolean): Promise<GoogleSheetsData | null
     console.log('[googleSheetsService] Cached data looks incomplete. Fetching fresh data.');
   }
 
+  const skipCacheGuards = force || refetchIncomplete || !fetchedThisPageLoad;
+  fetchedThisPageLoad = true;
+
   // Guard: Outside market hours, reuse the cache unless it's over an hour old
   // or the 22:30 EOD window is active (once per day).
-  if (!force && !refetchIncomplete && !marketOpen && cachedData && (now - lastFetchTime) < OFF_HOURS_CACHE_DURATION) {
+  if (!skipCacheGuards && !marketOpen && cachedData && (now - lastFetchTime) < OFF_HOURS_CACHE_DURATION) {
     if (eodWindow && lastEODFetchDate !== todayKey) {
       console.log('[googleSheetsService] 22:30 IST EOD window active. Fetching once-a-day EOD data.');
     } else {
@@ -348,23 +376,41 @@ async function doRefreshAllData(force: boolean): Promise<GoogleSheetsData | null
   }
 
   // During market hours, respect the 15-minute cache TTL
-  if (!force && !refetchIncomplete && cachedData && (now - lastFetchTime) < CACHE_DURATION) {
+  if (!skipCacheGuards && cachedData && (now - lastFetchTime) < CACHE_DURATION) {
     return cachedData;
   }
 
   try {
-    let finalUrl = getApiUrl('/api/fetch-data');
-    if (force) {
-      finalUrl += finalUrl.includes('?') ? '&force=true' : '?force=true';
-    }
-    
-    const response = await fetch(finalUrl);
+    const baseUrl = getApiUrl('/api/fetch-data');
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    const liveUrl = `${baseUrl}${sep}part=live${force ? '&force=true' : ''}`;
+    const historyStale = !historyCache || (now - historyFetchedAt) >= HISTORY_TTL;
+
+    const [response, historyResponse] = await Promise.all([
+      fetch(liveUrl),
+      historyStale ? fetch(`${baseUrl}${sep}part=history`).catch(() => null) : Promise.resolve(null),
+    ]);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data: GoogleSheetsData = await response.json();
+    const liveData: GoogleSheetsData = await response.json();
+
+    if (historyResponse?.ok) {
+      try {
+        const body = await historyResponse.json();
+        if (body && body.histories && Object.keys(body.histories).length > 0) {
+          historyCache = body.histories;
+          historyFetchedAt = now;
+          idbSet(HISTORY_CACHE_KEY, { histories: historyCache, fetchedAt: now });
+        }
+      } catch {
+        // Keep the previous histories; retried on the next refresh
+      }
+    }
+
+    const data: GoogleSheetsData = mergeHistories(liveData, historyCache);
 
     // Mark EOD update as completed for today if fetched outside market hours
     if (!marketOpen && eodWindow) {
@@ -412,7 +458,7 @@ async function doRefreshAllData(force: boolean): Promise<GoogleSheetsData | null
     cachedData = data;
     lastFetchTime = now;
     retryDelay = 5000;
-    saveCacheToStorage(data, now);
+    idbSet(LIVE_CACHE_KEY, { data: liveData, fetchedAt: now });
 
     notifyListeners(data);
 
