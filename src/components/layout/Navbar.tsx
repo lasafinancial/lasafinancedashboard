@@ -3,7 +3,7 @@ import { Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader
 import { ThemeToggle } from "./ThemeToggle";
 import { InstallPWA } from "@/components/InstallPWA";
 import { useNotifications } from "@/hooks/useNotifications";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { CountrySelector } from "@/components/ui/CountrySelector";
@@ -46,6 +46,10 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
   const [isScreenersOpen, setIsScreenersOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const closeTimeout = useRef<NodeJS.Timeout | null>(null);
+  const screenersMenuRef = useRef<HTMLDivElement | null>(null);
+  // When opened by a click the menu stays open until the user clicks elsewhere or picks an item;
+  // when opened by hovering it closes shortly after the mouse leaves.
+  const openedByClick = useRef(false);
 
   const handleMouseEnter = () => {
     if (closeTimeout.current) clearTimeout(closeTimeout.current);
@@ -53,10 +57,40 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
   };
 
   const handleMouseLeave = () => {
+    if (openedByClick.current) return;
     closeTimeout.current = setTimeout(() => {
       setIsScreenersOpen(false);
-    }, 400);
+    }, 600);
   };
+
+  const toggleScreenersByClick = () => {
+    if (closeTimeout.current) clearTimeout(closeTimeout.current);
+    const next = !(isScreenersOpen && openedByClick.current);
+    openedByClick.current = next;
+    setIsScreenersOpen(next);
+  };
+
+  // Close on outside click or Escape
+  useEffect(() => {
+    if (!isScreenersOpen) {
+      openedByClick.current = false;
+      return;
+    }
+    const onPointerDown = (e: PointerEvent) => {
+      if (screenersMenuRef.current && !screenersMenuRef.current.contains(e.target as Node)) {
+        setIsScreenersOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsScreenersOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isScreenersOpen]);
 
   // Admin: Manual trigger for market mood notification
   const sendMarketMoodNotification = async () => {
@@ -121,11 +155,16 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                 return (
                   <div
                     key={item.path}
+                    ref={screenersMenuRef}
                     className="relative"
                     onMouseEnter={handleMouseEnter}
                     onMouseLeave={handleMouseLeave}
                   >
                     <button
+                      type="button"
+                      onClick={toggleScreenersByClick}
+                      aria-haspopup="true"
+                      aria-expanded={isScreenersOpen}
                       className={`nav-link flex items-center gap-2 ${isActive ? "active" : ""}`}
                     >
                       <Icon className="h-4 w-4 hidden min-[1920px]:block" />
@@ -134,7 +173,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                     </button>
 
                     <div 
-                      className={`absolute top-full left-0 min-w-[220px] p-2 pt-3 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl transition-all duration-200 z-[150] ${isScreenersOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'}`}
+                      className={`absolute top-full left-0 min-w-[220px] max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain p-2 pt-3 bg-background border border-border/50 rounded-xl shadow-2xl transition-all duration-200 z-[150] ${isScreenersOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none invisible'}`}
                       onMouseEnter={handleMouseEnter}
                       onMouseLeave={handleMouseLeave}
                     >
