@@ -11,6 +11,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "start": "node server/index.mjs",
     "fetch-data": "node datapulling/fetch_google_sheets.cjs"
   },
   "dependencies": {
