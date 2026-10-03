@@ -20,6 +20,7 @@ interface UserData {
     name?: string;
     tier?: 'free' | 'pro' | 'elite';
     phoneNumber?: string;
+    disclaimerAccepted?: boolean;
     disclaimerAcceptedAt?: any;
     hasSeenOnboarding?: boolean;
     selectedCountry?: string;
@@ -30,7 +31,22 @@ interface UserData {
     hasCompletedProfile?: boolean;
     watchlist?: string[];
     activeAlerts?: string[];
+    newsletterOptIn?: boolean;
 }
+
+// Set on the login page just before Google sign-in. Written as part of the profile sync after
+// sign-in (not separately) so a brand-new profile can't overwrite it.
+//   - profile:    name, phone and newsletter choice (new sign-ups)
+//   - acceptance: the login page shows the disclaimer; signing in counts as accepting it
+export const LOGIN_DISCLAIMER_VERSION = '3.0-login';
+type PendingLogin = {
+    profile?: { name: string; phoneNumber: string; newsletterOptIn: boolean };
+    acceptance: { version: string; ip: string };
+};
+let pendingLogin: PendingLogin | null = null;
+export const setPendingLogin = (login: PendingLogin | null) => {
+    pendingLogin = login;
+};
 
 interface AuthContextType {
     user: User | null;
@@ -71,6 +87,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.log("[AuthContext] Syncing user to Firestore:", firebaseUser.uid);
             const userRef = doc(db, 'users', firebaseUser.uid);
             const userSnap = await getDoc(userRef);
+            const login = pendingLogin;
+            pendingLogin = null;
+            const signupFields = {
+                ...(login?.profile && {
+                    name: login.profile.name,
+                    phoneNumber: login.profile.phoneNumber,
+                    newsletterOptIn: login.profile.newsletterOptIn,
+                    newsletterOptInUpdatedAt: serverTimestamp(),
+                }),
+                ...(login?.acceptance && {
+                    disclaimerAccepted: true, // ticked the disclaimer checkbox on the login page
+                    disclaimerAcceptedAt: serverTimestamp(),
+                    disclaimerVersion: login.acceptance.version,
+                    acceptanceIP: login.acceptance.ip,
+                }),
+            };
 
             if (!userSnap.exists()) {
                 console.log("[AuthContext] Creating new user profile in Firestore.");
@@ -86,6 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     hasCompletedProfile: false,
                     createdAt: serverTimestamp(),
                     lastLoginAt: serverTimestamp(),
+                    ...signupFields,
                 });
             } else {
                 console.log("[AuthContext] Updating last login for existing user.");
@@ -93,8 +126,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 await setDoc(userRef, {
                     lastLoginAt: serverTimestamp(),
                     // Ensure phoneNumber is updated if it was missing 
-                    ...(firebaseUser.phoneNumber && { phoneNumber: firebaseUser.phoneNumber })
+                    ...(firebaseUser.phoneNumber && { phoneNumber: firebaseUser.phoneNumber }),
+                    ...signupFields,
                 }, { merge: true });
+            }
+
+            // Keep a permanent record of each disclaimer acceptance (the profile only holds the latest)
+            if (login?.acceptance) {
+                try {
+                    await addDoc(collection(db, 'user_activity_logs'), {
+                        uid: firebaseUser.uid,
+                        email: firebaseUser.email || 'anonymous',
+                        action: 'disclaimer_accepted',
+                        disclaimerVersion: login.acceptance.version,
+                        acceptanceIP: login.acceptance.ip,
+                        newsletterOptIn: login.profile?.newsletterOptIn ?? null,
+                        timestamp: serverTimestamp(),
+                        userAgent: navigator.userAgent
+                    });
+                } catch (e) {
+                    console.error("Error logging disclaimer acceptance:", e);
+                }
             }
 
             // Log session start for real users

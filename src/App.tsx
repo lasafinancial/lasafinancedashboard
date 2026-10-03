@@ -95,7 +95,7 @@ const AppContent = () => {
   // Automatically show onboarding steps sequentially if required after auth is ready
   useEffect(() => {
     // Only trigger if we've bypassed or finished the landing page, not on admin/login path, and have userData
-    if (!isAdminPath && !isLoginPage && userData) {
+    if (FEATURE_FLAGS.ENABLE_ONBOARDING && !isAdminPath && !isLoginPage && userData) {
       // 1. Check for Onboarding Slides
       if (!userData.hasSeenOnboarding && !showOnboarding && !slidesFinishedSession) {
         setShowOnboarding(true);
@@ -237,7 +237,8 @@ const AppContent = () => {
           {!isLoginPage && <Footer />}
           {!isLoginPage && <StickyFooter />}
           {!isLoginPage && <AIChatbot />}
-          {!isLoginPage && <LoginNudgeModal />}
+          {/* Legal pages stay readable so visitors can see what they agree to before signing in */}
+          {!isLoginPage && !["/terms", "/sebi-compliance"].includes(location.pathname) && <LoginNudgeModal />}
         </>
       ) : (
         <div className="flex-1 flex items-center justify-center bg-black">

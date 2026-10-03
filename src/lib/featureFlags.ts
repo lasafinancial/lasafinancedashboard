@@ -1,6 +1,7 @@
 export const FEATURE_FLAGS = {
-    // Set to false to hide Phone/OTP login and fall back to Google/Email
-    ENABLE_PHONE_LOGIN: true,
+    // Login options. Google sign-in is always shown; set these to true to bring the others back.
+    ENABLE_PHONE_LOGIN: false, // Phone + OTP
+    ENABLE_EMAIL_LOGIN: false, // Email magic link
 
     // When true, skips the login screen and logs in as a "Beta User"
     BYPASS_LOGIN: false,
@@ -10,7 +11,8 @@ export const FEATURE_FLAGS = {
 
     // NEW: Control the onboarding steps
     ENABLE_TRADER_TYPE_ONBOARDING: false, // Set to false to skip trader type selection
-    ENABLE_LEGAL_DISCLAIMER: true,       // Set to false to skip the legal disclaimer modal
+    ENABLE_LEGAL_DISCLAIMER: false,      // Legal disclaimer modal after sign-in. Off: the login page shows the disclaimer and signing in records acceptance
+    ENABLE_ONBOARDING: false,            // Onboarding slides / trader type / profile popups after sign-in. Off: users go straight to the dashboard
 
     // NEW: Access Control System
     ENABLE_TIER_RESTRICTIONS: true, // When false, all users get ELITE features. When true, enforces free/pro/elite restrictions.

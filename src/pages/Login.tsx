@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useAuth, setPendingLogin, LOGIN_DISCLAIMER_VERSION } from '@/context/AuthContext';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -111,8 +112,17 @@ const Login = () => {
         FEATURE_FLAGS.ENABLE_PHONE_LOGIN ? 'PHONE' : 'PHONE' // logical step stays phone, but tab defaults to email
     );
     const [activeTab, setActiveTab] = useState(FEATURE_FLAGS.ENABLE_PHONE_LOGIN ? 'phone' : 'email');
+    const showPhoneOrEmail = FEATURE_FLAGS.ENABLE_PHONE_LOGIN || FEATURE_FLAGS.ENABLE_EMAIL_LOGIN;
     const [phoneNumber, setPhoneNumber] = useState('');
     const [email, setEmail] = useState('');
+    // After sign-in, go back to the page that sent the user here (e.g. the 5-minute login prompt)
+    const location = useLocation();
+    const redirectTo = (location.state as { from?: string } | null)?.from || '/';
+    const [fullName, setFullName] = useState('');
+    const [newsletterOptIn, setNewsletterOptIn] = useState(true);
+    // Required, unticked by default: users must actively agree to the disclaimer
+    const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+    const signupDetailsValid = fullName.trim().length > 0 && phoneNumber.length === 10;
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
     const {
@@ -174,7 +184,7 @@ const Login = () => {
         try {
             await twilioVerifyOtp(getFormattedPhone(), otp.replace(/\s/g, ''));
             toast.success('Login Successful! 🎉');
-            navigate('/');
+            navigate(redirectTo, { replace: true });
         } catch (error: any) {
             console.error('Error verifying OTP:', error);
             toast.error(error.message || 'Invalid OTP. Please try again.');
@@ -206,14 +216,29 @@ const Login = () => {
         }
     };
 
-    const handleSocialAuth = async (provider: 'google' | 'microsoft') => {
+    const handleSocialAuth = async (provider: 'google' | 'microsoft', withSignupDetails = false) => {
         setLoading(true);
         try {
+            // Signing in from this page accepts the disclaimer shown on it; log it for compliance
+            let ip = 'Unknown';
+            try {
+                const r = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
+                if (r.ok) ip = (await r.json()).ip || ip;
+            } catch {
+                // IP lookup is best-effort
+            }
+            setPendingLogin({
+                profile: withSignupDetails
+                    ? { name: fullName.trim(), phoneNumber: getFormattedPhone(), newsletterOptIn }
+                    : undefined,
+                acceptance: { version: LOGIN_DISCLAIMER_VERSION, ip },
+            });
             if (provider === 'google') await signInWithGoogle();
             else await signInWithMicrosoft();
             toast.success('Login Successful!');
-            navigate('/');
+            navigate(redirectTo, { replace: true });
         } catch (error) {
+            setPendingLogin(null);
             console.error('Social Auth Error:', error);
             toast.error('Failed to sign in. Try again.');
         } finally {
@@ -262,10 +287,11 @@ const Login = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                             >
+                                {showPhoneOrEmail && (<>
                                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                    <TabsList className={`grid w-full ${FEATURE_FLAGS.ENABLE_PHONE_LOGIN ? 'grid-cols-2' : 'grid-cols-1'} mb-8 bg-white/5 border border-white/10 h-12`}>
+                                    <TabsList className={`grid w-full ${FEATURE_FLAGS.ENABLE_PHONE_LOGIN && FEATURE_FLAGS.ENABLE_EMAIL_LOGIN ? 'grid-cols-2' : 'grid-cols-1'} mb-8 bg-white/5 border border-white/10 h-12`}>
                                         {FEATURE_FLAGS.ENABLE_PHONE_LOGIN && <TabsTrigger value="phone" className="data-[state=active]:bg-primary/20">Phone</TabsTrigger>}
-                                        <TabsTrigger value="email" className="data-[state=active]:bg-primary/20">Email</TabsTrigger>
+                                        {FEATURE_FLAGS.ENABLE_EMAIL_LOGIN && <TabsTrigger value="email" className="data-[state=active]:bg-primary/20">Email</TabsTrigger>}
                                     </TabsList>
 
                                     {/* Phone Tab */}
@@ -299,6 +325,7 @@ const Login = () => {
                                     )}
 
                                     {/* Email Tab */}
+                                    {FEATURE_FLAGS.ENABLE_EMAIL_LOGIN && (
                                     <TabsContent value="email" className="space-y-6">
                                         <div className="space-y-2">
                                             <Label htmlFor="email">Email Address</Label>
@@ -324,21 +351,116 @@ const Login = () => {
                                             {loading ? <Loader2 className="animate-spin" /> : <>Email Magic Link <ArrowRight className="ml-2 h-4 w-4" /></>}
                                         </Button>
                                     </TabsContent>
+                                    )}
                                 </Tabs>
 
                                 <div className="relative my-8">
                                     <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/10"></span></div>
                                     <div className="relative flex justify-center text-xs uppercase"><span className="bg-black/60 px-2 text-muted-foreground font-bold tracking-widest">Or Continue With</span></div>
                                 </div>
+                                </>)}
 
-                                <Button
-                                    variant="outline"
-                                    className="w-full h-12 border-white/10 bg-white/5 hover:bg-white/10 font-bold gap-3"
-                                    onClick={() => handleSocialAuth('google')}
-                                    disabled={loading}
-                                >
-                                    <Chrome className="h-5 w-5 text-[#4285F4]" /> Continue with Google
-                                </Button>
+                                {showPhoneOrEmail ? (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full h-12 border-white/10 bg-white/5 hover:bg-white/10 font-bold gap-3"
+                                        onClick={() => handleSocialAuth('google')}
+                                        disabled={loading}
+                                    >
+                                        <Chrome className="h-5 w-5 text-[#4285F4]" /> Continue with Google
+                                    </Button>
+                                ) : (
+                                    // Google sign-in, collecting name, phone and newsletter choice first
+                                    <div className="space-y-5">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="signup-name">Name</Label>
+                                            <Input
+                                                id="signup-name"
+                                                placeholder="Your full name"
+                                                autoComplete="name"
+                                                className="h-12 bg-white/5 border-white/10 focus:border-primary/50 transition-colors"
+                                                value={fullName}
+                                                onChange={(e) => setFullName(e.target.value)}
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="signup-phone">Phone Number</Label>
+                                            <div className="relative flex">
+                                                <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md border-white/10 bg-white/5 text-muted-foreground font-mono text-sm">
+                                                    +91
+                                                </div>
+                                                <Input
+                                                    id="signup-phone"
+                                                    type="tel"
+                                                    inputMode="numeric"
+                                                    autoComplete="tel-national"
+                                                    placeholder="99999 99999"
+                                                    className="flex-1 rounded-l-none h-12 bg-white/5 border-white/10 focus:border-primary/50 transition-colors font-mono"
+                                                    value={phoneNumber}
+                                                    onChange={handlePhoneChange}
+                                                    disabled={loading}
+                                                />
+                                            </div>
+                                        </div>
+                                        <label htmlFor="signup-newsletter" className="flex items-start gap-3 cursor-pointer select-none">
+                                            <Checkbox
+                                                id="signup-newsletter"
+                                                checked={newsletterOptIn}
+                                                onCheckedChange={(v) => setNewsletterOptIn(v === true)}
+                                                disabled={loading}
+                                                className="mt-0.5"
+                                            />
+                                            <span className="text-sm text-muted-foreground leading-snug">
+                                                I agree to subscribe to the LASA newsletter
+                                            </span>
+                                        </label>
+                                        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3 text-xs leading-relaxed text-muted-foreground">
+                                            <p className="font-semibold text-amber-400 uppercase tracking-wider text-[11px]">Important disclaimer</p>
+                                            <ul className="list-disc pl-4 space-y-1.5">
+                                                <li>All information on this platform (screeners, levels, scores, summaries and charts) is generated by algorithms and AI models and is for <span className="text-foreground font-medium">educational and informational purposes only</span>.</li>
+                                                <li>Nothing here is a recommendation to <span className="text-foreground font-medium">buy, sell or hold</span> any security. Make your own decisions, and consult a SEBI-registered investment adviser before investing.</li>
+                                                <li>Investments in securities markets are subject to market risk. Past performance does not guarantee future results.</li>
+                                                <li><span className="text-foreground font-medium">Lasa Research Services and Dheeraj Sogani are not responsible</span> for any losses arising from decisions made using this information.</li>
+                                            </ul>
+                                            <label htmlFor="signup-disclaimer" className="flex items-start gap-3 cursor-pointer select-none pt-2 border-t border-amber-500/20">
+                                                <Checkbox
+                                                    id="signup-disclaimer"
+                                                    checked={disclaimerAccepted}
+                                                    onCheckedChange={(v) => setDisclaimerAccepted(v === true)}
+                                                    disabled={loading}
+                                                    className="mt-0.5"
+                                                />
+                                                <span className="text-sm text-foreground leading-snug">
+                                                    I have read and agree to this disclaimer, the{' '}
+                                                    <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and{' '}
+                                                    <Link to="/sebi-compliance" className="text-primary hover:underline">Disclosures</Link>.
+                                                </span>
+                                            </label>
+                                        </div>
+                                        <Button
+                                            className="w-full h-12 text-base font-bold gap-3 shadow-xl shadow-primary/20"
+                                            onClick={() => handleSocialAuth('google', true)}
+                                            disabled={loading || !signupDetailsValid || !disclaimerAccepted}
+                                        >
+                                            {loading ? <Loader2 className="animate-spin" /> : <><Chrome className="h-5 w-5" /> Continue with Google</>}
+                                        </Button>
+                                        <p className="text-center text-sm text-muted-foreground">
+                                            Already registered?{' '}
+                                            <button
+                                                type="button"
+                                                className="font-semibold text-primary hover:underline disabled:opacity-50"
+                                                onClick={() => handleSocialAuth('google')}
+                                                disabled={loading || !disclaimerAccepted}
+                                            >
+                                                Sign in with Google
+                                            </button>
+                                        </p>
+                                        {!disclaimerAccepted && (
+                                            <p className="text-center text-xs text-amber-400/80">Please tick the disclaimer box above to continue.</p>
+                                        )}
+                                    </div>
+                                )}
                             </motion.div>
                         )}
 
@@ -415,8 +537,8 @@ const Login = () => {
                 </CardContent>
 
                 <CardFooter className="flex justify-center border-t border-white/5 pt-6">
-                    <p className="text-xs text-muted-foreground text-center max-w-[280px]">
-                        By continuing, you agree to our Terms of Service and recognize that this platform provides analytics only.
+                    <p className="text-xs text-muted-foreground text-center max-w-[300px]">
+                        Your disclaimer acceptance is recorded with the date, time and IP address for compliance.
                     </p>
                 </CardFooter>
             </Card>
