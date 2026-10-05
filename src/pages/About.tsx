@@ -57,8 +57,9 @@ export function About() {
               In the equity market since 1999 — twenty-seven years of watching it rise, fall, and rise again, across every cycle it has run since.
             </p>
           </div>
-          <div className="shrink-0 w-24 h-24 sm:w-[152px] sm:h-[152px] rounded-xl sm:rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden">
-            <img src="/about/dheeraj-photo.png" alt="Dheeraj Sogani" className="w-full h-full object-cover" />
+          {/* Cut-out portrait (transparent background) sits directly on the page background */}
+          <div className="shrink-0 w-24 h-24 sm:w-[152px] sm:h-[152px]">
+            <img src="/about/dheeraj-photo.webp" alt="Dheeraj Sogani" className="w-full h-full object-cover" />
           </div>
         </header>
 
