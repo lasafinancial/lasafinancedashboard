@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAuth, setPendingLogin, LOGIN_DISCLAIMER_VERSION } from '@/context/AuthContext';
+import { useAuth, setPendingLogin, LOGIN_DISCLAIMER_VERSION, hasAcceptedDisclaimer, fetchHasAcceptedDisclaimer, completeLoginDetails } from '@/context/AuthContext';
+import { auth } from '@/lib/firebase';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -108,7 +109,8 @@ const OtpInput = ({
 
 // ── Main Login Component ──────────────────────────────────────────────────────
 const Login = () => {
-    const [step, setStep] = useState<'PHONE' | 'OTP' | 'EMAIL_SENT'>(
+    // COMPLETE: signed in with Google but no disclaimer acceptance on record yet; finish sign-up
+    const [step, setStep] = useState<'PHONE' | 'OTP' | 'EMAIL_SENT' | 'COMPLETE'>(
         FEATURE_FLAGS.ENABLE_PHONE_LOGIN ? 'PHONE' : 'PHONE' // logical step stays phone, but tab defaults to email
     );
     const [activeTab, setActiveTab] = useState(FEATURE_FLAGS.ENABLE_PHONE_LOGIN ? 'phone' : 'email');
@@ -122,11 +124,67 @@ const Login = () => {
     const [newsletterOptIn, setNewsletterOptIn] = useState(true);
     // Required, unticked by default: users must actively agree to the disclaimer
     const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+    const signingIn = useRef(false);
+
+    const getClientIp = async () => {
+        try {
+            const r = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
+            if (r.ok) return (await r.json()).ip || 'Unknown';
+        } catch {
+            // IP lookup is best-effort
+        }
+        return 'Unknown';
+    };
+
+    // "Already registered": sign in straight away; only ask for details if nothing is on record
+    const handleRegisteredSignIn = async () => {
+        setLoading(true);
+        signingIn.current = true;
+        try {
+            setPendingLogin(null);
+            await signInWithGoogle();
+            const current = auth.currentUser;
+            if (current && await fetchHasAcceptedDisclaimer(current.uid)) {
+                toast.success('Login Successful!');
+                navigate(redirectTo, { replace: true });
+            } else {
+                setStep('COMPLETE');
+                toast.message('Almost there: please complete your details to continue.');
+            }
+        } catch (error) {
+            signingIn.current = false;
+            console.error('Social Auth Error:', error);
+            toast.error('Failed to sign in. Try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Finish sign-up for a user who's already signed in with Google
+    const handleCompleteSignup = async () => {
+        const current = auth.currentUser;
+        if (!current) return;
+        setLoading(true);
+        try {
+            await completeLoginDetails(current, {
+                profile: { name: fullName.trim(), phoneNumber: getFormattedPhone(), newsletterOptIn },
+                acceptance: { version: LOGIN_DISCLAIMER_VERSION, ip: await getClientIp() },
+            });
+            toast.success('Welcome to LASA!');
+            navigate(redirectTo, { replace: true });
+        } catch (error) {
+            console.error('Complete sign-up error:', error);
+            toast.error('Could not save your details. Try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
     const signupDetailsValid = fullName.trim().length > 0 && phoneNumber.length === 10;
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
     const {
         user,
+        userData,
         loading: authLoading,
         twilioSendOtp,
         twilioVerifyOtp,
@@ -136,12 +194,13 @@ const Login = () => {
     } = useAuth();
     const navigate = useNavigate();
 
-    // Auto-redirect if already logged in
+    // Visiting /login while signed in: go on if the disclaimer is on record, otherwise finish sign-up.
+    // Skipped while a sign-in started on this page is in progress (its handler decides).
     useEffect(() => {
-        if (!authLoading && user) {
-            navigate('/', { replace: true });
-        }
-    }, [user, authLoading, navigate]);
+        if (authLoading || !user || signingIn.current || !userData) return;
+        if (hasAcceptedDisclaimer(userData)) navigate(redirectTo, { replace: true });
+        else if (step !== 'COMPLETE') setStep('COMPLETE');
+    }, [user, userData, authLoading, navigate, step]);
 
     // Only allow exactly 10 digits
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,13 +279,8 @@ const Login = () => {
         setLoading(true);
         try {
             // Signing in from this page accepts the disclaimer shown on it; log it for compliance
-            let ip = 'Unknown';
-            try {
-                const r = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
-                if (r.ok) ip = (await r.json()).ip || ip;
-            } catch {
-                // IP lookup is best-effort
-            }
+            signingIn.current = true;
+            const ip = await getClientIp();
             setPendingLogin({
                 profile: withSignupDetails
                     ? { name: fullName.trim(), phoneNumber: getFormattedPhone(), newsletterOptIn }
@@ -238,6 +292,7 @@ const Login = () => {
             toast.success('Login Successful!');
             navigate(redirectTo, { replace: true });
         } catch (error) {
+            signingIn.current = false;
             setPendingLogin(null);
             console.error('Social Auth Error:', error);
             toast.error('Failed to sign in. Try again.');
@@ -280,7 +335,7 @@ const Login = () => {
                     <AnimatePresence mode="wait">
 
                         {/* ── Step 1: Phone / Email / Social ─────────────── */}
-                        {step === 'PHONE' && (
+                        {(step === 'PHONE' || step === 'COMPLETE') && (
                             <motion.div
                                 key="phone-step"
                                 initial={{ opacity: 0, y: 10 }}
@@ -440,22 +495,26 @@ const Login = () => {
                                         </div>
                                         <Button
                                             className="w-full h-12 text-base font-bold gap-3 shadow-xl shadow-primary/20"
-                                            onClick={() => handleSocialAuth('google', true)}
+                                            onClick={() => (step === 'COMPLETE' ? handleCompleteSignup() : handleSocialAuth('google', true))}
                                             disabled={loading || !signupDetailsValid || !disclaimerAccepted}
                                         >
-                                            {loading ? <Loader2 className="animate-spin" /> : <><Chrome className="h-5 w-5" /> Continue with Google</>}
+                                            {loading ? <Loader2 className="animate-spin" /> : step === 'COMPLETE'
+                                                ? <>Complete sign-up <ArrowRight className="h-4 w-4" /></>
+                                                : <><Chrome className="h-5 w-5" /> Continue with Google</>}
                                         </Button>
-                                        <p className="text-center text-sm text-muted-foreground">
-                                            Already registered?{' '}
-                                            <button
-                                                type="button"
-                                                className="font-semibold text-primary hover:underline disabled:opacity-50"
-                                                onClick={() => handleSocialAuth('google')}
-                                                disabled={loading || !disclaimerAccepted}
-                                            >
-                                                Sign in with Google
-                                            </button>
-                                        </p>
+                                        {step !== 'COMPLETE' && (
+                                            <p className="text-center text-sm text-muted-foreground">
+                                                Already registered?{' '}
+                                                <button
+                                                    type="button"
+                                                    className="font-semibold text-primary hover:underline disabled:opacity-50"
+                                                    onClick={handleRegisteredSignIn}
+                                                    disabled={loading}
+                                                >
+                                                    Sign in with Google
+                                                </button>
+                                            </p>
+                                        )}
                                         {!disclaimerAccepted && (
                                             <p className="text-center text-xs text-amber-400/80">Please tick the disclaimer box above to continue.</p>
                                         )}

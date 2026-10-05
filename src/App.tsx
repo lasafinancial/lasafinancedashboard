@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
@@ -54,7 +54,7 @@ import { LoginNudgeModal } from "@/components/auth/LoginNudgeModal";
 
 import { SplashScreen } from "@/components/ui/SplashScreen";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { AuthProvider, useAuth, hasAcceptedDisclaimer } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Login from "@/pages/Login";
 import { ProfileSetupModal } from "@/components/auth/ProfileSetupModal";
@@ -75,7 +75,17 @@ const AppContent = () => {
   const { userData, updateUserData, user, loading: authLoading } = useAuth();
   const [selectedCountry, setSelectedCountry] = useState<CountryId>('india');
   const location = useLocation();
+  const navigate = useNavigate();
   const isLoginPage = location.pathname === "/login";
+
+  // A signed-in user with no disclaimer acceptance on record (e.g. closed the tab before finishing
+  // sign-up) is sent back to the login page to complete it. Legal pages stay readable.
+  useEffect(() => {
+    if (FEATURE_FLAGS.BYPASS_LOGIN || !user || !userData || hasAcceptedDisclaimer(userData)) return;
+    const path = location.pathname;
+    if (path === "/login" || path === "/admin" || path === "/terms" || path === "/sebi-compliance") return;
+    navigate("/login", { replace: true, state: { from: path + location.search } });
+  }, [user, userData, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     startAutoRefresh();

@@ -48,6 +48,56 @@ export const setPendingLogin = (login: PendingLogin | null) => {
     pendingLogin = login;
 };
 
+function buildLoginFields(login: PendingLogin | null) {
+    return {
+        ...(login?.profile && {
+            name: login.profile.name,
+            phoneNumber: login.profile.phoneNumber,
+            newsletterOptIn: login.profile.newsletterOptIn,
+            newsletterOptInUpdatedAt: serverTimestamp(),
+        }),
+        ...(login?.acceptance && {
+            disclaimerAccepted: true, // ticked the disclaimer checkbox on the login page
+            disclaimerAcceptedAt: serverTimestamp(),
+            disclaimerVersion: login.acceptance.version,
+            acceptanceIP: login.acceptance.ip,
+        }),
+    };
+}
+
+// Keep a permanent record of each disclaimer acceptance (the profile only holds the latest)
+async function logDisclaimerAcceptance(user: User, login: PendingLogin) {
+    try {
+        await addDoc(collection(db, 'user_activity_logs'), {
+            uid: user.uid,
+            email: user.email || 'anonymous',
+            action: 'disclaimer_accepted',
+            disclaimerVersion: login.acceptance.version,
+            acceptanceIP: login.acceptance.ip,
+            newsletterOptIn: login.profile?.newsletterOptIn ?? null,
+            timestamp: serverTimestamp(),
+            userAgent: navigator.userAgent
+        });
+    } catch (e) {
+        console.error("Error logging disclaimer acceptance:", e);
+    }
+}
+
+/** Accepted the disclaimer at some point (new login-page checkbox, or the older popup). */
+export const hasAcceptedDisclaimer = (data?: { disclaimerAccepted?: boolean; disclaimerAcceptedAt?: any } | null) =>
+    !!data && (data.disclaimerAccepted === true || !!data.disclaimerAcceptedAt);
+
+export async function fetchHasAcceptedDisclaimer(uid: string): Promise<boolean> {
+    const snap = await getDoc(doc(db, 'users', uid));
+    return snap.exists() && hasAcceptedDisclaimer(snap.data() as any);
+}
+
+/** Saves sign-up details and disclaimer acceptance for an already signed-in user. */
+export async function completeLoginDetails(user: User, login: PendingLogin) {
+    await setDoc(doc(db, 'users', user.uid), buildLoginFields(login), { merge: true });
+    await logDisclaimerAcceptance(user, login);
+}
+
 interface AuthContextType {
     user: User | null;
     userData: UserData | null;
@@ -89,20 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const userSnap = await getDoc(userRef);
             const login = pendingLogin;
             pendingLogin = null;
-            const signupFields = {
-                ...(login?.profile && {
-                    name: login.profile.name,
-                    phoneNumber: login.profile.phoneNumber,
-                    newsletterOptIn: login.profile.newsletterOptIn,
-                    newsletterOptInUpdatedAt: serverTimestamp(),
-                }),
-                ...(login?.acceptance && {
-                    disclaimerAccepted: true, // ticked the disclaimer checkbox on the login page
-                    disclaimerAcceptedAt: serverTimestamp(),
-                    disclaimerVersion: login.acceptance.version,
-                    acceptanceIP: login.acceptance.ip,
-                }),
-            };
+            const signupFields = buildLoginFields(login);
 
             if (!userSnap.exists()) {
                 console.log("[AuthContext] Creating new user profile in Firestore.");
@@ -119,7 +156,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     createdAt: serverTimestamp(),
                     lastLoginAt: serverTimestamp(),
                     ...signupFields,
-                });
+                }, { merge: true });
             } else {
                 console.log("[AuthContext] Updating last login for existing user.");
                 // Update last login only; never touch tier for existing users
@@ -131,22 +168,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 }, { merge: true });
             }
 
-            // Keep a permanent record of each disclaimer acceptance (the profile only holds the latest)
             if (login?.acceptance) {
-                try {
-                    await addDoc(collection(db, 'user_activity_logs'), {
-                        uid: firebaseUser.uid,
-                        email: firebaseUser.email || 'anonymous',
-                        action: 'disclaimer_accepted',
-                        disclaimerVersion: login.acceptance.version,
-                        acceptanceIP: login.acceptance.ip,
-                        newsletterOptIn: login.profile?.newsletterOptIn ?? null,
-                        timestamp: serverTimestamp(),
-                        userAgent: navigator.userAgent
-                    });
-                } catch (e) {
-                    console.error("Error logging disclaimer acceptance:", e);
-                }
+                await logDisclaimerAcceptance(firebaseUser, login);
             }
 
             // Log session start for real users
