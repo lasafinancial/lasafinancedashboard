@@ -22,8 +22,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
-import { PremiumProtector } from "@/components/ui/PremiumProtector";
-import { useAuth } from "@/context/AuthContext";
 import {
   Table,
   TableBody,
@@ -51,7 +49,6 @@ type SortDirection = "asc" | "desc";
 export function IntradayReversal() {
   const navigate = useNavigate();
   const { intradayReversal: stocks, intradayBreakout, isLoading, stockData, lastUpdate } = useLiveData();
-  const { isFree } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("reversalDetectedAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -381,13 +378,9 @@ export function IntradayReversal() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <PremiumProtector
-                    requiredTier="pro"
-                    blurLevel="md"
-                    title="Premium Feature"
-                    description="Upgrade to Pro to view all Intraday Reversal signals."
-                  >
-                    {(isFree ? processedStocks.slice(0, 8) : processedStocks).map(
+                  {/* Free screener: all rows for everyone */}
+                  <>
+                    {processedStocks.map(
                       (stock, idx) => (
                         <TableRow
                           key={`${stock.symbol}-${stock.reversalDetectedAt}-${idx}`}
@@ -499,7 +492,7 @@ export function IntradayReversal() {
                         </TableRow>
                       )
                     )}
-                  </PremiumProtector>
+                  </>
                 </TableBody>
               </Table>
             </div>

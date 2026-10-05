@@ -4,8 +4,6 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
-import { PremiumProtector } from "@/components/ui/PremiumProtector";
-import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
     Table,
@@ -22,7 +20,6 @@ type FilterType = "ALL" | "WATCHLIST" | "STAR3" | "STAR2" | "ENTRY_READY" | "EXI
 export function BreakoutBoardV1() {
     const navigate = useNavigate();
     const { intradayDev: stocks, goldenAlerts, playbackSnapshots, lastUpdate, refresh, isLoading, stockData } = useLiveData();
-    const { isFree } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeFilter, setActiveFilter] = useState<FilterType>("ALL");
     const [sortField, setSortField] = useState<string | null>(null);
@@ -298,8 +295,9 @@ export function BreakoutBoardV1() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    <PremiumProtector requiredTier="pro" blurLevel="md">
-                                        {(isFree ? filteredStocks.slice(0, 8) : filteredStocks).map((stock, idx) => (
+                                    <>
+                                        {/* Free screener: all rows for everyone */}
+                                        {filteredStocks.map((stock, idx) => (
                                             <TableRow key={`${stock.symbol}-${idx}`} className="border-white/5 hover:bg-white/[0.04] transition-colors group">
                                                 <TableCell className="py-1">
                                                     <div className="flex flex-col leading-tight">
@@ -358,7 +356,7 @@ export function BreakoutBoardV1() {
                                                 </TableCell>
                                             </TableRow>
                                         ))}
-                                    </PremiumProtector>
+                                    </>
                                 )}
                             </TableBody>
                         </Table>
