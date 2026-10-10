@@ -26,6 +26,7 @@ import IntradayReversal from "@/pages/IntradayReversal";
 import BreakoutBoardV1 from "@/pages/BreakoutBoardV1";
 import NewBreakouts from "@/pages/NewBreakouts";
 import ObvAccumulation from "@/pages/ObvAccumulation";
+import AccumulationScanV2 from "@/pages/AccumulationScanV2";
 import NiftyAnalysis from "@/pages/NiftyAnalysis";
 import ExitTargetScreener from "@/pages/ExitTargetScreener";
 import WeeklyRecommendationScreener from "@/pages/WeeklyRecommendationScreener";
@@ -225,6 +226,7 @@ const AppContent = () => {
             <Route path="/screeners/breakout-v1" element={<ProtectedRoute allowAnonymous><BreakoutBoardV1 /></ProtectedRoute>} />
             <Route path="/screeners/new-breakouts" element={<ProtectedRoute allowAnonymous><NewBreakouts /></ProtectedRoute>} />
             <Route path="/screeners/obv-accumulation" element={<ProtectedRoute allowAnonymous><ObvAccumulation /></ProtectedRoute>} />
+            <Route path="/screeners/accumulation-v2" element={<ProtectedRoute allowAnonymous><AccumulationScanV2 /></ProtectedRoute>} />
             <Route path="/screeners/recommendations" element={<ProtectedRoute allowAnonymous><ExitTargetScreener /></ProtectedRoute>} />
             <Route path="/screeners/weekly-recommendations" element={<ProtectedRoute allowAnonymous><WeeklyRecommendationScreener /></ProtectedRoute>} />
             <Route path="/screeners/52-week-high" element={<ProtectedRoute allowAnonymous><Week52High /></ProtectedRoute>} />

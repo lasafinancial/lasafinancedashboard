@@ -298,6 +298,16 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                         </div>
                       </Link>
                       <Link
+                        to="/screeners/accumulation-v2"
+                        onClick={() => setIsScreenersOpen(false)}
+                        className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Accumulation Scan 2.0 <ScreenerTierBadge path="/screeners/accumulation-v2" /></span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">OBV Slope + Delta</span>
+                        </div>
+                      </Link>
+                      <Link
                         to="/screeners/nifty-analysis"
                         onClick={() => setIsScreenersOpen(false)}
                         className="block px-3 py-2.5 rounded-lg hover:bg-primary/10 transition-colors group/item mt-1 text-left"
@@ -576,6 +586,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                               <Link to="/screeners/intraday-breakout-scanner" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Mean Reversion</Link>
 
                               <Link to="/screeners/obv-accumulation" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Accumulation Scan</Link>
+                              <Link to="/screeners/accumulation-v2" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Accumulation Scan 2.0</Link>
                               <Link to="/screeners/nifty-analysis" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">Optics</Link>
                               <Link to="/screeners/52-week-high" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">52 Week High</Link>
                               <Link to="/screeners/52-week-low" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-2 text-sm text-muted-foreground hover:text-primary transition-colors">52 Week Low</Link>

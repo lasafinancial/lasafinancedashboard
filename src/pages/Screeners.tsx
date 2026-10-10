@@ -90,6 +90,17 @@ const screenerOptions = [
         isPaid: isPaidScreener("/screeners/obv-accumulation")
     },
     {
+        path: "/screeners/accumulation-v2",
+        label: "Accumulation Scan 2.0",
+        description: "OBV accumulation with daily breakout, plus the 10-day OBV-slope trend and day-over-day changes. Refreshed hourly.",
+        icon: BarChart2,
+        color: "text-indigo-400",
+        bgColor: "bg-indigo-400/10",
+        borderColor: "group-hover:border-indigo-400/50",
+        gradient: "from-indigo-400/20 to-transparent",
+        isPaid: isPaidScreener("/screeners/accumulation-v2")
+    },
+    {
         path: "/screeners/nifty-analysis",
         label: "Optics",
         description: "Nifty options analytics, derivatives sentiment, and institutional positioning structure.",
