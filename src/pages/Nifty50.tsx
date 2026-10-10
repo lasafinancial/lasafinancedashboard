@@ -324,7 +324,7 @@ const Nifty50 = () => {
                 <div className="flex items-center gap-2 mb-1">
                   <Lightbulb className="w-5 h-5 text-warning" />
                   <h2 className="text-xl font-bold uppercase tracking-tight">Market Analysis & Probable Scenarios</h2>
-                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">Live Data</span>
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">Live Data · Delayed 15 Mins</span>
                 </div>
                 <p className="text-xs text-muted-foreground italic max-w-xl">
                   Scenario probabilities and technical triggers as defined in the daily algorithmic analysis.

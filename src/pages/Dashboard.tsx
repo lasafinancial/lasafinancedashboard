@@ -221,7 +221,7 @@ const Dashboard = () => {
               <div className="flex justify-between items-center mb-10">
                 <div className="space-y-1">
                   <h3 className="text-xs font-bold uppercase tracking-wide text-foreground/80">
-                    Market Mood Today <span className="text-primary/80">(LIVE DATA)</span>
+                    Market Mood Today <span className="text-primary/80">(LIVE DATA · DELAYED 15 MINS)</span>
                   </h3>
                   <p className="text-xs text-muted-foreground/60 font-medium italic">
                     Current internal dynamics - refer the market overall Market Position Structure for the upcoming weeks
@@ -263,7 +263,7 @@ const Dashboard = () => {
               {topMovers && (topMovers.topGainers?.length > 0 || topMovers.topLosers?.length > 0) && (
                 <div className="mt-8 pt-6 border-t border-white/5">
                   <h4 className="text-xs font-bold uppercase tracking-wide text-foreground/80 mb-4">
-                    Market Mood <span className="text-primary/80">(LIVE DATA)</span>
+                    Market Mood <span className="text-primary/80">(LIVE DATA · DELAYED 15 MINS)</span>
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Top Gainers */}
@@ -393,7 +393,7 @@ const Dashboard = () => {
           <div className="animate-fade-in-up space-y-3 mb-6">
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
               Index <span className="gradient-text italic pr-2">Performance</span>
-              <span className="text-sm font-semibold text-primary/80 ml-2">(LIVE DATA)</span>
+              <span className="text-sm font-semibold text-primary/80 ml-2">(LIVE DATA · DELAYED 15 MINS)</span>
             </h2>
             <p className="text-sm text-muted-foreground max-w-2xl font-medium">Sector strength analysis with weakness/strength indicators. Click any index to view stocks.</p>
           </div>
