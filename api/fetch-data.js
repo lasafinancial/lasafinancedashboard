@@ -23,6 +23,23 @@ let lastAllstocksDateKey = null;
 let cachedCurrentRes = null;
 let cachedLasaMasterRes = null;
 let lastCurrentFetchTime = 0;
+// CLOSE_PRICE in 'current' is a formula reading the 'current-websocket' tab, which can be briefly
+// empty (feed reconnecting / being rewritten). A read taken then has blank prices; don't cache it
+// for the rest of the evening. Retry at most every 5 minutes, also outside market hours.
+const CURRENT_INCOMPLETE_RETRY = 5 * 60 * 1000;
+let currentNeedsRetry = false;
+let lastCurrentAttemptTime = 0;
+
+// Share of stock rows (with an ID in column C) whose CLOSE_PRICE (column E) is a positive number
+function currentPricedShare(rows) {
+  let withId = 0, priced = 0;
+  for (const row of (rows || []).slice(1)) {
+    if (!row || !(row[2] || '').toString().trim()) continue;
+    withId++;
+    if ((parseFloat((row[4] || '').toString().replace(/,/g, '')) || 0) > 0) priced++;
+  }
+  return withId ? priced / withId : 0;
+}
 const CURRENT_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 // 3. 52-Week High & Low: Once a day (10:00 AM IST only)
@@ -305,7 +322,9 @@ async function fetchData(isForced = false) {
   const shouldFetchAllstocks = isForced || !cachedAllstocksRes || (isAfter2230IST && lastAllstocksDateKey !== ist.dateKey);
 
   // 2. Near Resistance, Support Reversal, Reaction Zone ('current' tab & 'lasa-master'): Target: 1 hour during market hours (0 outside)
-  const shouldFetchCurrent = isForced || !cachedCurrentRes || (ist.isMarketOpenNow && (ist.nowMs - lastCurrentFetchTime >= CURRENT_CACHE_TTL));
+  const shouldFetchCurrent = isForced || !cachedCurrentRes
+    || (ist.isMarketOpenNow && (ist.nowMs - lastCurrentFetchTime >= CURRENT_CACHE_TTL))
+    || (currentNeedsRetry && (ist.nowMs - lastCurrentAttemptTime >= CURRENT_INCOMPLETE_RETRY));
 
   // 3. Short-Term Cash (Exit & Target / RECOMMENDATION): Target: 1 hour during market hours (0 outside)
   const shouldFetchExitTarget = isForced || !cachedExitTargetRes || (ist.isMarketOpenNow && (ist.nowMs - lastExitTargetFetchTime >= EXIT_TARGET_CACHE_TTL));
@@ -423,9 +442,21 @@ async function fetchData(isForced = false) {
       cachedLasaMasterRes = lasaMasterRes;
     }
     if (eodValueRanges[2]?.values && eodValueRanges[2].values.length > 0) {
-      currentRes = { data: { values: eodValueRanges[2].values } };
-      cachedCurrentRes = currentRes;
-      lastCurrentFetchTime = ist.nowMs;
+      const values = eodValueRanges[2].values;
+      const pricedShare = currentPricedShare(values);
+      lastCurrentAttemptTime = ist.nowMs;
+      if (pricedShare >= 0.5 || !cachedCurrentRes) {
+        // Good read (or nothing better cached yet): use it
+        currentRes = { data: { values } };
+        cachedCurrentRes = currentRes;
+        lastCurrentFetchTime = ist.nowMs;
+        currentNeedsRetry = pricedShare < 0.5;
+      } else {
+        // Mostly blank prices: keep the previous good copy and retry soon
+        currentNeedsRetry = true;
+        console.warn(`[CURRENT] Only ${Math.round(pricedShare * 100)}% of rows have CLOSE_PRICE; keeping previous copy, retrying in 5 min.`);
+      }
+      if (currentNeedsRetry) console.warn(`[CURRENT] Read has ${Math.round(pricedShare * 100)}% priced rows.`);
     }
     if (eodValueRanges[3]?.values && eodValueRanges[3].values.length > 0) {
       breakoutRes = { data: { values: eodValueRanges[3].values } };
@@ -1616,18 +1647,25 @@ async function fetchData(isForced = false) {
       };
     }).filter(idx => idx.stocksCount > 0).sort((a, b) => b.strengthScore - a.strengthScore);
 
+    // The 'current' sheet's close price is blank after market hours and on holidays; fall back to
+    // each stock's last close from lasa-master so Top Gainers/Losers don't show 0.
+    const lastCloseBySymbol = new Map(stockData.map(s => [s.symbol, s.price]));
     const stocks = currentData
       .filter(row => {
         if (!row['STOCK_NAME'] || row['CHANGE_PERCENT'] === undefined || row['CHANGE_PERCENT'] === '') return false;
         const group = (row['GROUP'] || '').toString().toUpperCase();
         return group === 'LARGECAP' || group === 'MIDCAP';
       })
-      .map(row => ({
-        id: row['ID'] || row[colToIdx('C')] || row['STOCK_NAME'] || row[colToIdx('D')],
-        stockName: row['STOCK_NAME'] || row[colToIdx('D')],
-        changePercent: parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
-        closePrice: parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0
-      }))
+      .map(row => {
+        const id = row['ID'] || row[colToIdx('C')] || row['STOCK_NAME'] || row[colToIdx('D')];
+        const liveClose = parseFloat((row['CLOSE_PRICE'] || row[colToIdx('E')] || '0').toString().replace(/,/g, '')) || 0;
+        return {
+          id,
+          stockName: row['STOCK_NAME'] || row[colToIdx('D')],
+          changePercent: parseFloat((row['CHANGE_PERCENT'] || row[colToIdx('BR')] || row[colToIdx('G')] || '0').toString().replace('%', '').replace(/,/g, '')) || 0,
+          closePrice: liveClose > 0 ? liveClose : (Number(lastCloseBySymbol.get(id)) || 0)
+        };
+      })
       .filter(s => !isNaN(s.changePercent) && !isNaN(s.closePrice));
 
     const sortedByChange = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
@@ -2629,17 +2667,19 @@ export default async function handler(req, res) {
   const needsPostCloseRefresh = ist.isWeekday
     && ist.timeInMinutes >= POST_CLOSE_REFRESH_MINUTES
     && lastPostCloseRefreshKey !== ist.dateKey;
+  // A read of 'current' came back with blank prices; let a retry through the cached answers below
+  const needsCurrentRetry = currentNeedsRetry && (now - lastCurrentAttemptTime >= CURRENT_INCOMPLETE_RETRY);
 
   const hasValidData = cachedData && Array.isArray(cachedData.weeklyRecommendation) && cachedData.weeklyRecommendation.length > 0;
 
   // Outside market hours, if we already have valid cachedData and it's not forced or the 22:30 window, return immediately
   const isAfter2230 = ist.timeInMinutes >= (22 * 60 + 30);
-  if (!isForced && !needsPostCloseRefresh && hasValidData && !ist.isMarketOpenNow && !(isAfter2230 && lastAllstocksDateKey !== ist.dateKey)) {
+  if (!isForced && !needsPostCloseRefresh && !needsCurrentRetry && hasValidData && !ist.isMarketOpenNow && !(isAfter2230 && lastAllstocksDateKey !== ist.dateKey)) {
     return res.status(200).json(shapeResponse(cachedData, part));
   }
 
   // Return from in-memory cache instantly (<1ms) if still fresh
-  if (!isForced && !needsPostCloseRefresh && hasValidData && (now - lastFetchTime) < CACHE_DURATION) {
+  if (!isForced && !needsPostCloseRefresh && !needsCurrentRetry && hasValidData && (now - lastFetchTime) < CACHE_DURATION) {
     return res.status(200).json(shapeResponse(cachedData, part));
   }
 
