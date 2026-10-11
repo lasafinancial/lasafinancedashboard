@@ -172,7 +172,7 @@ export const Pricing = () => {
                             <div className="mb-8">
                                 <div className="flex items-center gap-2 mb-1.5">
                                     <span className="text-sm text-muted-foreground/50 line-through font-mono">
-                                        ₹{billingCycle === 'quarterly' ? '9,600' : '28,800'}
+                                        ₹{billingCycle === 'quarterly' ? '7,200' : '21,600'}
                                     </span>
                                     <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wide">
                                         50% Off
@@ -181,7 +181,7 @@ export const Pricing = () => {
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-2xl text-muted-foreground">₹</span>
                                     <span className="text-5xl font-bold">
-                                        {billingCycle === 'quarterly' ? '4,800' : '14,400'}
+                                        {billingCycle === 'quarterly' ? '3,600' : '10,800'}
                                     </span>
                                 </div>
                                 <div className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
@@ -250,7 +250,7 @@ export const Pricing = () => {
                             <div className="mb-8">
                                 <div className="flex items-center gap-2 mb-1.5">
                                     <span className="text-sm text-muted-foreground/50 line-through font-mono">
-                                        ₹{billingCycle === 'quarterly' ? '15,000' : '45,000'}
+                                        ₹{billingCycle === 'quarterly' ? '14,400' : '43,200'}
                                     </span>
                                     <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wide">
                                         50% Off
@@ -259,7 +259,7 @@ export const Pricing = () => {
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-2xl text-muted-foreground">₹</span>
                                     <span className="text-5xl font-bold">
-                                        {billingCycle === 'quarterly' ? '7,500' : '22,500'}
+                                        {billingCycle === 'quarterly' ? '7,200' : '21,600'}
                                     </span>
                                 </div>
                                 <div className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
@@ -316,11 +316,14 @@ export const Pricing = () => {
                     <div className="bg-[#12111a] border-l-2 border-purple-500 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative border-t border-r border-b border-white/5">
                         <div className="space-y-3 flex-1">
                             <span className="text-[10px] font-bold tracking-widest text-purple-400 bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20 uppercase">
-                                Smallcase Strategy
+                                Model Portfolio
                             </span>
                             <h3 className="text-2xl font-bold font-serif">Dynamic Portfolio Rotation</h3>
                             <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
                                 A rules-based portfolio rotation strategy, rebalanced systematically based on momentum, sector strength, and market regime signals. Standalone product — independent of dashboard tiers.
+                            </p>
+                            <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
+                                <span className="text-white font-semibold">Low cost:</span> on a ₹10 lakh investment, the fee is less than 1.5% of the investment amount a year (₹3,600 a quarter = ₹14,400 a year, about 1.44%; ₹10,800 a year on the annual plan, about 1.08%). Many mutual funds charge an expense ratio of up to about 2.25% a year.
                             </p>
                             <div className="flex flex-wrap items-center gap-4 text-xs text-white/60 pt-2">
                                 <div className="flex items-center gap-1.5"><div className="w-1 h-1 bg-purple-500 rounded-full"/> Rules-based rotation</div>
@@ -333,7 +336,7 @@ export const Pricing = () => {
                         <div className="flex flex-col items-start md:items-end gap-3 min-w-[200px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-muted-foreground/50 line-through font-mono">
-                                    ₹{billingCycle === 'quarterly' ? '4,800' : '14,400'}
+                                    ₹{billingCycle === 'quarterly' ? '7,200' : '21,600'}
                                 </span>
                                 <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wide">
                                     50% Off
@@ -342,7 +345,7 @@ export const Pricing = () => {
                             <div className="flex items-baseline gap-1">
                                 <span className="text-xl text-muted-foreground">₹</span>
                                 <span className="text-4xl font-bold">
-                                    {billingCycle === 'quarterly' ? '2,400' : '7,200'}
+                                    {billingCycle === 'quarterly' ? '3,600' : '10,800'}
                                 </span>
                             </div>
                             <div className="text-xs text-muted-foreground font-mono tracking-tight text-right w-full">
@@ -356,6 +359,10 @@ export const Pricing = () => {
                                 {loadingPlan === 'standalone_rotation' && <Loader2 className="w-4 h-4 animate-spin" />}
                                 Subscribe
                             </button>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1.5 md:justify-end w-full">
+                                <Clock className="w-3.5 h-3.5 shrink-0" />
+                                Registration &amp; KYC takes just 2–5 minutes
+                            </p>
                         </div>
                     </div>
 
@@ -367,20 +374,20 @@ export const Pricing = () => {
                             </span>
                             <div>
                                 <h3 className="text-lg font-bold">Elite Annual Plan — Best Value</h3>
-                                <p className="text-sm text-muted-foreground">Full Elite access • 50% off introductory offer • 1 quarter free • ₹1,875/month effective</p>
+                                <p className="text-sm text-muted-foreground">Full Elite access • 50% off introductory offer • 1 quarter free • ₹1,800/month effective</p>
                             </div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-4 sm:gap-6 w-full md:w-auto justify-between md:justify-end">
                             <div className="text-left sm:text-right">
-                                <div className="text-emerald-400 text-sm font-bold">₹7,500 saved</div>
+                                <div className="text-emerald-400 text-sm font-bold">₹7,200 saved</div>
                                 <div className="text-[10px] text-muted-foreground font-mono">vs quarterly</div>
                             </div>
                             <div className="text-right">
-                                <span className="text-sm text-muted-foreground/50 line-through font-mono block">₹45,000</span>
+                                <span className="text-sm text-muted-foreground/50 line-through font-mono block">₹43,200</span>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-xl text-muted-foreground">₹</span>
-                                    <span className="text-3xl font-bold">22,500</span>
+                                    <span className="text-3xl font-bold">21,600</span>
                                 </div>
                             </div>
                             <div className="text-xs text-muted-foreground font-mono tracking-tight">
