@@ -36,83 +36,86 @@ const calculateRollingMedian = (values: number[], index: number, windowSize: num
   return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
+/** Derived series for the price chart (rolling-median model, carried pattern, active balance, live segment).
+ *  Shared by the Recharts chart and the TradingView Lightweight Charts version. */
+export function buildPriceChartData(data: any[]) {
+  const mlValues = data.map(d => d.mlFutPrice20d);
+  let lastWolfeD: number | null = null;
+  let activeProjFvg: number | null = null;
+  let lastDeactivatedValue: number | null = null;
+  let previousPrice: number | null = null;
+
+  return data.map((d, i) => {
+    const { wolfeD: rawWolfe, projFvg: rawProjFvg, ...rest } = d;
+
+    // DEFENSIVE: Treat price of 0, null, undefined, NaN as null
+    // No valid stock has price=0; this catches #N/A values converted to 0 by the backend
+    const rawPrice = d.price;
+    const safePrice = (rawPrice == null || rawPrice === 0 || isNaN(rawPrice)) ? null : rawPrice;
+
+    if (rawWolfe && rawWolfe !== 0) {
+      lastWolfeD = rawWolfe;
+    }
+
+    // NEW BALANCE LOGIC: Update active balance if a new, different balance appears
+    if (rawProjFvg && rawProjFvg !== 0) {
+      if (activeProjFvg === null || (Math.abs(rawProjFvg - activeProjFvg) / activeProjFvg > 0.01)) {
+        const isGenuinelyNew = lastDeactivatedValue === null ||
+          Math.abs(rawProjFvg - lastDeactivatedValue) / lastDeactivatedValue > 0.01;
+        if (isGenuinelyNew) {
+          activeProjFvg = rawProjFvg;
+        }
+      }
+    }
+
+    let currentProjFvg = activeProjFvg;
+    if (activeProjFvg !== null) {
+      if (safePrice != null) {
+        const target = activeProjFvg;
+        const withinRange = safePrice >= target * 0.99 && safePrice <= target * 1.01;
+
+        let crossed = false;
+        if (previousPrice != null) {
+          if (previousPrice < target && safePrice > target) crossed = true;
+          if (previousPrice > target && safePrice < target) crossed = true;
+        }
+
+        if (withinRange || crossed) {
+          lastDeactivatedValue = activeProjFvg;
+          activeProjFvg = null;
+        }
+      }
+    }
+
+    if (safePrice != null) {
+      previousPrice = safePrice;
+    }
+
+    const isLive = !!d.isLive;
+    const isLastHistorical = !isLive && (i === data.length - 2 && !!data[data.length - 1]?.isLive);
+
+    return {
+      ...rest,
+      price: safePrice,
+      isLive,
+      model: isLive ? null : calculateRollingMedian(mlValues, i, 10),
+      wolfeD: isLive ? null : lastWolfeD,
+      projFvg: currentProjFvg,
+      // Segmented keys for rendering - explicitly nulling to prevent overlap
+      priceHist: !isLive ? safePrice : null,
+      priceLive: (isLive || isLastHistorical) ? safePrice : null,
+      supportHist: !isLive ? d.support : null,
+      supportLive: (isLive || isLastHistorical) ? d.support : null,
+      resistanceHist: !isLive ? d.resistance : null,
+      resistanceLive: (isLive || isLastHistorical) ? d.resistance : null,
+    };
+  });
+}
+
 const StockPriceChart = ({ data = [], onHover, symbol }: StockPriceChartProps) => {
   const [localHovered, setLocalHovered] = useState<HoveredData | null>(null);
 
-  const chartData = useMemo(() => {
-    const mlValues = data.map(d => d.mlFutPrice20d);
-    let lastWolfeD: number | null = null;
-    let activeProjFvg: number | null = null;
-    let lastDeactivatedValue: number | null = null;
-    let previousPrice: number | null = null;
-
-    return data.map((d, i) => {
-      const { wolfeD: rawWolfe, projFvg: rawProjFvg, ...rest } = d;
-
-      // DEFENSIVE: Treat price of 0, null, undefined, NaN as null
-      // No valid stock has price=0; this catches #N/A values converted to 0 by the backend
-      const rawPrice = d.price;
-      const safePrice = (rawPrice == null || rawPrice === 0 || isNaN(rawPrice)) ? null : rawPrice;
-
-      if (rawWolfe && rawWolfe !== 0) {
-        lastWolfeD = rawWolfe;
-      }
-
-      // NEW BALANCE LOGIC: Update active balance if a new, different balance appears
-      if (rawProjFvg && rawProjFvg !== 0) {
-        if (activeProjFvg === null || (Math.abs(rawProjFvg - activeProjFvg) / activeProjFvg > 0.01)) {
-          const isGenuinelyNew = lastDeactivatedValue === null ||
-            Math.abs(rawProjFvg - lastDeactivatedValue) / lastDeactivatedValue > 0.01;
-          if (isGenuinelyNew) {
-            activeProjFvg = rawProjFvg;
-          }
-        }
-      }
-
-      let currentProjFvg = activeProjFvg;
-      if (activeProjFvg !== null) {
-        if (safePrice != null) {
-          const target = activeProjFvg;
-          const withinRange = safePrice >= target * 0.99 && safePrice <= target * 1.01;
-
-          let crossed = false;
-          if (previousPrice != null) {
-            if (previousPrice < target && safePrice > target) crossed = true;
-            if (previousPrice > target && safePrice < target) crossed = true;
-          }
-
-          if (withinRange || crossed) {
-            lastDeactivatedValue = activeProjFvg;
-            activeProjFvg = null;
-          }
-        }
-      }
-
-      if (safePrice != null) {
-        previousPrice = safePrice;
-      }
-
-      const isLive = !!d.isLive;
-      const isLastHistorical = !isLive && (i === data.length - 2 && !!data[data.length - 1]?.isLive);
-
-      return {
-        ...rest,
-        price: safePrice,
-        isLive,
-        model: isLive ? null : calculateRollingMedian(mlValues, i, 10),
-        wolfeD: isLive ? null : lastWolfeD,
-        projFvg: currentProjFvg,
-        // Segmented keys for rendering - explicitly nulling to prevent overlap
-        priceHist: !isLive ? safePrice : null,
-        priceLive: (isLive || isLastHistorical) ? safePrice : null,
-        supportHist: !isLive ? d.support : null,
-        supportLive: (isLive || isLastHistorical) ? d.support : null,
-        resistanceHist: !isLive ? d.resistance : null,
-        resistanceLive: (isLive || isLastHistorical) ? d.resistance : null,
-      };
-      return result;
-    });
-  }, [data]);
+  const chartData = useMemo(() => buildPriceChartData(data), [data]);
 
   const yDomain = useMemo(() => {
     if (!chartData.length) return ['auto', 'auto'];

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useLiveData } from "@/hooks/useLiveData";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
-import StockPriceChart from "@/components/charts/StockPriceChart";
+import StockPriceChartLW from "@/components/charts/StockPriceChartLW";
 import {
   Dialog,
   DialogContent,
@@ -301,7 +301,7 @@ const Nifty50 = () => {
           )}
         </h3>
         {niftyStockData ? (
-          <StockPriceChart data={niftyStockData.history} symbol="NIFTY 50" />
+          <StockPriceChartLW data={niftyStockData.history} symbol="NIFTY 50" />
         ) : (
           <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
             NIFTY 50 chart data not available. Try searching "NIFTY 50" in Stock Analysis to confirm it exists.
@@ -324,7 +324,6 @@ const Nifty50 = () => {
                 <div className="flex items-center gap-2 mb-1">
                   <Lightbulb className="w-5 h-5 text-warning" />
                   <h2 className="text-xl font-bold uppercase tracking-tight">Market Analysis & Probable Scenarios</h2>
-                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-widest">Live Data · Delayed 15 Mins</span>
                 </div>
                 <p className="text-xs text-muted-foreground italic max-w-xl">
                   Scenario probabilities and technical triggers as defined in the daily algorithmic analysis.
