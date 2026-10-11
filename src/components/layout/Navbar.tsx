@@ -304,7 +304,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                       >
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold flex items-center gap-2 whitespace-nowrap">Accumulation Scan 2.0 <ScreenerTierBadge path="/screeners/accumulation-v2" /></span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">OBV Slope + Delta</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Weekly OBV Accumulation</span>
                         </div>
                       </Link>
                       <Link

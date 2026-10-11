@@ -22,24 +22,23 @@ type StockV2 = {
     ema20: number | null;
     trend10d: string;
     isNew: boolean;
+    weeklyRsi?: number | null;
+    dailyRsi?: number | null;
 };
-type ScanV2 = { asOf: string | null; dates: string[]; totalStocks: number; stocks: StockV2[]; refreshedAt?: string };
+type ScanV2 = { asOf: string | null; period?: "weekly" | "daily"; dates: string[]; totalStocks: number; stocks: StockV2[]; refreshedAt?: string };
 
 type SortField = "id" | "close" | "closeChangePct" | "slope" | "slopeDelta";
 const SORT_OPTIONS: { field: SortField; label: string }[] = [
     { field: "id", label: "Symbol" },
     { field: "close", label: "Close" },
-    { field: "closeChangePct", label: "Day Δ%" },
-    { field: "slope", label: "OBV Slope" },
-    { field: "slopeDelta", label: "OBV Slope Δ" },
 ];
 
-type FilterKey = "fno" | "trendUp" | "trendDown" | "nearEma";
+type FilterKey = "new" | "fno" | "trendUp" | "trendDown" | "nearEma";
 // "Near" = close within this % of the weekly EMA 9 or EMA 20
 const NEAR_EMA_PCT = 2;
 const FILTER_GROUPS: { title: string; options: { key: FilterKey; label: string }[] }[] = [
-    { title: "Show", options: [{ key: "fno", label: "F&O only" }] },
-    { title: "Price slope trend (10D)", options: [{ key: "trendUp", label: "Increasing" }, { key: "trendDown", label: "Decreasing" }] },
+    { title: "Show", options: [{ key: "new", label: "New" }, { key: "fno", label: "F&O only" }] },
+    { title: "Price slope trend", options: [{ key: "trendUp", label: "Increasing" }, { key: "trendDown", label: "Decreasing" }] },
     { title: "Weekly EMAs", options: [{ key: "nearEma", label: `Near EMA 9 / EMA 20 (within ${NEAR_EMA_PCT}%)` }] },
 ];
 const TREND_KEYS: Partial<Record<FilterKey, string>> = { trendUp: "INCREASING", trendDown: "DECREASING" };
@@ -47,6 +46,7 @@ const TREND_KEYS: Partial<Record<FilterKey, string>> = { trendUp: "INCREASING", 
 const isNear = (close: number | null, ema: number | null) =>
     close !== null && ema !== null && ema > 0 && Math.abs((close - ema) / ema) * 100 <= NEAR_EMA_PCT;
 const PREDICATES: Partial<Record<FilterKey, (s: StockV2) => boolean>> = {
+    new: (s) => s.isNew,
     fno: (s) => s.inFno,
     nearEma: (s) => isNear(s.close, s.ema9) || isNear(s.close, s.ema20),
 };
@@ -77,39 +77,28 @@ const formatDate = (iso: string | null) => {
     return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 };
 
-const PRICE_LINE = "#38bdf8"; // sky-400
-
-/**
- * Column I (OBV_SLOPE_NORM) and the close price (column E) over the last trading days.
- * Each line is scaled to its own range, so the chart compares their shape and direction.
- */
-function SlopeSparkline({ series }: { series: SlopePoint[] }) {
+/** Close price (column E) over the last periods. Green if it ended higher than it started, red if lower. */
+function PriceSparkline({ series }: { series: SlopePoint[] }) {
     const W = 240, H = 56, PAD = 4;
-    const scaleLine = (vals: (number | null | undefined)[]) => {
-        const pts = vals.map((v, i) => ({ i, v })).filter((p): p is { i: number; v: number } => typeof p.v === "number");
-        if (pts.length < 2) return null;
-        const min = Math.min(...pts.map((p) => p.v));
-        const max = Math.max(...pts.map((p) => p.v));
-        const span = max - min || 1;
-        const x = (i: number) => PAD + (i / (vals.length - 1)) * (W - PAD * 2);
-        const y = (v: number) => PAD + (1 - (v - min) / span) * (H - PAD * 2);
-        const path = pts.map((p, k) => `${k === 0 ? "M" : "L"}${x(p.i).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
-        const last = pts[pts.length - 1];
-        return { path, first: pts[0].v, last: last.v, lastX: x(last.i), lastY: y(last.v), zeroY: min < 0 && max > 0 ? y(0) : null };
-    };
+    const pts = series
+        .map((p, i) => ({ i, v: p.close }))
+        .filter((p): p is { i: number; v: number } => typeof p.v === "number");
+    if (pts.length < 2) return <div className="h-14 flex items-center text-[11px] text-white/30">Not enough history</div>;
 
-    const obv = scaleLine(series.map((p) => p.value));
-    const price = scaleLine(series.map((p) => p.close));
-    if (!obv) return <div className="h-14 flex items-center text-[11px] text-white/30">Not enough history</div>;
-    const obvStroke = obv.last >= obv.first ? "#34d399" : "#fb7185";
+    const min = Math.min(...pts.map((p) => p.v));
+    const max = Math.max(...pts.map((p) => p.v));
+    const range = max - min || 1;
+    const x = (i: number) => PAD + (i / (series.length - 1)) * (W - PAD * 2);
+    const y = (v: number) => PAD + (1 - (v - min) / range) * (H - PAD * 2);
+    const path = pts.map((p, k) => `${k === 0 ? "M" : "L"}${x(p.i).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
+    const first = pts[0].v, last = pts[pts.length - 1];
+    const stroke = last.v >= first ? "#34d399" : "#fb7185";
 
     return (
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-14" preserveAspectRatio="none" role="img"
-            aria-label={`OBV slope from ${fmt(obv.first)} to ${fmt(obv.last)}${price ? `, price from ₹${fmt(price.first)} to ₹${fmt(price.last)}` : ""} over ${series.length} days`}>
-            {obv.zeroY !== null && <line x1={0} x2={W} y1={obv.zeroY} y2={obv.zeroY} stroke="rgba(255,255,255,0.15)" strokeDasharray="3 3" strokeWidth={1} />}
-            {price && <path d={price.path} fill="none" stroke={PRICE_LINE} strokeWidth={1.5} strokeDasharray="4 3" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" opacity={0.85} />}
-            <path d={obv.path} fill="none" stroke={obvStroke} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-            <circle cx={obv.lastX} cy={obv.lastY} r={3} fill={obvStroke} />
+            aria-label={`Price from ₹${fmt(first)} to ₹${fmt(last.v)} over ${series.length} periods`}>
+            <path d={path} fill="none" stroke={stroke} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+            <circle cx={x(last.i)} cy={y(last.v)} r={3} fill={stroke} />
         </svg>
     );
 }
@@ -129,7 +118,7 @@ export function AccumulationScanV2() {
     const [sortField, setSortField] = useState<SortField>("id");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-    // The sheet is refreshed on the server at most once an hour; poll on the same schedule
+    // The server reads the sheet once a day; load once per visit, no polling
     const { data, isLoading, isError } = useQuery<ScanV2>({
         queryKey: ["accumulation-v2"],
         queryFn: async () => {
@@ -138,7 +127,7 @@ export function AccumulationScanV2() {
             return res.json();
         },
         staleTime: 60 * 60 * 1000,
-        refetchInterval: 60 * 60 * 1000,
+        refetchOnWindowFocus: false,
     });
 
     // Only link to stocks that have chart data with real prices
@@ -175,6 +164,9 @@ export function AccumulationScanV2() {
     };
 
     const newCount = (data?.stocks || []).filter((s) => s.isNew).length;
+    // The sheet holds weekly (WEEK_ENDING) or daily (DATE) rows; label everything to match
+    const weekly = data?.period === "weekly";
+    const span = weekly ? "10W" : "10D";
     const countIfToggled = (key: FilterKey) => {
         const next = new Set(activeFilters);
         next.add(key);
@@ -191,11 +183,11 @@ export function AccumulationScanV2() {
                             Accumulation Scan <span className="text-indigo-400">2.0</span>
                         </h1>
                         <p className="text-[15px] text-muted-foreground mb-2">
-                            Stocks with OBV accumulation and a daily OBV breakout, with the 10-day OBV-slope trend.
+                            Stocks with OBV accumulation and an OBV breakout, with the {weekly ? "10-week" : "10-day"} price trend.
                         </p>
                         <p className="text-[13px] text-muted-foreground/60 mb-3">
-                            Data as of {formatDate(data?.asOf ?? null)} · refreshed hourly · {data ? `${data.stocks.length} stocks` : "loading"}
-                            {newCount > 0 && <> · <span className="text-amber-400">{newCount} new today</span></>}
+                            {weekly ? "Week ending" : "Data as of"} {formatDate(data?.asOf ?? null)} · updated daily · {data ? `${data.stocks.length} stocks` : "loading"}
+                            {newCount > 0 && <> · <span className="text-amber-400">{newCount} new {weekly ? "this week" : "today"}</span></>}
                         </p>
                         <p className="text-xs font-semibold text-amber-400/90">No Buy/Sell Recommendations</p>
                     </div>
@@ -239,7 +231,7 @@ export function AccumulationScanV2() {
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4">
                                 {FILTER_GROUPS.map((group) => (
                                     <fieldset key={group.title}>
-                                        <legend className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-2">{group.title}</legend>
+                                        <legend className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-2">{group.title}{group.title === "Price slope trend" ? ` (${span})` : ""}</legend>
                                         <div className="space-y-2">
                                             {group.options.map((opt) => {
                                                 const id = `acc2-filter-${opt.key}`;
@@ -314,42 +306,42 @@ export function AccumulationScanV2() {
                                                     <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mb-0.5">Close</p>
                                                     <p className="text-xl sm:text-2xl font-black tabular-nums text-white">₹{fmt(s.close)}</p>
                                                 </div>
-                                                <span className={`text-sm font-bold tabular-nums ${deltaColor(s.closeChangePct)}`}>{signed(s.closeChangePct, "%")}</span>
                                             </div>
 
-                                            {/* Column I (OBV slope) line chart */}
+                                            {/* Price line chart */}
                                             <div className="rounded-lg bg-black/20 border border-white/5 px-2 pt-1.5 pb-1 mb-3">
                                                 <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider mb-0.5">
-                                                    <span className="text-white/40">OBV Slope (10D)</span>
-                                                    <span className="tabular-nums text-white">
-                                                        {fmt(s.slope)} <span className={deltaColor(s.slopeDelta)}>{signed(s.slopeDelta)}</span>
-                                                    </span>
+                                                    <span className="text-white/40">Price ({span})</span>
                                                 </div>
-                                                <SlopeSparkline series={s.slopeSeries} />
-                                                <div className="flex items-center gap-3 text-[9px] font-semibold uppercase tracking-wider text-white/40 mt-0.5">
-                                                    <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5 rounded bg-emerald-400" />OBV slope</span>
-                                                    <span className="flex items-center gap-1"><span className="inline-block w-3 border-t border-dashed" style={{ borderColor: PRICE_LINE }} />Price</span>
-                                                </div>
+                                                <PriceSparkline series={s.slopeSeries} />
                                             </div>
 
                                             {/* Signals (K, L, Q) */}
                                             <div className="flex flex-wrap gap-1.5 mb-3">
                                                 <span className="px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-[10px] font-bold tracking-wider">{s.obvSignal || "—"}</span>
-                                                <span className="px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-[10px] font-bold tracking-wider">DAILY BO: {s.dailyBreakout || "—"}</span>
+                                                <span className="px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-[10px] font-bold tracking-wider">{weekly ? "WEEKLY" : "DAILY"} BO: {s.dailyBreakout || "—"}</span>
                                                 <span className={`px-2 py-0.5 rounded border text-[10px] font-bold tracking-wider ${s.trend10d === "INCREASING" ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400" : s.trend10d === "DECREASING" ? "border-rose-500/20 bg-rose-500/5 text-rose-400" : "border-white/10 bg-white/5 text-white/60"}`}>
-                                                    10D: {s.trend10d || "—"}
+                                                    {span}: {s.trend10d || "—"}
                                                 </span>
                                             </div>
 
-                                            {/* Weekly EMAs (N, O) */}
-                                            <div className="grid grid-cols-2 gap-x-3 pt-3 border-t border-white/5">
+                                            {/* Weekly EMAs and RSIs */}
+                                            <div className="grid grid-cols-2 gap-x-3 gap-y-2 pt-3 border-t border-white/5">
                                                 <div>
-                                                    <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider">Weekly EMA 9</p>
+                                                    <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider whitespace-nowrap">EMA 9 (W)</p>
                                                     <p className="text-[11px] sm:text-xs font-bold tabular-nums text-white/80">₹{fmt(s.ema9)}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider">Weekly EMA 20</p>
+                                                    <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider whitespace-nowrap">EMA 20 (W)</p>
                                                     <p className="text-[11px] sm:text-xs font-bold tabular-nums text-white/80">₹{fmt(s.ema20)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider whitespace-nowrap">RSI (W)</p>
+                                                    <p className="text-[11px] sm:text-xs font-bold tabular-nums text-white/80">{fmt(s.weeklyRsi ?? null)}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[9px] sm:text-[10px] text-white/40 font-bold uppercase tracking-wider whitespace-nowrap">RSI (D)</p>
+                                                    <p className="text-[11px] sm:text-xs font-bold tabular-nums text-white/80">{fmt(s.dailyRsi ?? null)}</p>
                                                 </div>
                                             </div>
                                         </motion.div>

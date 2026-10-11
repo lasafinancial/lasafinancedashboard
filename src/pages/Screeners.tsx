@@ -92,7 +92,7 @@ const screenerOptions = [
     {
         path: "/screeners/accumulation-v2",
         label: "Accumulation Scan 2.0",
-        description: "OBV accumulation with daily breakout, plus the 10-day OBV-slope trend and day-over-day changes. Refreshed hourly.",
+        description: "OBV accumulation with an OBV breakout, plus the price trend, weekly EMAs and RSI. Updated daily.",
         icon: BarChart2,
         color: "text-indigo-400",
         bgColor: "bg-indigo-400/10",
