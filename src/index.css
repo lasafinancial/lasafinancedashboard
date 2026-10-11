@@ -515,6 +515,9 @@ spline-viewer canvas {
 
 .TV-widget-wrapper iframe {
   border: none !important;
+  /* Match the widget page's colour scheme, otherwise the browser paints a white backdrop
+     behind a transparent widget on our dark-scheme page */
+  color-scheme: light;
 }
 
 .tradingview-widget-container iframe {

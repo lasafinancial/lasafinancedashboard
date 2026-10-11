@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createChart,
   AreaSeries,
@@ -24,6 +24,7 @@ interface HoveredData {
 
 interface StockPriceChartLWProps {
   data?: any[];
+  onHover?: (data: HoveredData | null) => void;
   symbol?: string;
 }
 
@@ -55,10 +56,16 @@ const LEGEND = [
   { key: "projFvg", label: "Balance", swatch: "bg-[#ec4899]", text: "text-[#ec4899]" },
 ] as const;
 
-const StockPriceChartLW = ({ data = [], symbol }: StockPriceChartLWProps) => {
+const StockPriceChartLW = ({ data = [], onHover, symbol }: StockPriceChartLWProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const [hovered, setHovered] = useState<HoveredData | null>(null);
+  const [hovered, setHoveredState] = useState<HoveredData | null>(null);
+  const onHoverRef = useRef(onHover);
+  onHoverRef.current = onHover;
+  const setHovered = useCallback((h: HoveredData | null) => {
+    setHoveredState(h);
+    onHoverRef.current?.(h);
+  }, []);
 
   const chartData = useMemo(() => buildPriceChartData(data), [data]);
 
@@ -179,7 +186,7 @@ const StockPriceChartLW = ({ data = [], symbol }: StockPriceChartLWProps) => {
       chart.remove();
       chartRef.current = null;
     };
-  }, [chartData]);
+  }, [chartData, setHovered]);
 
   const values = (
     <>

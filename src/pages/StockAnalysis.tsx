@@ -7,8 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import StockPriceChart from "@/components/charts/StockPriceChart";
-import StockStrengthZone from "@/components/charts/StockStrengthZone";
+import StockPriceChartLW from "@/components/charts/StockPriceChartLW";
 import { useLiveData } from "@/hooks/useLiveData";
 import { getStockNarration } from "@/lib/gemini";
 import TrendlyneWidget from "@/components/charts/TrendlyneWidget";
@@ -909,7 +908,7 @@ const StockAnalysis = () => {
 
         {/* Chart */}
         <div className="mb-6 animate-fade-in-up-delay-2">
-          <StockPriceChart data={chartData} onHover={setHoveredChartData} symbol={currentStock?.symbol} />
+          <StockPriceChartLW data={chartData} onHover={setHoveredChartData} symbol={currentStock?.symbol} />
         </div>
 
         {/* Stock Summary Widget */}
@@ -975,7 +974,7 @@ const StockAnalysis = () => {
 
         {/* TradingView Technical Analysis Widget */}
         {currentStock?.symbol && (
-          <div className="mb-6 animate-fade-in-up-delay-2 rounded-xl overflow-hidden border-none TV-widget-wrapper">
+          <div className="mb-6 animate-fade-in-up-delay-2 rounded-xl overflow-hidden border border-white/5 TV-widget-wrapper" style={{ background: "#0b101d" }}>
             <TechnicalAnalysisWidget
               symbol={(() => {
                 let sym = currentStock.symbol.trim().toUpperCase();
@@ -987,14 +986,10 @@ const StockAnalysis = () => {
                 sym = sym.replace(/&/g, '_');
                 return `NSE:${sym}`;
               })()}
-              height={600}
+              height={460}
             />
           </div>
         )}
-        {/* Data Table */}
-        <div className="animate-fade-in-up-delay-3">
-          <StockStrengthZone data={chartData} />
-        </div>
       </div >
 
       {/* Info Modal */}

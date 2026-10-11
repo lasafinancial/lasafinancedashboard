@@ -27,14 +27,14 @@ function TechnicalAnalysisWidget({
         script.innerHTML = JSON.stringify({
             "interval": "1D",
             "width": "100%",
-            "isTransparent": false,
+            // Transparent so it sits on the site's dark card (the widget ignores backgroundColor)
+            "isTransparent": true,
             "height": height,
             "symbol": symbol,
             "showIntervalTabs": true,
             "displayMode": "multiple",
             "locale": "en",
-            "colorTheme": "dark",
-            "backgroundColor": "#020316ff"
+            "colorTheme": "dark"
         });
 
         currentContainer.appendChild(script);
