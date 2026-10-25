@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { AlertCircle, ArrowUpRight, ChevronDown, ChevronUp, Loader2, Search, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowUpRight, ChevronDown, ChevronUp, Loader2, Lock, Search, Sparkles } from "lucide-react";
 import { getApiUrl } from "@/config/api";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLiveData } from "@/hooks/useLiveData";
+import { useAuth } from "@/context/AuthContext";
 
 type SlopePoint = { date: string; value: number | null; close?: number | null };
 type StockV2 = {
@@ -118,8 +119,13 @@ export function AccumulationScanV2() {
     const [sortField, setSortField] = useState<SortField>("id");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
+    // Elite plan only (isElite already covers tier restrictions being switched off)
+    const { isElite, loading: authLoading } = useAuth();
+    const locked = !authLoading && !isElite;
+
     // The server reads the sheet once a day; load once per visit, no polling
     const { data, isLoading, isError } = useQuery<ScanV2>({
+        enabled: isElite,
         queryKey: ["accumulation-v2"],
         queryFn: async () => {
             const res = await fetch(getApiUrl("/api/accumulation-v2"));
@@ -165,7 +171,7 @@ export function AccumulationScanV2() {
 
     const newCount = (data?.stocks || []).filter((s) => s.isNew).length;
     // The sheet holds weekly (WEEK_ENDING) or daily (DATE) rows; label everything to match
-    const weekly = data?.period === "weekly";
+    const weekly = (data?.period ?? "weekly") === "weekly"; // the Observation tab is weekly
     const span = weekly ? "10W" : "10D";
     const countIfToggled = (key: FilterKey) => {
         const next = new Set(activeFilters);
@@ -185,13 +191,13 @@ export function AccumulationScanV2() {
                         <p className="text-[15px] text-muted-foreground mb-2">
                             Stocks with OBV accumulation and an OBV breakout, with the {weekly ? "10-week" : "10-day"} price trend.
                         </p>
-                        <p className="text-[13px] text-muted-foreground/60 mb-3">
+                        {!locked && <p className="text-[13px] text-muted-foreground/60 mb-3">
                             {weekly ? "Week ending" : "Data as of"} {formatDate(data?.asOf ?? null)} · updated daily · {data ? `${data.stocks.length} stocks` : "loading"}
                             {newCount > 0 && <> · <span className="text-amber-400">{newCount} new {weekly ? "this week" : "today"}</span></>}
-                        </p>
+                        </p>}
                         <p className="text-xs font-semibold text-amber-400/90">No Buy/Sell Recommendations</p>
                     </div>
-                    <div className="relative w-full md:w-64 mt-2">
+                    {isElite && <div className="relative w-full md:w-64 mt-2">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                         <input
                             type="text"
@@ -200,10 +206,26 @@ export function AccumulationScanV2() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0f172a] border border-white/5 focus:border-white/20 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all"
                         />
-                    </div>
+                    </div>}
                 </div>
 
-                {isLoading ? (
+                {locked ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-6 text-center bg-[#0f172a]/50 border border-white/10 rounded-xl">
+                        <div className="h-16 w-16 bg-background border border-white/10 rounded-2xl flex items-center justify-center mb-5 shadow-2xl">
+                            <Lock className="w-8 h-8 text-primary" />
+                        </div>
+                        <h3 className="text-xl font-bold tracking-tight text-white mb-2">Elite Feature</h3>
+                        <p className="text-sm text-muted-foreground max-w-md leading-relaxed mb-6">
+                            Accumulation Scan 2.0 is available on the Elite plan.
+                        </p>
+                        <Link
+                            to="/pricing"
+                            className="px-6 py-2.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-sm font-bold tracking-wide hover:bg-primary hover:text-white transition-colors"
+                        >
+                            Upgrade to ELITE
+                        </Link>
+                    </div>
+                ) : isLoading || authLoading ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-4 bg-[#0f172a]/50 border border-white/5 rounded-xl">
                         <Loader2 className="w-8 h-8 text-primary animate-spin" />
                         <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Loading...</p>

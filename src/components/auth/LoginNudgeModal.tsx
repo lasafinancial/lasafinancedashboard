@@ -12,8 +12,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-const NUDGE_DELAY_MS = 5 * 60 * 1000;
-// localStorage (not sessionStorage) so a new tab or browser restart doesn't reset the 5 minutes
+const NUDGE_DELAY_MS = 30 * 60 * 1000;
+// localStorage (not sessionStorage) so a new tab or browser restart doesn't reset the 30 minutes
 const GUEST_START_KEY = "guest_session_start";
 
 function readGuestStart(): number {
@@ -34,7 +34,7 @@ function writeGuestStart(value: number | null) {
 }
 
 /**
- * After 5 minutes of guest browsing, requires sign-in: the page behind is greyed out and the
+ * After 30 minutes of guest browsing, requires sign-in: the page behind is greyed out and the
  * prompt can't be dismissed. Sign-in goes through the login page so the disclaimer opt-in and
  * profile details are collected, then returns the user to the page they were on.
  */

@@ -618,7 +618,7 @@ const StockAnalysis = () => {
             <p className="text-muted-foreground text-sm md:text-base">Historical charts and data from lasa-master</p>
           </div>
           <div className="flex flex-col md:items-end">
-            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Data Source: lasa-master (Live)</p>
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Price Delayed More Than 15 Minutes</p>
             <p className="text-[10px] font-mono text-primary">Last Updated: {lastUpdate}</p>
           </div>
         </div>

@@ -79,17 +79,6 @@ const screenerOptions = [
         isPaid: isPaidScreener("/screeners/intraday-reversal")
     },
     {
-        path: "/screeners/obv-accumulation",
-        label: "Accumulation Scan",
-        description: "Stocks whose On-Balance Volume shows daily breakout and weekly accumulation conditions.",
-        icon: BarChart2,
-        color: "text-teal-400",
-        bgColor: "bg-teal-400/10",
-        borderColor: "group-hover:border-teal-400/50",
-        gradient: "from-teal-400/20 to-transparent",
-        isPaid: isPaidScreener("/screeners/obv-accumulation")
-    },
-    {
         path: "/screeners/accumulation-v2",
         label: "Accumulation Scan 2.0",
         description: "OBV accumulation with an OBV breakout, plus the price trend, weekly EMAs and RSI. Updated daily.",

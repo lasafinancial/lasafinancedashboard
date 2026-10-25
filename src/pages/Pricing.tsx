@@ -1,42 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Check, Info, ShieldAlert, Loader2, Clock } from 'lucide-react';
-import { toast } from 'sonner';
-import { startRazorpayCheckout, type BillingCycle } from '@/lib/razorpay';
+import { Check, Info, ShieldAlert, Clock } from 'lucide-react';
+import type { BillingCycle } from '@/lib/razorpay';
 
-// Trader subscriptions are handled on the client portal (registration + KYC)
+// Trader and Model Portfolio subscriptions are handled on the client portal (registration + KYC)
 const CLIENT_PORTAL_URL = 'https://client.lasaresearch.in';
 
 export const Pricing = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [billingCycle, setBillingCycle] = useState<BillingCycle>('quarterly');
-    const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-
-    const handleSubscribe = (planId: string, planName: string, cycle: BillingCycle = billingCycle) => {
-        if (!user) {
-            toast.error('Please log in to subscribe.');
-            navigate('/login');
-            return;
-        }
-        setLoadingPlan(planId);
-        startRazorpayCheckout({
-            planId,
-            planName,
-            billingCycle: cycle,
-            user,
-            onSuccess: ({ planName: confirmedPlan }) => {
-                setLoadingPlan(null);
-                toast.success(`Payment successful! You're now on the ${confirmedPlan} plan.`);
-            },
-            onError: (message) => {
-                setLoadingPlan(null);
-                toast.error(message);
-            },
-            onDismiss: () => setLoadingPlan(null),
-        });
-    };
 
     const handleGetStartedFree = () => {
         if (!user) {
@@ -323,7 +297,7 @@ export const Pricing = () => {
                                 A rules-based portfolio rotation strategy, rebalanced systematically based on momentum, sector strength, and market regime signals. Standalone product — independent of dashboard tiers.
                             </p>
                             <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-                                <span className="text-white font-semibold">Low cost:</span> on a ₹10 lakh investment, the fee is less than 1.5% of the investment amount a year (₹3,600 a quarter = ₹14,400 a year, about 1.44%; ₹10,800 a year on the annual plan, about 1.08%). Many mutual funds charge an expense ratio of up to about 2.25% a year.
+                                <span className="text-white font-semibold">Low cost:</span> on a ₹10 lakh investment, the fee is ₹10,800 a year, about 1.08% of the investment amount. Many mutual funds charge an expense ratio of up to about 2.25% a year.
                             </p>
                             <div className="flex flex-wrap items-center gap-4 text-xs text-white/60 pt-2">
                                 <div className="flex items-center gap-1.5"><div className="w-1 h-1 bg-purple-500 rounded-full"/> Rules-based rotation</div>
@@ -336,29 +310,26 @@ export const Pricing = () => {
                         <div className="flex flex-col items-start md:items-end gap-3 min-w-[200px]">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-muted-foreground/50 line-through font-mono">
-                                    ₹{billingCycle === 'quarterly' ? '7,200' : '21,600'}
+                                    ₹21,600
                                 </span>
                                 <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wide">
                                     50% Off
                                 </span>
                             </div>
+                            {/* Annual plan only, whatever the quarterly/annual toggle shows */}
                             <div className="flex items-baseline gap-1">
                                 <span className="text-xl text-muted-foreground">₹</span>
-                                <span className="text-4xl font-bold">
-                                    {billingCycle === 'quarterly' ? '3,600' : '10,800'}
-                                </span>
+                                <span className="text-4xl font-bold">10,800</span>
                             </div>
                             <div className="text-xs text-muted-foreground font-mono tracking-tight text-right w-full">
-                                {billingCycle === 'quarterly' ? 'per quarter • standalone' : 'per year • 1 quarter free'}
+                                per year • annual plan only
                             </div>
-                            <button
-                                onClick={() => handleSubscribe('standalone_rotation', 'Dynamic Portfolio Rotation')}
-                                disabled={loadingPlan === 'standalone_rotation'}
-                                className="w-full md:w-auto px-8 py-3 text-xs font-bold tracking-widest text-purple-400 border border-purple-500/30 hover:bg-purple-500/10 transition-colors uppercase rounded mt-2 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            <a
+                                href={CLIENT_PORTAL_URL}
+                                className="w-full md:w-auto px-8 py-3 text-xs font-bold tracking-widest text-purple-400 border border-purple-500/30 hover:bg-purple-500/10 transition-colors uppercase rounded mt-2 flex items-center justify-center gap-2"
                             >
-                                {loadingPlan === 'standalone_rotation' && <Loader2 className="w-4 h-4 animate-spin" />}
                                 Subscribe
-                            </button>
+                            </a>
                             <p className="text-xs text-muted-foreground flex items-center gap-1.5 md:justify-end w-full">
                                 <Clock className="w-3.5 h-3.5 shrink-0" />
                                 Registration &amp; KYC takes just 2–5 minutes

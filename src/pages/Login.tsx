@@ -117,7 +117,7 @@ const Login = () => {
     const showPhoneOrEmail = FEATURE_FLAGS.ENABLE_PHONE_LOGIN || FEATURE_FLAGS.ENABLE_EMAIL_LOGIN;
     const [phoneNumber, setPhoneNumber] = useState('');
     const [email, setEmail] = useState('');
-    // After sign-in, go back to the page that sent the user here (e.g. the 5-minute login prompt)
+    // After sign-in, go back to the page that sent the user here (e.g. the 30-minute login prompt)
     const location = useLocation();
     const redirectTo = (location.state as { from?: string } | null)?.from || '/';
     const [fullName, setFullName] = useState('');
