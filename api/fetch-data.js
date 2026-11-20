@@ -222,16 +222,34 @@ function colToIdx(col) {
   return idx - 1;
 }
 
-function rowsToObjects(rows) {
+// Every string literal in this file, upper-cased. lasa-master has ~180 columns and ~800 rows per
+// trading day; turning every column of every row into an object ran the function out of memory
+// once the sheet grew. Only columns this file names are ever read, so lasa-master rows keep just
+// those. If the file can't be read, LASA_MASTER_KEYS is null and every column is kept.
+const LASA_MASTER_KEYS = (() => {
+  try {
+    const src = fs.readFileSync(new URL(import.meta.url), 'utf8');
+    const keys = new Set();
+    for (const m of src.matchAll(/(['"`])([^'"`\n]{1,80})\1/g)) keys.add(m[2].trim().toUpperCase());
+    return keys.size > 50 ? keys : null;
+  } catch {
+    return null;
+  }
+})();
+
+function rowsToObjects(rows, keepKeys = null) {
   if (!rows || rows.length < 1) return [];
   const headers = rows[0].map(h => (h || '').toString().trim());
+  // [header, column index] pairs to copy
+  const cols = [];
+  headers.forEach((header, i) => {
+    if (header && (!keepKeys || keepKeys.has(header.toUpperCase()))) cols.push([header, i]);
+  });
   return rows.slice(1).map(row => {
     const obj = {};
-    headers.forEach((header, i) => {
-      if (header) {
-        obj[header] = row[i] !== undefined ? row[i] : null;
-      }
-    });
+    for (const [header, i] of cols) {
+      obj[header] = row[i] !== undefined ? row[i] : null;
+    }
     // Normalize commonly used fields with fallback indexes
     if (!obj['STATUS']) obj['STATUS'] = row[colToIdx('BG')] || null;
     if (!obj['GROUP']) obj['GROUP'] = row[colToIdx('S')] || null;
@@ -607,7 +625,7 @@ async function fetchData(isForced = false) {
       return g === 'LARGECAP' || g === 'MIDCAP' || g === 'INDEX' || g === 'ETF' || g === 'SMALLCAP';
     });
 
-    lasaMasterData = rowsToObjects(filteredRows);
+    lasaMasterData = rowsToObjects(filteredRows, LASA_MASTER_KEYS);
     console.log(`Total rows kept (LARGECAP/MIDCAP/INDEX): ${lasaMasterData.length} (from ${rawValues.length} total)`);
 
     // Explicitly nullify large raw arrays to free memory
