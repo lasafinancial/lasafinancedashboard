@@ -28,6 +28,10 @@ const HEADERS = {
   dailyRsi: ['DAILY_RSI'],
 };
 
+// Debt instruments aren't shown: liquid ETFs, gilt / G-Sec ETFs and government bonds (IDs ending -GS),
+// matched on the symbol or the stock name
+const EXCLUDE = /LIQUID|GILT|G-?SEC|-GS\b/i;
+
 let cached = null;
 let cachedDayKey = null; // IST date the cached copy was read on
 let inFlight = null;
@@ -77,6 +81,7 @@ export function buildAccumulationV2(values) {
     list.sort((a, b) => (str(get(a, 'date')) < str(get(b, 'date')) ? -1 : 1));
     const latest = list[list.length - 1];
     if (str(get(latest, 'date')) !== latestDate || !qualifies(latest)) continue;
+    if (EXCLUDE.test(`${id} ${str(get(latest, 'name'))}`)) continue;
     const prev = list.length > 1 ? list[list.length - 2] : null;
 
     const close = num(get(latest, 'close'));
