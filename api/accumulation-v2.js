@@ -15,6 +15,7 @@ const RANGE = "'Observation'!A:Z";
 const HEADERS = {
   date: ['WEEK_ENDING', 'DATE'],
   id: ['ID'],
+  name: ['STOCK_NAME'],
   inFno: ['IN_FNO'],
   close: ['CLOSE'],
   slope: ['OBV_SLOPE_NORM'],
@@ -30,6 +31,8 @@ const HEADERS = {
 let cached = null;
 let cachedDayKey = null; // IST date the cached copy was read on
 let inFlight = null;
+let lastIncompleteRead = 0; // when the last read looked partial (sheet mid-rewrite)
+const INCOMPLETE_RETRY_MS = 5 * 60 * 1000;
 
 const num = (v) => {
   const n = parseFloat((v ?? '').toString().replace(/,/g, ''));
@@ -83,6 +86,7 @@ export function buildAccumulationV2(values) {
 
     stocks.push({
       id,
+      name: str(get(latest, 'name')),
       inFno: str(get(latest, 'inFno')).toUpperCase() === 'YES',
       close,
       closeChangePct: close !== null && prevClose ? Number((((close - prevClose) / prevClose) * 100).toFixed(2)) : null,
@@ -102,8 +106,13 @@ export function buildAccumulationV2(values) {
   }
 
   stocks.sort((a, b) => a.id.localeCompare(b.id));
-  return { asOf: latestDate, period: col.period, dates, totalStocks: bySymbol.size, stocks };
+  return { asOf: latestDate, period: col.period, dates, totalStocks: bySymbol.size, rowCount: rows.length, stocks };
 }
+
+// The tab is rewritten one stock at a time from the top, so a read during a rewrite holds only
+// the first stocks (e.g. 81 of 431). Read twice a little apart: if the row count changed, the
+// sheet is still being written and the read is marked incomplete.
+const SETTLE_MS = 20 * 1000;
 
 async function readSheet() {
   const credentials = getGoogleCredentialsHelper();
@@ -112,8 +121,15 @@ async function readSheet() {
     scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
   });
   const sheets = google.sheets({ version: 'v4', auth });
-  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: RANGE });
-  return buildAccumulationV2(res.data.values);
+  const read = async () =>
+    buildAccumulationV2((await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: RANGE })).data.values);
+  const first = await read();
+  await new Promise((r) => setTimeout(r, SETTLE_MS));
+  const second = await read();
+  const settled = first.rowCount === second.rowCount;
+  // Fewer stocks than a copy already known to be good: treat as a partial read too
+  const shrunk = cached?.complete && second.totalStocks < cached.totalStocks * 0.9;
+  return { ...second, complete: settled && !shrunk };
 }
 
 export default async function handler(req, res) {
@@ -123,18 +139,25 @@ export default async function handler(req, res) {
   if (cached && cachedDayKey === istDayKey(now)) {
     return res.status(200).json(cached);
   }
+  // Last read was partial: serve it, but only re-read the sheet every few minutes
+  if (cached && now - lastIncompleteRead < INCOMPLETE_RETRY_MS) {
+    res.setHeader('Cache-Control', 'public, s-maxage=60');
+    return res.status(200).json(cached);
+  }
 
   try {
     if (!inFlight) {
       inFlight = readSheet()
         .then((data) => {
-          // Don't replace a full copy with a partial read (e.g. the sheet mid-rewrite)
-          const partial = cached && data.totalStocks < cached.totalStocks * 0.5;
-          if (partial) {
-            console.warn(`[accumulation-v2] Read has ${data.totalStocks} stocks vs ${cached.totalStocks} cached; keeping cached copy.`);
-          } else if (data.stocks.length > 0 || !cached) {
-            cached = { ...data, refreshedAt: new Date().toISOString() };
+          if (!data.complete) {
+            // Sheet mid-rewrite: don't keep it for the day; try again in a few minutes
+            console.warn(`[accumulation-v2] Partial read (${data.totalStocks} stocks, ${data.rowCount} rows); retrying in 5 min.`);
+            lastIncompleteRead = Date.now();
+            if (!cached || !cached.complete) cached = { ...data, refreshedAt: new Date().toISOString() };
+            return cached;
           }
+          lastIncompleteRead = 0;
+          cached = { ...data, refreshedAt: new Date().toISOString() };
           cachedDayKey = istDayKey(Date.now());
           return cached;
         })
@@ -142,7 +165,9 @@ export default async function handler(req, res) {
           inFlight = null;
         });
     }
-    return res.status(200).json(await inFlight);
+    const data = await inFlight;
+    if (!data.complete) res.setHeader('Cache-Control', 'public, s-maxage=60');
+    return res.status(200).json(data);
   } catch (error) {
     console.error('[accumulation-v2] Read failed:', error.message);
     if (cached) return res.status(200).json(cached);

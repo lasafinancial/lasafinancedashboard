@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 type SlopePoint = { date: string; value: number | null; close?: number | null };
 type StockV2 = {
     id: string;
+    name?: string;
     inFno: boolean;
     close: number | null;
     closeChangePct: number | null;
@@ -34,11 +35,11 @@ const SORT_OPTIONS: { field: SortField; label: string }[] = [
     { field: "close", label: "Close" },
 ];
 
-type FilterKey = "new" | "fno" | "trendUp" | "trendDown" | "nearEma";
+type FilterKey = "new" | "fno" | "etf" | "trendUp" | "trendDown" | "nearEma";
 // "Near" = close within this % of the weekly EMA 9 or EMA 20
 const NEAR_EMA_PCT = 2;
 const FILTER_GROUPS: { title: string; options: { key: FilterKey; label: string }[] }[] = [
-    { title: "Show", options: [{ key: "new", label: "New" }, { key: "fno", label: "F&O only" }] },
+    { title: "Show", options: [{ key: "new", label: "New" }, { key: "fno", label: "F&O only" }, { key: "etf", label: "ETF only" }] },
     { title: "Price slope trend", options: [{ key: "trendUp", label: "Increasing" }, { key: "trendDown", label: "Decreasing" }] },
     { title: "Weekly EMAs", options: [{ key: "nearEma", label: `Near EMA 9 / EMA 20 (within ${NEAR_EMA_PCT}%)` }] },
 ];
@@ -49,6 +50,8 @@ const isNear = (close: number | null, ema: number | null) =>
 const PREDICATES: Partial<Record<FilterKey, (s: StockV2) => boolean>> = {
     new: (s) => s.isNew,
     fno: (s) => s.inFno,
+    // Symbol or name contains BEES or ETF (e.g. GOLDBEES, or HDFCGOLD = "HDFC GOLD ETF")
+    etf: (s) => /BEES|ETF/i.test(`${s.id} ${s.name ?? ""}`),
     nearEma: (s) => isNear(s.close, s.ema9) || isNear(s.close, s.ema20),
 };
 
