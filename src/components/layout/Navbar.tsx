@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader2, Send, Filter, ChevronDown, Menu, MessageSquare, HelpCircle, TrendingUp, Newspaper, Info } from "lucide-react";
+import { Search, Grid3X3, BarChart3, Rocket, FlaskConical, Bell, BellOff, Loader2, Send, Filter, ChevronDown, Menu, MessageSquare, HelpCircle, TrendingUp, Newspaper, Info, Scale } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { InstallPWA } from "@/components/InstallPWA";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -398,7 +398,7 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
 
             <ThemeToggle />
 
-            {user && (
+            {/* Account menu: shown to everyone (Compliance lives here); account items only when signed in */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-auto px-2 flex items-center gap-2 hover:bg-white/5 group border border-white/5 rounded-xl">
@@ -419,15 +419,35 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
               <DropdownMenuContent className="w-56 mt-2 bg-background/95 backdrop-blur-xl border-white/10" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{userData?.name || "User"}</p>
-                    <p className="text-xs leading-none text-muted-foreground truncate max-w-[180px]">
-                      {user?.email || user?.phoneNumber || "No contact info"}
-                    </p>
-                    <p className="text-[10px] leading-none text-muted-foreground uppercase tracking-tight pt-0.5">
-                      {isElite ? 'Elite Member' : isPro ? 'Pro Member' : 'Free Tier'}
-                    </p>
+                    <p className="text-sm font-medium leading-none">{user ? (userData?.name || "User") : "Guest"}</p>
+                    {user && (
+                      <>
+                        <p className="text-xs leading-none text-muted-foreground truncate max-w-[180px]">
+                          {user?.email || user?.phoneNumber || "No contact info"}
+                        </p>
+                        <p className="text-[10px] leading-none text-muted-foreground uppercase tracking-tight pt-0.5">
+                          {isElite ? 'Elite Member' : isPro ? 'Pro Member' : 'Free Tier'}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-white/10" />
+                <Link to="/sebi-compliance">
+                  <DropdownMenuItem className="focus:bg-primary/10 cursor-pointer py-2.5">
+                    <Scale className="mr-2 h-4 w-4" />
+                    <span>Compliance</span>
+                  </DropdownMenuItem>
+                </Link>
+                {!user && (
+                  <Link to="/login">
+                    <DropdownMenuItem className="focus:bg-primary/10 cursor-pointer py-2.5">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Login</span>
+                    </DropdownMenuItem>
+                  </Link>
+                )}
+                {user && (<>
                 <DropdownMenuSeparator className="bg-white/10" />
                 <Link to="/pricing">
                   <DropdownMenuItem className="focus:bg-primary/10 cursor-pointer py-2.5">
@@ -459,9 +479,9 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
                 </DropdownMenuItem>
+                </>)}
               </DropdownMenuContent>
             </DropdownMenu>
-            )}
           </div>
 
           {/* Mobile Right Actions (Top Row) */}
@@ -538,6 +558,14 @@ const Navbar = ({ selectedCountry, onCountryChange }: NavbarProps) => {
                       >
                         <Crown className="h-3.5 w-3.5 text-amber-400" />
                         <span>Packages</span>
+                      </Link>
+                      <Link
+                        to="/sebi-compliance"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-semibold text-white transition-all"
+                      >
+                        <Scale className="h-3.5 w-3.5 text-primary" />
+                        <span>Compliance</span>
                       </Link>
                     </div>
                   </div>

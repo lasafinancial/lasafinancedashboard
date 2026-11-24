@@ -2,7 +2,7 @@ import { ShieldAlert, Info, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 export function StickyFooter() {
     const isMobile = useIsMobile();
@@ -41,7 +41,16 @@ export function StickyFooter() {
                                 <ShieldAlert className="w-4 h-4 text-warning shrink-0" />
                             )}
                             <p className={`text-[10px] md:text-xs text-muted-foreground leading-tight ${isCollapsed ? 'truncate opacity-50' : ''}`}>
-                                Research services provided by Lasa Research Services (Analyst: Dheeraj Sogani), SEBI Registered Research Analyst - Regn. No. INH000030144 - BSE Enlistment No. 7513 Registered office: L1604, Ajnara Grand Heritage Sector 74, Noida, Uttar Pradesh, 201301. Scans, levels, projections and summaries on this platform are generated end-to-end by algorithmic and AI models under a documented methodology, reviewed and approved by Dheeraj Sogani, NISM-Series-XV certified, who remains responsible for this research. Holdings disclosures for individual securities are provided on each stock's research page. We and our clients may or may not have holdings in any of these stocks. Analyst certification: the views in these scans accurately reflect the output of the documented methodology, and no part of the analyst's compensation is linked to the specific views expressed. Investments in securities are subject to market risk. Registration and certification do not assure returns or performance. Past patterns do not guarantee future results. Terms &amp; MITC | Methodology | Grievances — Compliance Officer: Dheeraj Sogani, dheeraj_sogani@yahoo.com, 9555151691 | SEBI SCORES | Smart ODR
+                                Research services provided by Lasa Research Services (Analyst: Dheeraj Sogani), SEBI Registered Research Analyst - Regn. No. INH000030144 - BSE Enlistment No. 7513 Registered office: L1604, Ajnara Grand Heritage Sector 74, Noida, Uttar Pradesh, 201301. Scans, levels, projections and summaries on this platform are generated end-to-end by algorithmic and AI models under a documented methodology, reviewed and approved by Dheeraj Sogani, NISM-Series-XV certified, who remains responsible for this research. Holdings disclosures for individual securities are provided on each stock's research page. We and our clients may or may not have holdings in any of these stocks. Analyst certification: the views in these scans accurately reflect the output of the documented methodology, and no part of the analyst's compensation is linked to the specific views expressed. Investments in securities are subject to market risk. Registration and certification do not assure returns or performance. Past patterns do not guarantee future results.{" "}
+                                <Link to="/sebi-compliance#terms" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 hover:text-primary">Terms &amp; MITC</Link>
+                                {" | Methodology | "}
+                                <Link to="/sebi-compliance#escalation-matrix" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 hover:text-primary">Grievances</Link>
+                                {" — Compliance Officer: Dheeraj Sogani, dheeraj_sogani@yahoo.com, 9555151691 | "}
+                                <Link to="/sebi-compliance#investor-charter" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 hover:text-primary">Investor Charter</Link>
+                                {" | "}
+                                <a href="https://scores.sebi.gov.in" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 hover:text-primary">SEBI SCORES</a>
+                                {" | "}
+                                <a href="https://smartodr.in" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="underline underline-offset-2 hover:text-primary">Smart ODR</a>
                             </p>
                         </div>
                         {!isCollapsed && (
