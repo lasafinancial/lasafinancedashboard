@@ -34,10 +34,12 @@ export function Footer() {
                     {/* Bottom Links & Copyright */}
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground border-t border-white/5 pt-6">
                         <p>© {currentYear} LASA Research Services. All rights reserved.</p>
-                        <div className="flex items-center gap-6">
+                        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
                             <Link to="/about" className="hover:text-primary transition-colors">About</Link>
-                            <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
-                            <Link to="/sebi-compliance" className="hover:text-primary transition-colors">Privacy Policy</Link>
+                            <Link to="/sebi-compliance#terms" className="hover:text-primary transition-colors">Terms &amp; Conditions</Link>
+                            <Link to="/sebi-compliance#privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+                            <Link to="/sebi-compliance#refund" className="hover:text-primary transition-colors">Refund Policy</Link>
+                            <Link to="/sebi-compliance#investor-charter" className="hover:text-primary transition-colors">Investor Charter</Link>
                             <Link to="/sebi-compliance" className="hover:text-primary transition-colors">SEBI Compliance</Link>
                             <Link to="#" className="hover:text-primary transition-colors">Contact Support</Link>
                         </div>

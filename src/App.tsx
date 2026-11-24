@@ -37,7 +37,6 @@ import Backtests from "@/pages/Backtests";
 import Admin from "@/pages/Admin";
 import Help from "@/pages/Help";
 import Pricing from "@/pages/Pricing";
-import Terms from "@/pages/Terms";
 import SebiCompliance from "@/pages/SebiCompliance";
 import About from "@/pages/About";
 import NotFound from "./pages/NotFound";
@@ -239,7 +238,8 @@ const AppContent = () => {
             <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
             <Route path="/help" element={<ProtectedRoute allowAnonymous><Help /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute allowAnonymous><Pricing /></ProtectedRoute>} />
-            <Route path="/terms" element={<Terms />} />
+            {/* Terms & Conditions now live with the other policies */}
+            <Route path="/terms" element={<Navigate to="/sebi-compliance#terms" replace />} />
             <Route path="/sebi-compliance" element={<SebiCompliance />} />
             <Route path="/about" element={<About />} />
             <Route path="/preview/trade-bar" element={<TradeBarPreview />} />

@@ -488,7 +488,7 @@ const Login = () => {
                                                 />
                                                 <span className="text-sm text-foreground leading-snug">
                                                     I have read and agree to this disclaimer, the{' '}
-                                                    <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and{' '}
+                                                    <Link to="/sebi-compliance#terms" className="text-primary hover:underline">Terms &amp; Conditions</Link> and{' '}
                                                     <Link to="/sebi-compliance" className="text-primary hover:underline">Disclosures</Link>.
                                                 </span>
                                             </label>
