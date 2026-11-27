@@ -1588,6 +1588,21 @@ async function fetchData(isForced = false) {
       if (name && name !== id) currentDataById[name] = row;
     });
 
+    // The live 'current' sheet's CLOSE_PRICE is blank outside market hours (and sometimes mid-day),
+    // which showed every index stock at ₹0 and Bearish. Fall back to the last close.
+    const lastCloseById = new Map();
+    latestLasaData.forEach(r => {
+      const id = (r['ID'] || '').toString().trim().toUpperCase();
+      const cp = parseFloat((r['CLOSE_PRICE'] || '').toString().replace(/,/g, ''));
+      if (id && cp > 0) lastCloseById.set(id, cp);
+    });
+    const priceFor = (row) => {
+      const live = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+      if (live > 0) return live;
+      const id = (row['ID'] || '').toString().trim().toUpperCase();
+      return lastCloseById.get(id) || currentAllStocksPriceMap.get(id) || 0;
+    };
+
     if (useIndicesSheet) {
       // New approach: iterate over each index's known stock IDs and look them up in current data
       indexNames.forEach(indexName => {
@@ -1597,7 +1612,7 @@ async function fetchData(isForced = false) {
           const row = currentDataById[targetId];
           if (!row) return;
           const stockName = row['STOCK_NAME'] || stockIdUpper;
-          const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+          const closePrice = priceFor(row);
           const stockId = row['ID'] || stockName;
           const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
           const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
@@ -1619,7 +1634,7 @@ async function fetchData(isForced = false) {
       // Old fallback: column-flag approach
       stocksSource.forEach(row => {
         const stockName = row['STOCK_NAME'];
-        const closePrice = parseFloat((row['CLOSE_PRICE'] || '0').toString().replace(/,/g, '')) || 0;
+        const closePrice = priceFor(row);
         const stockId = row['ID'] || stockName;
         const upperRange = parseFloat((row['RESISTANCE'] || '0').toString().replace(/,/g, '')) || 0;
         const lowerRange = parseFloat((row['SUPPORT'] || '0').toString().replace(/,/g, '')) || 0;
